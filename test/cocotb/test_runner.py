@@ -7,7 +7,7 @@ def test_my_design_runner():
     sim = os.getenv("SIM", "icarus")
 
     proj_path = Path(__file__).resolve().parent
-    sources = [proj_path / "../src/my_design.v"]
+    sources = [proj_path / "../../src/my_design.v"]
 
     runner = get_runner(sim)
     runner.build(
