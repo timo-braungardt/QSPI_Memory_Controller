@@ -1,2 +1,2 @@
-# QSPI_Memory_Controller
-A Memory controller with an AXI-Interface for SPI, and PSRAM Devices.
+# QSPI Memory Controller
+A memory controller with an AXI-Interface for SPI, and PSRAM Devices.
