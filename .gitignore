@@ -5,3 +5,13 @@ sim_build/
 .vscode/
 test/memory_models/*
 !test/memory_models/info.md
+
+# vivado simulation files
+*.log
+*.pb
+*.dir/
+*.wdb
+*.vcd
+*.jou
+*.txt
+
