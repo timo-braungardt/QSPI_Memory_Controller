@@ -14,4 +14,4 @@ test/memory_models/*
 *.vcd
 *.jou
 *.txt
-
+test/testbenches/*.mem

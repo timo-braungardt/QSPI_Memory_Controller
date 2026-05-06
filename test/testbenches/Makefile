@@ -6,7 +6,10 @@ all: simulate
 sv_compile:
 	xvlog -sv $(SRC_PATH)/*
 
-elaborate: sv_compile
+prepare_mem:
+	cp ../memory_models/infineon-s25hl512t-qspi-verilog-model-simulationmodels-en/s25hl512tRel/s25hl512tOTP.mem .
+
+elaborate: sv_compile prepare_mem
 	xelab -debug typical -top $(TESTBENCH_NAME) -snapshot $(TESTBENCH_NAME)_snapshot
 
 simulate: elaborate
@@ -16,7 +19,6 @@ simulate_dump: elaborate
 	xsim $(TESTBENCH_NAME)_snapshot -tclbatch Makefile_cfg_xsim.tcl
 	xsim --gui $(TESTBENCH_NAME)_snapshot.wdb
 
-simulate: elaborate
 
 clean:
 	find . -type f ! -name 'Makefile*' -execdir rm {} +
