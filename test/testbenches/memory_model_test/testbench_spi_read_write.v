@@ -3,11 +3,11 @@
 
 module testbench_spi_read_write;
 
-    wire SlaveIn, SlaveOut, SlaveCLK, ChipSelectNeg, WriteEnableNeg, ResetNeg, io3_ResetNeg;
+    wire SerialIn, SerialOut, SerialCLK, ChipSelectNeg, WriteEnableNeg, ResetNeg, io3_ResetNeg;
 
-    s25hl512t DUT ( .SI(SlaveIn),
-                    .SO(SlaveOut),
-                    .SCK(SlaveCLK),
+    s25hl512t DUT ( .SI(SerialIn),
+                    .SO(SerialOut),
+                    .SCK(SerialCLK),
                     .CSNeg(ChipSelectNeg),
                     .WPNeg(WriteEnableNeg),
                     .RESETNeg(ResetNeg),
