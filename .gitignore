@@ -11,6 +11,7 @@ test/memory_models/*
 *.pb
 *.dir/
 *.wdb
+*.wcfg
 *.vcd
 *.jou
 *.txt
