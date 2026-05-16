@@ -25,6 +25,9 @@ module testbench_spi_read_write;
         forever #half_period clk <= ~clk;
     end
 
+
+    reg [7:0] opcode;
+
     initial begin
         ResetNeg        <= 1'b1;
         ChipSelectNeg   <= 1'b1;
@@ -39,9 +42,101 @@ module testbench_spi_read_write;
         ChipSelectNeg   <= 1'b0;
         #half_period;
         enSerialIn      <= 1'b1;
+        //#half_period;   // t chip select
+        enClk <= 1'b1;
+
+
+        // ==== write ====
+        // send write enable command 0x06
+        opcode = 8'h06;
+        for (int i = 0; i < 8; i = i + 1) begin
+            SerialIn <= opcode[7-i];
+            #period;
+        end
+        SerialIn <= 1'b0;
+        enClk <= 1'b0;
+
+        #half_period;
+        ChipSelectNeg   <= 1'b1;
+        #half_period;
+        enSerialIn      <= 1'b0;
+        #half_period;
+
+        #half_period;
+        ChipSelectNeg   <= 1'b0;
+        #half_period;
+        enSerialIn      <= 1'b1;
+        #half_period;
+        enClk <= 1'b1;
+
+        // write 256 bit with command 0x02
+        opcode = 8'h02;
+        for (int i = 0; i < 8; i = i + 1) begin
+            SerialIn <= opcode[7-i];
+            #period;
+        end
+
+        // address, 3 byte
+        for (int i = 0; i < 8*3; i = i + 1) begin
+            SerialIn <= 1'b0;
+            #period;
+        end
+
+        // data, 256 byte
+        for (int add = 0; add < 256; add = add + 1) begin
+            for (int i = 0; i < 8; i = i + 1) begin
+                SerialIn <= add[7-i];
+                #period;
+            end
+        end
+        enClk <= 1'b0;
+
+        #half_period;
+        ChipSelectNeg   <= 1'b1;
+        #half_period;
+        enSerialIn      <= 1'b0;
+        #half_period;
+
+        // wait a bit
+        #100ns; // t_CS for program or erase
+        // where did i find that parameter? probably not needed
+
+
+        // disable edit mode
+        #half_period;
+        ChipSelectNeg   <= 1'b0;
+        #half_period;
+        enSerialIn      <= 1'b1;
         #half_period;   // t chip select
         enClk <= 1'b1;
 
+        opcode = 8'h04;
+        for (int i = 0; i < 8; i = i + 1) begin
+            SerialIn <= opcode[7-i];
+            #period;
+        end
+        SerialIn <= 1'b0;
+        enClk <= 1'b0;
+
+        #half_period;
+        ChipSelectNeg   <= 1'b1;
+        #half_period;
+        enSerialIn      <= 1'b0;
+        #half_period;
+
+        #1700us // t Page Program Operation
+
+
+        // read data and verify
+        #half_period;
+        ChipSelectNeg   <= 1'b0;
+        enSerialIn      <= 1'b1;
+        SerialIn        <= 1'b0;
+        #half_period;
+        //#half_period;   // t chip select
+        enClk <= 1'b1;
+        
+        // ==== read ====
         // sending the opcode 03
         #(period * 5) //6*5;
         SerialIn <= 1'b1;

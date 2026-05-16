@@ -8,6 +8,7 @@ sv_compile:
 
 prepare_mem:
 	cp ../memory_models/infineon-s25hl512t-qspi-verilog-model-simulationmodels-en/s25hl512tRel/s25hl512tOTP.mem .
+	cp ../memory_models/infineon-s25hl512t-qspi-verilog-model-simulationmodels-en/s25hl512tRel/s25hl512t.mem .
 
 elaborate: sv_compile prepare_mem
 	xelab -debug typical -top $(TESTBENCH_NAME) -snapshot $(TESTBENCH_NAME)_snapshot
