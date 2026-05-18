@@ -45,7 +45,7 @@ initial begin : setup_registers
 end
 
 integer count = 0;
-always @(posedge clk) begin : sm_logic
+always @(negedge clk) begin : sm_logic
     case (state)
         idle : begin
             o_ChipSelect <= 1'b0;
@@ -55,15 +55,8 @@ always @(posedge clk) begin : sm_logic
 
         cl_low : begin
             o_ChipSelect <= 1'b1;
-            state <= send_opcode_first_bit;
             count <= 7;
-        end
-
-        send_opcode_first_bit : begin
             enSerialOut <= 1'b1;
-
-            SerialOut <= opcode[count];
-            count <= count -1;
             state <= send_opcode;
         end
 
@@ -73,14 +66,9 @@ always @(posedge clk) begin : sm_logic
             SerialOut <= opcode[count];
             count <= count -1;
             if (count == 0) begin
-                count <= 0; // otherwise underflow - can this be synthesised elegantly?
-                state <= send_opcode_last_bit;
+                count <= 23; // otherwise underflow - can this be synthesised elegantly?
+                state <= send_address;
             end
-        end
-
-        send_opcode_last_bit : begin
-            state <= send_address;
-            count <= 23;
         end
 
         send_address : begin
