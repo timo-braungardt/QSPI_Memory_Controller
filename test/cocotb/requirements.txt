@@ -1,2 +1,3 @@
-cocotb~=2.0
 pytest
+cocotb~=2.0
+git+https://github.com/schang412/cocotbext-spi.git
