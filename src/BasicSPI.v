@@ -43,6 +43,7 @@ initial begin : setup_registers
     address     <= 0;
     enClk       <= 0;
     enSerialOut <= 0;
+    SerialOut   <= 0;
     state       <= 0;
     o_ChipSelect_neg <= 1'b1;
 end
@@ -79,13 +80,18 @@ always @(negedge clk) begin : sm_logic
             count <= count -1;
 
             if (count == 0) begin
-                count <= 0; // otherwise underflow - can this be synthesised elegantly?
+                count <= 31;
                 state <= recieve_data;
             end
         end
 
         recieve_data : begin
-            state <= recieve_data;
+            count <= count -1;
+            if (count == 0) begin
+                count <= 0; // otherwise underflow - can this be synthesised elegantly?
+                state <= idle;
+                o_ChipSelect_neg <= 1'b1;
+            end
         end 
 
         default : 

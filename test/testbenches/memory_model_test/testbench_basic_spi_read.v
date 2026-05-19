@@ -37,6 +37,14 @@ module testbench_basic_spi_read;
         DUT.address <= 24'h010203;
         #500us;
         go <= 1'b1;
-        #(period * 100) $finish;
+        #(period * 34) 
+        if(DUT.io_ManagerSerialIn !== 1'bZ) $fatal(1,"Data is wrong! Expected %h got %h", DUT.io_ManagerSerialIn, 1'bZ);
+        #(period * 1) 
+        if(DUT.io_ManagerSerialIn !== 1'b1) $fatal(1,"Data is wrong! Expected %h got %h", DUT.io_ManagerSerialIn, 1'b1);
+        #(period * 32) 
+        if(DUT.io_ManagerSerialIn !== 1'bZ) $fatal(1,"Data is wrong! Expected %h got %h", DUT.io_ManagerSerialIn, 1'bZ);
+
+        $display("OK");
+        $finish;
     end
 endmodule
