@@ -13,6 +13,7 @@ def test_my_design_runner():
     runner.build(
         sources=sources,
         hdl_toplevel="my_design",
+        always=True
     )
 
     runner.test(hdl_toplevel="my_design", test_module="test_my_design,")
