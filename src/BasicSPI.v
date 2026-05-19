@@ -1,3 +1,5 @@
+`timescale 1ns/100ps
+
 module BasicSPI (
     input clk,
     input go,
