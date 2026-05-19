@@ -1,6 +1,6 @@
 // path to the infineon memory model
 `include "../../memory_models/infineon-s25hl512t-qspi-verilog-model-simulationmodels-en/s25hl512tRel/src/s25hl512t.sv"
-`include "../../../src/basic_spi.v"
+`include "../../../src/BasicSPI.v"
 
 module testbench_basic_spi_read;
     parameter half_period = 10ns;
@@ -13,7 +13,7 @@ module testbench_basic_spi_read;
         .clk(clk),
         .go(go),
         .o_SpiClk(SerialClk),
-        .o_ChipSelect(ChipSelect),
+        .o_ChipSelect_neg(ChipSelect),
         .io_ManagerSerialIn(SerialOut),
         .io_ManagerSerialOut(SerialIn)
         );
@@ -22,7 +22,7 @@ module testbench_basic_spi_read;
         .SI(SerialIn),
         .SO(SerialOut),
         .SCK(SerialClk),
-        .CSNeg(~ChipSelect),
+        .CSNeg(ChipSelect),
         .RESETNeg(1'b1)
         );
     

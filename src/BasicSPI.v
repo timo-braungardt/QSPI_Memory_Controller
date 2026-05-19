@@ -6,7 +6,7 @@ module BasicSPI (
     
     // SPI Pins
     output o_SpiClk,
-    output reg o_ChipSelect,
+    output reg o_ChipSelect_neg,
     output o_Reset,
     inout io_ManagerSerialIn,
     inout io_ManagerSerialOut
@@ -44,19 +44,20 @@ initial begin : setup_registers
     enClk       <= 0;
     enSerialOut <= 0;
     state       <= 0;
+    o_ChipSelect_neg <= 1'b1;
 end
 
 integer count = 0;
 always @(negedge clk) begin : sm_logic
     case (state)
         idle : begin
-            o_ChipSelect <= 1'b0;
+            o_ChipSelect_neg <= 1'b1;
             enClk <= 1'b0;
             if (go) state <= cl_low;
         end
 
         cl_low : begin
-            o_ChipSelect <= 1'b1;
+            o_ChipSelect_neg <= 1'b0;
             count <= 7;
             enSerialOut <= 1'b1;
             state <= send_opcode;
