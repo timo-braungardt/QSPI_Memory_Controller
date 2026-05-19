@@ -1,42 +1,78 @@
+import os
+from pathlib import Path
 import cocotb
+from cocotb_tools.runner import get_runner
 from cocotb.triggers import Timer
+from cocotb.clock import Clock
 from cocotbext.spi import SpiSlaveBase, SpiBus, SpiConfig
+
 
 class SimpleSpiSubordinate(SpiSlaveBase):
     def __init__(self, bus):
         self._config = SpiConfig()
-        self.content = 0
+        self.opcode = 0
+        self.address = 0
         super().__init__(bus)
 
     async def get_content(self):
         await self.idle.wait()
-        return self.content
+        return self.opcode, self.address
 
     async def _transaction(self, frame_start, frame_end):
         await frame_start
         self.idle.clear()
-
-        self.content = int(await self._shift(16, tx_word=(0xAAAA)))
-
+        self.opcode = int(await self._shift(8, tx_word=(0x00)))
+        self.address = int(await self._shift(24, tx_word=(0x888888)))
         await frame_end
-
-
-async def generate_clock(dut):
-    for _ in range(1):
-        dut.clk.value = 0
-        await Timer(1, unit="ns")
-        dut.clk.value = 1
-        await Timer(1, unit="ns")
 
 
 @cocotb.test()
 async def my_first_test(dut):
-    cocotb.start_soon(generate_clock(dut))
+    spi_subordinate = SimpleSpiSubordinate(
+                    SpiBus(
+                        entity=dut, 
+                        sclk_name='o_SpiClk', 
+                        mosi_name='io_ManagerSerialOut', 
+                        miso_name='io_ManagerSerialIn', 
+                        cs_name='o_ChipSelect_neg')
+                    )
+    
+    dut.opcode.value = 5
+    dut.address.value = 20
+
+    c = Clock(dut.clk  , 20, 'ns')
+    cocotb.start_soon(c.start())
 
     dut.go.value = 0
-    spi_slave = SimpleSpiSubordinate(SpiBus(entity=dut, sclk_name='o_SpiClk', mosi_name='io_ManagerSerialOut', miso_name='io_ManagerSerialIn', cs_name='o_ChipSelect'))
+    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
+    dut.go.value = 1
+    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
+    dut.go.value = 0
+    await cocotb.triggers.ClockCycles(dut.clk, 100, rising=True)
+    [opcode, address] = await spi_subordinate.get_content()
+    assert opcode == 5
+    assert address == 20
 
 
-    await Timer(2, unit="ns")
-    cocotb.log.info("signal is %s", dut.o_SpiClk.value)
-    assert dut.o_SpiClk.value == 0
+def test_basic_spi():
+    """
+    Test if the basics of the SPI protocoll are implemented correctly.
+    """
+    sim = os.getenv("SIM", "icarus")
+    proj_path = Path(__file__).resolve().parent
+    sources = [proj_path / "../../src/BasicSPI.v"]
+
+    runner = get_runner(sim)
+    runner.build(
+        sources=sources,
+        hdl_toplevel="BasicSPI",
+        always=True,
+        waves=True
+    )
+    runner.test(hdl_toplevel="BasicSPI", 
+				test_module="test_basic_spi",
+                waves=True)
+
+
+if __name__ == "__main__":
+    test_basic_spi()
