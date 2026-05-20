@@ -27,6 +27,7 @@ module testbench_spi_read_write;
 
 
     reg [7:0] opcode;
+    reg [23:0] address;
 
     initial begin
         ResetNeg        <= 1'b1;
@@ -77,8 +78,9 @@ module testbench_spi_read_write;
         end
 
         // address, 3 byte
+        address = 24'h002;
         for (int i = 0; i < 8*3; i = i + 1) begin
-            SerialIn <= 1'b0;
+            SerialIn <= address[23-i];
             #period;
         end
 
