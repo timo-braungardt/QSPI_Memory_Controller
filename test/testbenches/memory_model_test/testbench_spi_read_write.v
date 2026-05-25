@@ -139,15 +139,19 @@ module testbench_spi_read_write;
         enClk <= 1'b1;
         
         // ==== read ====
-        // sending the opcode 03
-        #(period * 5) //6*5;
-        SerialIn <= 1'b1;
-        #(period * 2) //6*2;
-        SerialIn <= 1'b0;
+        //opcode = 8'h03;
+        opcode = 8'h6B; // read 1-1-4
+        for (int i = 0; i < 8; i = i + 1) begin
+            SerialIn <= opcode[7-i];
+            #period;
+        end
 
-        // sending the address 0
-        #(period * 25) // 24 bits (??);
-        enSerialIn      <= 1'b0;
+        // address, 3 byte
+        address = 24'h000;
+        for (int i = 0; i < 8*3; i = i + 1) begin
+            SerialIn <= address[23-i];
+            #period;
+        end
 
         // shift the data out
         #(period * 100) //6*24;
