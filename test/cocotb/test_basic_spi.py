@@ -56,7 +56,7 @@ async def my_first_test(dut):
 
 def test_basic_spi():
     """
-    Test if the basics of the SPI protocoll are implemented correctly.
+    Test if the basics of the SPI protocol are implemented correctly.
     """
     sim = os.getenv("SIM", "icarus")
     proj_path = Path(__file__).resolve().parent
