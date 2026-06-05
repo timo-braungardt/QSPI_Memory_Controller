@@ -5,7 +5,7 @@ module BasicSPI (
     input go,
     
     // SPI Pins
-    output o_SpiClk,
+    output reg o_SpiClk,
     output reg o_ChipSelect_neg,
     output o_Reset,
     inout io_ManagerSerialIn,
@@ -13,12 +13,11 @@ module BasicSPI (
 );
 
 // Pin tristate stuff
-reg  enClk;
+wire enClk;
 reg  enSerialOut;
 reg  SerialOut;
 wire SerialIn;
 
-assign o_SpiClk =            (enClk)        ? clk       : 1'b0;
 assign io_ManagerSerialOut = (enSerialOut)  ? SerialOut : 1'bZ;
 assign SerialIn =            io_ManagerSerialIn;
 
@@ -47,11 +46,11 @@ parameter integer recieve_data  = 4;
 initial begin : setup_registers
     opcode      <= 0;
     address     <= 0;
-    enClk       <= 0;
     enSerialOut <= 0;
     SerialOut   <= 0;
     state       <= 0;
     o_ChipSelect_neg <= 1'b1;
+    o_SpiClk    <= 1'b0;
 
     // the default case is reading from an address.
     write_address   <= 1;
@@ -60,12 +59,20 @@ initial begin : setup_registers
     num_bits        <= 31;
 end
 
+assign enClk = (state != idle && state != cl_low)? 1'b1 : 1'b0;
+always @(posedge clk) begin: spi_clock
+    if (enClk)
+        o_SpiClk <= ~o_SpiClk;
+    else
+        o_SpiClk <= 1'b0;
+end
+
+
 integer count = 0;
-always @(negedge clk) begin : sm_logic
+always @(posedge clk) begin : sm_logic
     case (state)
         idle : begin
             o_ChipSelect_neg <= 1'b1;
-            enClk <= 1'b0;
             if (go) state <= cl_low;
         end
 
@@ -77,8 +84,6 @@ always @(negedge clk) begin : sm_logic
         end
 
         send_opcode : begin
-            enClk <= 1'b1;
-
             SerialOut <= opcode[count];
             count <= count -1;
             if (count == 0) begin
@@ -114,7 +119,6 @@ always @(negedge clk) begin : sm_logic
             if (count == 0) begin
                 count <= 0; // otherwise underflow - can this be synthesised elegantly?
                 state <= idle;
-                enClk <= 1'b0;
             end
         end
 
@@ -127,7 +131,6 @@ always @(negedge clk) begin : sm_logic
             if (count == 0) begin
                 count <= 0; // otherwise underflow - can this be synthesised elegantly?
                 state <= idle;
-                enClk <= 1'b0;
             end
         end 
 
