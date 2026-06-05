@@ -99,7 +99,8 @@ always @(negedge clk) begin : sm_logic
 
             if (count == 3) begin
                 count <= 31;
-                state <= recieve_data;
+                //state <= recieve_data;
+                state <= idle;
             end
         end
 
