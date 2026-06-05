@@ -78,7 +78,7 @@ async def read_test(dut):
     dut.write_address.value = 0b1
     dut.write_data.value = 0b0
     dut.read_data.value = 0b1
-    dut.num_bits.value = 33  # has to be +2 because we sample on the next edge, not on the "sending" edge!
+    dut.num_bits.value = 66  # has to be +2 because we sample on the next edge, not on the "sending" edge!
     # ToDo: the DUT is not sampling on the positive clock edge but the negative - fix!
 
     c = Clock(dut.clk  , 20, 'ns')

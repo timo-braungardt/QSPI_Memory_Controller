@@ -78,16 +78,16 @@ always @(posedge clk) begin : sm_logic
 
         cl_low : begin
             o_ChipSelect_neg <= 1'b0;
-            count <= 7;
+            count <= 14;                // we have to write 8 bit in 16 clock edges - by setting this to one lower, the data changes on the negative clock edge
             enSerialOut <= 1'b1;
             state <= send_opcode;
         end
 
         send_opcode : begin
-            SerialOut <= opcode[count];
+            SerialOut <= opcode[count[31:1]];
             count <= count -1;
             if (count == 0) begin
-                count <= 23; // otherwise underflow - can this be synthesised elegantly?
+                count <= 46; // otherwise underflow - can this be synthesised elegantly?
                 if (write_address)
                     state <= send_address;
                 else if (write_data)
@@ -98,7 +98,7 @@ always @(posedge clk) begin : sm_logic
         end
 
         send_address : begin
-            SerialOut <= address[count];
+            SerialOut <= address[count[31:1]];
             count <= count -1;
 
             if (count == 0) begin
@@ -114,7 +114,7 @@ always @(posedge clk) begin : sm_logic
         recieve_data : begin
             count <= count -1;
 
-            buffer[count[6:3]][count[2:0]] <= SerialIn;    // reads into the higher bytes first
+            buffer[count[7:4]][count[3:1]] <= SerialIn;    // reads into the higher bytes first
 
             if (count == 0) begin
                 count <= 0; // otherwise underflow - can this be synthesised elegantly?

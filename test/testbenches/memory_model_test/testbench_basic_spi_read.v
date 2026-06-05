@@ -5,6 +5,7 @@
 module testbench_basic_spi_read;
     parameter half_period = 10ns;
     parameter period = half_period * 2;
+    parameter spi_period = period * 2;
 
     reg clk, go;
     wire SerialIn, SerialOut, SerialClk, ChipSelect;
@@ -37,11 +38,11 @@ module testbench_basic_spi_read;
         DUT.address <= 24'h010203;
         #500us;
         go <= 1'b1;
-        #(period * 34) 
+        #(spi_period * 32) 
         if(DUT.io_ManagerSerialIn !== 1'bZ) $fatal(1,"Data is wrong! Expected %h got %h", DUT.io_ManagerSerialIn, 1'bZ);
-        #(period * 1) 
+        #(spi_period * 1) 
         if(DUT.io_ManagerSerialIn !== 1'b1) $fatal(1,"Data is wrong! Expected %h got %h", DUT.io_ManagerSerialIn, 1'b1);
-        #(period * 32) 
+        #(spi_period * 32) 
         if(DUT.io_ManagerSerialIn !== 1'bZ) $fatal(1,"Data is wrong! Expected %h got %h", DUT.io_ManagerSerialIn, 1'bZ);
 
         $display("OK");
