@@ -73,6 +73,7 @@ always @(posedge clk) begin : sm_logic
     case (state)
         idle : begin
             o_ChipSelect_neg <= 1'b1;
+            enSerialOut <= 1'b0;
             if (go) state <= cl_low;
         end
 
@@ -80,6 +81,7 @@ always @(posedge clk) begin : sm_logic
             o_ChipSelect_neg <= 1'b0;
             count <= 14;                // we have to write 8 bit in 16 clock edges - by setting this to one lower, the data changes on the negative clock edge
             enSerialOut <= 1'b1;
+            SerialOut <= opcode[7];     // this is a bit shitty - but otherwise the old last sent value is sent out
             state <= send_opcode;
         end
 
@@ -87,7 +89,7 @@ always @(posedge clk) begin : sm_logic
             SerialOut <= opcode[count[31:1]];
             count <= count -1;
             if (count == 0) begin
-                count <= 46; // otherwise underflow - can this be synthesised elegantly?
+                count <= 47;
                 if (write_address)
                     state <= send_address;
                 else if (write_data)
@@ -110,11 +112,16 @@ always @(posedge clk) begin : sm_logic
             end
         end
 
-        // ToDo: the address has to be taken into account
+
         recieve_data : begin
             count <= count -1;
-
-            buffer[count[7:4]][count[3:1]] <= SerialIn;    // reads into the higher bytes first
+            
+            // if the clock was 0, then now it is 1
+            // so we sample on the positive clock edge
+            if (~o_SpiClk) begin
+                buffer[count[7:4]][count[3:1]] <= SerialIn;    // ToDo: reads into the higher bytes first
+                SerialOut <= SerialIn;
+            end
 
             if (count == 0) begin
                 count <= 0; // otherwise underflow - can this be synthesised elegantly?
@@ -122,11 +129,11 @@ always @(posedge clk) begin : sm_logic
             end
         end
 
-        // ToDo: the address has to be taken into account
+        // ToDo: check if the write works correctly
         send_data : begin
             count <= count -1;
 
-            SerialOut <= buffer[count[6:3]][count[2:0]];   // writes the higher bytes first
+            SerialOut <= buffer[count[6:3]][count[2:0]];   // ToDo: writes the higher bytes first
 
             if (count == 0) begin
                 count <= 0; // otherwise underflow - can this be synthesised elegantly?

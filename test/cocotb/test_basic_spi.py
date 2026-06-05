@@ -22,7 +22,7 @@ class SimpleSpiSubordinate(SpiSlaveBase):
         await frame_start
         self.idle.clear()
         self.opcode = int(await self._shift(8, tx_word=(0x00)))
-        self.address = int(await self._shift(24, tx_word=(0x888888)))
+        self.address = int(await self._shift(24, tx_word=(0x000000)))
 
         # Manager ordered a read
         if self.opcode == 0x03:
@@ -44,7 +44,7 @@ async def transmission_test(dut):
                     )
     
     dut.opcode.value = 5
-    dut.address.value = 20
+    dut.address.value = 0x800001
 
     c = Clock(dut.clk  , 20, 'ns')
     cocotb.start_soon(c.start())
@@ -54,10 +54,10 @@ async def transmission_test(dut):
     dut.go.value = 1
     await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 100, rising=True)
+    await cocotb.triggers.ClockCycles(dut.clk, (32*4+4), rising=True)
     [opcode, address] = await spi_subordinate.get_content()
     assert opcode == 5
-    assert address == 20
+    assert address == 0x800001
 
 
 @cocotb.test()
@@ -89,7 +89,7 @@ async def read_test(dut):
     dut.go.value = 1
     await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 100, rising=True)
+    await cocotb.triggers.ClockCycles(dut.clk, (32*4+4), rising=True)
     [opcode, address] = await spi_subordinate.get_content()
 
     assert opcode == 3
