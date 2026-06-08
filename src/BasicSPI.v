@@ -69,6 +69,7 @@ end
 
 
 integer count = 0;
+integer buffer_count = 0;
 always @(posedge clk) begin : sm_logic
     case (state)
         idle : begin
@@ -105,6 +106,7 @@ always @(posedge clk) begin : sm_logic
 
             if (count == 0) begin
                 count <= num_bits;
+                buffer_count <= 0;
                 if (write_data)
                     state <= send_data;
                 else
@@ -115,11 +117,12 @@ always @(posedge clk) begin : sm_logic
 
         recieve_data : begin
             count <= count -1;
+            buffer_count <= buffer_count +1;
             
             // if the clock was 0, then now it is 1
             // so we sample on the positive clock edge
             if (~o_SpiClk) begin
-                buffer[count[7:4]][count[3:1]] <= SerialIn;    // ToDo: reads into the higher bytes first
+                buffer[buffer_count[7:4]][count[3:1]] <= SerialIn;
                 SerialOut <= SerialIn;
             end
 
@@ -132,8 +135,9 @@ always @(posedge clk) begin : sm_logic
         // ToDo: check if the write works correctly
         send_data : begin
             count <= count -1;
+            buffer_count <= buffer_count +1;
 
-            SerialOut <= buffer[count[6:3]][count[2:0]];   // ToDo: writes the higher bytes first
+            SerialOut <= buffer[buffer_count[6:3]][count[2:0]];
 
             if (count == 0) begin
                 count <= 0; // otherwise underflow - can this be synthesised elegantly?
