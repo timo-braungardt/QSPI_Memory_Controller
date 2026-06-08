@@ -132,12 +132,11 @@ always @(posedge clk) begin : sm_logic
             end
         end
 
-        // ToDo: check if the write works correctly
+
         send_data : begin
             count <= count -1;
             buffer_count <= buffer_count +1;
-
-            SerialOut <= buffer[buffer_count[6:3]][count[2:0]];
+            SerialOut <= buffer[buffer_count[7:4]][count[3:1]];
 
             if (count == 0) begin
                 count <= 0; // otherwise underflow - can this be synthesised elegantly?
