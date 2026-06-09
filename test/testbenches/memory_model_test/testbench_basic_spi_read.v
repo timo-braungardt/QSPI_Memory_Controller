@@ -39,11 +39,11 @@ module testbench_basic_spi_read;
         #500us;
         go <= 1'b1;
         #(spi_period * 32) 
-        if(DUT.io_ManagerSerialIn !== 1'bZ) $fatal(1,"Data is wrong! Expected %h got %h", DUT.io_ManagerSerialIn, 1'bZ);
+        if(DUT.io_ManagerSerialIn !== 1'bZ) $fatal(1,"Data is wrong! Expected %h got %h", 1'bZ, DUT.io_ManagerSerialIn);
         #(spi_period * 1) 
-        if(DUT.io_ManagerSerialIn !== 1'b1) $fatal(1,"Data is wrong! Expected %h got %h", DUT.io_ManagerSerialIn, 1'b1);
+        if(DUT.io_ManagerSerialIn !== 1'b1) $fatal(1,"Data is wrong! Expected %h got %h", 1'b1, DUT.io_ManagerSerialIn);
         #(spi_period * 32) 
-        if(DUT.io_ManagerSerialIn !== 1'bZ) $fatal(1,"Data is wrong! Expected %h got %h", DUT.io_ManagerSerialIn, 1'bZ);
+        if(DUT.io_ManagerSerialIn !== 1'bZ) $fatal(1,"Data is wrong! Expected %h got %h", 1'bZ, DUT.io_ManagerSerialIn);
 
         $display("OK");
         $finish;
