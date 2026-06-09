@@ -109,8 +109,10 @@ always @(posedge clk) begin : sm_logic
                 buffer_count <= 0;
                 if (write_data)
                     state <= send_data;
-                else
+                else if(read_data)
                     state <= recieve_data;
+                else
+                    state <= idle;
             end
         end
 
