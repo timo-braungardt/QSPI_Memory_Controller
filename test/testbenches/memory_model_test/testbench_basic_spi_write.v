@@ -36,7 +36,8 @@ module testbench_basic_spi_write;
     parameter OPCODE_WRITE_ENABLE   = 8'h06;
     parameter OPCODE_WRITE_DISABLE  = 8'h04;
     parameter OPCODE_PROGRAM        = 8'h02;
-    parameter OPCODE_ERASE          = 8'hD8;
+    parameter OPCODE_ERASE_4KB      = 8'h20;
+    parameter OPCODE_ERASE_256B     = 8'hD8;
     parameter OPCODE_READ           = 8'h03;
 
     initial begin
@@ -44,7 +45,7 @@ module testbench_basic_spi_write;
         #500us;
 
         DUT.opcode  = OPCODE_WRITE_ENABLE;
-        DUT.address = 24'h100000;
+        DUT.address = 24'h000000;
         DUT.write_address   = 1'b0;
         DUT.write_data      = 1'b0;
         DUT.read_data       = 1'b0;
@@ -53,8 +54,8 @@ module testbench_basic_spi_write;
         go <= 1'b0;
         #(spi_period * 9)
 
-        DUT.opcode  = OPCODE_ERASE;
-        DUT.address = 24'h100000;
+        DUT.opcode  = OPCODE_ERASE_4KB;
+        DUT.address = 24'h000000;
         DUT.write_address   = 1'b1;
         DUT.write_data      = 1'b0;
         DUT.read_data       = 1'b0;
@@ -66,7 +67,7 @@ module testbench_basic_spi_write;
         #42ms // typical sector erase time
 
         DUT.opcode  = OPCODE_READ;
-        DUT.address = 24'h100000;
+        DUT.address = 24'h000000;
         DUT.write_address   = 1'b1;
         DUT.write_data      = 1'b0;
         DUT.read_data       = 1'b1;
@@ -81,7 +82,7 @@ module testbench_basic_spi_write;
         if(DUT.buffer[1] !== 8'hff) $fatal(1,"Data is wrong! Expected %h got %h", 8'hff, DUT.buffer[1]);
 
         DUT.opcode  = OPCODE_WRITE_ENABLE;
-        DUT.address = 24'h100000;
+        DUT.address = 24'h000000;
         DUT.write_address   = 1'b0;
         DUT.write_data      = 1'b0;
         DUT.read_data       = 1'b0;
@@ -92,7 +93,7 @@ module testbench_basic_spi_write;
 
         DUT.opcode  = OPCODE_PROGRAM;
         DUT.buffer  = '{default: '0};
-        DUT.address = 24'h100000;
+        DUT.address = 24'h000000;
         DUT.write_address   = 1'b1;
         DUT.write_data      = 1'b1;
         DUT.read_data       = 1'b0;
@@ -108,7 +109,7 @@ module testbench_basic_spi_write;
         #1700us // t Page Program Operation
 
         DUT.opcode  = OPCODE_WRITE_DISABLE;
-        DUT.address = 24'h100000;
+        DUT.address = 24'h000000;
         DUT.write_address   = 1'b0;
         DUT.write_data      = 1'b0;
         DUT.read_data       = 1'b0;
@@ -119,7 +120,7 @@ module testbench_basic_spi_write;
 
         
         DUT.opcode  = OPCODE_READ;
-        DUT.address = 24'h100000;
+        DUT.address = 24'h000000;
         DUT.write_address   = 1'b1;
         DUT.write_data      = 1'b0;
         DUT.read_data       = 1'b1;
