@@ -80,8 +80,9 @@ async def transmission_test(dut):
     dut.go.value = 1
     await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
+    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
+    await dut.o_ChipSelect_neg.value_change
 
-    await cocotb.triggers.ClockCycles(dut.clk, 100, rising=True)
     assert qspi_subordinate.opcode == 0x05
     assert qspi_subordinate.address == 0x800001
 
@@ -126,7 +127,8 @@ async def read_test(dut):
     dut.go.value = 1
     await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, (32*4+4), rising=True)
+    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
+    await dut.o_ChipSelect_neg.value_change
 
     assert qspi_subordinate.opcode == 0x03
     assert qspi_subordinate.address == 20
@@ -176,7 +178,8 @@ async def write_test(dut):
     dut.go.value = 1
     await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, (32*4+4), rising=True)
+    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
+    await dut.o_ChipSelect_neg.value_change
 
     assert qspi_subordinate.opcode == 0x06
     assert qspi_subordinate.write_enable
@@ -197,7 +200,8 @@ async def write_test(dut):
     dut.go.value = 1
     await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, (32*4+4), rising=True)
+    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
+    await dut.o_ChipSelect_neg.value_change
 
     assert qspi_subordinate.opcode == 0x02
     assert qspi_subordinate.address == 21
