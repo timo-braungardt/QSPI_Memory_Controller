@@ -117,7 +117,7 @@ async def read_test(dut):
     dut.write_address.value = 0b1
     dut.write_data.value = 0b0
     dut.read_data.value = 0b1
-    dut.num_bits.value = 15
+    dut.num_bits.value = 32
     
     c = Clock(dut.clk  , 20, 'ns')
     cocotb.start_soon(c.start())
@@ -193,7 +193,7 @@ async def write_test(dut):
     dut.buffer[0].value = 0x80
     dut.buffer[1].value = 0x01
     dut.buffer[2].value = 0xFF
-    dut.num_bits.value = 7
+    dut.num_bits.value = 16
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
