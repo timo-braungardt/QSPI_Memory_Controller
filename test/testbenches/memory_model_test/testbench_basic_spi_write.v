@@ -5,7 +5,7 @@
 module testbench_basic_spi_write;
     parameter half_period = 10ns;
     parameter period = half_period * 2;
-    parameter spi_period = period * 2;
+    parameter spi_period = period * 6;
 
     reg clk, go;
     wire SerialIn, SerialOut, SerialClk, ChipSelect;
