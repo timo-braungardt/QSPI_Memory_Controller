@@ -2,7 +2,6 @@
 `include "../../memory_models/infineon-s25hl512t-qspi-verilog-model-simulationmodels-en/s25hl512tRel/src/s25hl512t.sv"
 `include "../../../src/BasicSPI.v"
 
-// ToDo: the block erase does not work on address 0 - why???
 module testbench_basic_spi_write;
     parameter half_period = 10ns;
     parameter period = half_period * 2;
