@@ -4,7 +4,7 @@ module Hyperbus (
     input clk,
     input go,
     
-    // SPI Pins
+    // Hyperbus Pins
     output reg              o_SpiClk,
     output reg              o_SpiClk_neg,
     output reg              o_ChipSelect_neg,
@@ -60,7 +60,8 @@ parameter integer recieve_data  = 4;
 // constants
 parameter integer TIMER_COUNT       = 15;
 parameter integer OPCODE_LENGTH     = 8;
-parameter integer ADDRESS_LENGTH    = 5;    // 3 clock cycles to shift out the address
+parameter integer ADDRESS_LENGTH    = 5;
+parameter integer LATENCY           = 4* TIMER_COUNT;
 
 
 initial begin : setup_registers
@@ -142,29 +143,44 @@ always @(posedge clk) begin : sm_logic
                 count <= count -1;
                 
             if (count == 0 && clock_tick) begin
-                count <= num_bits/4-1;
                 buffer_count <= 0;
-                if (io_Data_Strobe)
+                if (io_Data_Strobe) begin
+                    count <= LATENCY *2;
                     state <= wait_latency2;
-                else
+                end
+                else begin
+                    count <= LATENCY;
                     state <= wait_latency1;
+                end
             end
         end
 
 
         wait_latency1 : begin
-            if (write_data)
-                state <= send_data;
-            else
-                state <= recieve_data;
+            count <= count -1;
+            
+            if (count == 0) begin
+                count <= num_bits/4-1;
+                
+                if (write_data)
+                    state <= send_data;
+                else
+                    state <= recieve_data;
+            end
         end
 
 
         wait_latency2 : begin
-            if (write_data)
-                state <= send_data;
-            else
-                state <= recieve_data;
+            count <= count -1;
+            
+            if (count == 0) begin
+                count <= num_bits/4-1;
+                
+                if (write_data)
+                    state <= send_data;
+                else
+                    state <= recieve_data;
+            end
         end
 
 
