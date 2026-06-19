@@ -115,10 +115,9 @@ always @(posedge clk) begin : sm_logic
             o_ChipSelect_neg <= 1'b0;
             count <= OPCODE_LENGTH/4 -1;
             enSerialOut <= 1'b1;
-            for (integer i = 0; i < BUS_WIDTH; i++) begin
-                SerialOut[i] <= opcode[i];
-            end
-            state <= send_opcode;
+
+            if (clock_tick)
+                state <= send_opcode;
         end
 
 
