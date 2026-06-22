@@ -30,13 +30,21 @@ generate
 endgenerate
 
 // Logic stuff
-reg  [7:0] opcode;
-reg [39:0] address;
-reg        write_address;
-reg        write_data;
-reg        read_data;
-integer    num_bits;
-integer    state;
+reg         is_read;
+reg         is_register_space;
+reg         is_linear_burst;
+reg  [31:0] address;
+wire [47:0] ca;
+
+assign ca[47]    = is_read;
+assign ca[46]    = is_register_space;
+assign ca[45]    = is_linear_burst;
+assign ca[44:16] = address[31:3];
+assign ca[15:3]  = 13'd0;
+assign ca[2:0]   = address[2:0];
+
+integer     num_bits;
+integer     state;
 
 integer count           = 0;
 integer clock_count     = 0;
@@ -50,8 +58,7 @@ reg  [7:0] buffer [0:15];
 parameter integer idle          = 0;
 parameter integer cl_low        = 5;
 parameter integer cl_high       = 8;
-parameter integer send_opcode   = 1;
-parameter integer send_address  = 2;
+parameter integer send_ca       = 11;
 parameter integer wait_latency1 = 9;
 parameter integer wait_latency2 = 10;
 parameter integer send_data     = 3;
@@ -60,24 +67,17 @@ parameter integer recieve_data  = 4;
 // constants
 parameter integer TIMER_COUNT       = 15;
 parameter integer OPCODE_LENGTH     = 8;
-parameter integer ADDRESS_LENGTH    = 5;
+parameter integer ADDRESS_LENGTH    = 6;
 parameter integer LATENCY           = 4* TIMER_COUNT;
 
 
 initial begin : setup_registers
-    opcode              <= 0;
-    address             <= 0;
     enSerialOut         <= 0;
     SerialOut           <= 8'd0;
     state               <= 0;
     o_ChipSelect_neg    <= 1'b1;
     o_SpiClk            <= 1'b0;
     o_SpiClk_neg        <= 1'b1;
-
-    // the default case is reading from an address.
-    write_address   <= 1;
-    write_data      <= 0;
-    read_data       <= 1;
     num_bits        <= 32;
 end
 
@@ -114,34 +114,21 @@ always @(posedge clk) begin : sm_logic
 
         cl_low : begin
             o_ChipSelect_neg <= 1'b0;
-            count <= OPCODE_LENGTH/4 -1;
+            count <= ADDRESS_LENGTH-1;
             enSerialOut <= 1'b1;
 
             if (clock_tick)
-                state <= send_opcode;
+                state <= send_ca;
         end
 
 
-        send_opcode : begin
-            for (integer i = 0; i < BUS_WIDTH; i++) begin
-                SerialOut[i] <= opcode[i];
-            end
-            
-            if (clock_tick) begin
-                count <= ADDRESS_LENGTH-1;
-                state <= send_address;
-            end
-        end
-
-
-        send_address : begin
-            for (integer i = 0; i < BUS_WIDTH; i++) begin
-                SerialOut[i] <= address[{count, i[2:0]}];
-            end
+        send_ca : begin
+            for (integer i = 0; i < BUS_WIDTH; i++)
+                SerialOut[i] <= ca[{count, i[2:0]}];
 
             if (clock_tick)
                 count <= count -1;
-                
+
             if (count == 0 && clock_tick) begin
                 buffer_count <= 0;
                 if (io_Data_Strobe) begin
@@ -162,10 +149,10 @@ always @(posedge clk) begin : sm_logic
             if (count == 0) begin
                 count <= num_bits/4-1;
                 
-                if (write_data)
-                    state <= send_data;
-                else
+                if (is_read)
                     state <= recieve_data;
+                else
+                    state <= send_data;
             end
         end
 
@@ -176,10 +163,10 @@ always @(posedge clk) begin : sm_logic
             if (count == 0) begin
                 count <= num_bits/4-1;
                 
-                if (write_data)
-                    state <= send_data;
-                else
+                if (is_read)
                     state <= recieve_data;
+                else
+                    state <= send_data;
             end
         end
 

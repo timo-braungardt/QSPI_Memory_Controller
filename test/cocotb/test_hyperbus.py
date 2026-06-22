@@ -86,11 +86,11 @@ class HyperRamModel:
 async def transmission_test(dut):
     memory_model = HyperRamModel(dut)
 
-    dut.opcode.value = 0x90
-    dut.address.value = 0x0000010005
-    dut.write_address.value = 0b1
-    dut.write_data.value = 0b1
-    dut.read_data.value = 0b0
+    dut.is_read.value           = True
+    dut.is_register_space.value = False
+    dut.is_linear_burst.value   = False
+    dut.address.value           = 0x8000000d
+    dut.num_bits.value          = 8
 
     c = Clock(dut.clk  , 20, 'ns')
     cocotb.start_soon(c.start())
@@ -104,9 +104,9 @@ async def transmission_test(dut):
     await dut.o_ChipSelect_neg.value_change
 
     assert memory_model.addr == 0x8000000d
-    assert memory_model.is_read == 1
-    assert memory_model.is_register_space == 0
-    assert memory_model.is_linear_burst == 0
+    assert memory_model.is_read == True
+    assert memory_model.is_register_space == False
+    assert memory_model.is_linear_burst == False
 
 
 
