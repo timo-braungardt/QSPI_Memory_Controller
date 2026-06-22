@@ -5,8 +5,8 @@ module Hyperbus (
     input go,
     
     // Hyperbus Pins
-    output reg              o_SpiClk,
-    output reg              o_SpiClk_neg,
+    output                  o_SpiClk,
+    output                  o_SpiClk_neg,
     output reg              o_ChipSelect_neg,
     output                  o_Reset,
     inout [BUS_WIDTH-1 : 0] io_QD,
@@ -76,19 +76,18 @@ initial begin : setup_registers
     SerialOut           <= 8'd0;
     state               <= 0;
     o_ChipSelect_neg    <= 1'b1;
-    o_SpiClk            <= 1'b0;
-    o_SpiClk_neg        <= 1'b1;
     num_bits        <= 32;
 end
 
 
-assign enClk        = (state != idle)? 1'b1 : 1'b0;
+assign enClk        = (state != idle && state != cl_high)? 1'b1 : 1'b0;
 assign clock_tick   = (clock_count == TIMER_COUNT / 2)? 1'b1 : 1'b0;
-always @(posedge clk) begin: spi_clock
-    o_SpiClk     <=  SpiClk;
-    o_SpiClk_neg <= ~SpiClk;
 
-    if (~enClk) begin
+assign o_SpiClk     = (enClk)?  SpiClk : 1'b0;
+assign o_SpiClk_neg = (enClk)? ~SpiClk : 1'b1;
+
+always @(posedge clk) begin: spi_clock
+    if (state == idle) begin
         SpiClk          <= 1'b0;
         clock_count     <= TIMER_COUNT;
     end
