@@ -20,6 +20,9 @@ wire  enClk;
 reg  enSerialOut;
 reg  [BUS_WIDTH-1 : 0] SerialOut;
 wire [BUS_WIDTH-1 : 0] SerialIn;
+wire enDataStrobe;
+reg  DataStrobeOut;
+wire DataStrobeIn;
 
 genvar i;
 generate
@@ -28,6 +31,9 @@ generate
         assign SerialIn[i] = io_QD[i];
     end
 endgenerate
+assign enDataStrobe = (state == send_data || state == send_data_setup);
+assign io_Data_Strobe = (enDataStrobe) ? DataStrobeOut : 1'bZ;
+assign DataStrobeIn = io_Data_Strobe;
 
 // Logic stuff
 reg         is_read;
@@ -55,14 +61,15 @@ integer buffer_count    = 0;
 reg  [7:0] buffer [0:15];
 
 // states
-parameter integer idle          = 0;
-parameter integer cl_low        = 5;
-parameter integer cl_high       = 8;
-parameter integer send_ca       = 11;
-parameter integer wait_latency1 = 9;
-parameter integer wait_latency2 = 10;
-parameter integer send_data     = 3;
-parameter integer recieve_data  = 4;
+parameter integer idle            = 0;
+parameter integer cl_low          = 5;
+parameter integer cl_high         = 8;
+parameter integer send_ca         = 11;
+parameter integer wait_latency1   = 9;
+parameter integer wait_latency2   = 10;
+parameter integer send_data       = 3;
+parameter integer send_data_setup = 12;
+parameter integer recieve_data    = 4;
 
 // constants
 parameter integer TIMER_COUNT       = 15;
@@ -76,7 +83,8 @@ initial begin : setup_registers
     SerialOut           <= 8'd0;
     state               <= 0;
     o_ChipSelect_neg    <= 1'b1;
-    num_bits        <= 32;
+    num_bits            <= 32;
+    DataStrobeOut       <= 1'b0;
 end
 
 
@@ -150,7 +158,7 @@ always @(posedge clk) begin : sm_logic
                 if (is_read)
                     state <= recieve_data;
                 else
-                    state <= send_data;
+                    state <= send_data_setup;
             end
         end
 
@@ -171,7 +179,16 @@ always @(posedge clk) begin : sm_logic
                 count <= 0; // otherwise underflow - can this be synthesised elegantly?
                 state <= cl_high;
             end
-        end 
+        end
+
+
+        send_data_setup : begin
+            buffer_count <= buffer_count +1;
+            for (integer i = 0; i < BUS_WIDTH; i++) begin
+                SerialOut[i] <= buffer[buffer_count][i];
+            end
+            state <= send_data;
+        end
 
 
         send_data : begin
@@ -191,6 +208,7 @@ always @(posedge clk) begin : sm_logic
 
 
         cl_high : begin
+            enSerialOut <= 1'b0;
             if (clock_tick) begin
                 state <= idle;
                 enSerialOut <= 1'b0;

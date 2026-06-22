@@ -191,6 +191,42 @@ async def read_test(dut):
     assert dut.buffer[4].value == LogicArray("XXXXXXXX")
 
 
+@cocotb.test()
+async def write_test(dut):
+    memory_model = HyperRamModel(dut)
+
+    dut.is_read.value           = False
+    dut.is_register_space.value = False
+    dut.is_linear_burst.value   = False
+    dut.address.value           = 0x00000000
+    dut.num_bits.value          = 32
+
+    for i in range(8):
+        dut.buffer[i].value = i+1
+
+    c = Clock(dut.clk  , 20, 'ns')
+    cocotb.start_soon(c.start())
+
+    dut.go.value = 0
+    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
+    dut.go.value = 1
+    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
+    dut.go.value = 0
+    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
+    await dut.o_ChipSelect_neg.value_change
+
+    assert memory_model.addr == 0x00000000
+    assert memory_model.is_read == False
+    assert memory_model.is_register_space == False
+    assert memory_model.is_linear_burst == False
+
+    assert memory_model.mem[0] == 1
+    assert memory_model.mem[1] == 2
+    assert memory_model.mem[2] == 3
+    assert memory_model.mem[3] == 4
+    assert memory_model.mem[4] == 0
+
+
 def test_hyperbus():
     """
     Test if the basics of the Hyperbus protocol are implemented correctly.
