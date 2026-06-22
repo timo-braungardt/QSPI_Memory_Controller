@@ -68,7 +68,7 @@ parameter integer recieve_data  = 4;
 parameter integer TIMER_COUNT       = 15;
 parameter integer OPCODE_LENGTH     = 8;
 parameter integer ADDRESS_LENGTH    = 6;
-parameter integer LATENCY           = 4* TIMER_COUNT;
+parameter integer LATENCY           = 4;
 
 
 initial begin : setup_registers
@@ -131,37 +131,22 @@ always @(posedge clk) begin : sm_logic
 
             if (count == 0 && clock_tick) begin
                 buffer_count <= 0;
-                if (io_Data_Strobe) begin
-                    count <= LATENCY *2;
-                    state <= wait_latency2;
-                end
-                else begin
-                    count <= LATENCY;
-                    state <= wait_latency1;
-                end
+                if (io_Data_Strobe)
+                    count <= LATENCY *2 -1;
+                else
+                    count <= LATENCY -1;
+
+                state <= wait_latency1;
             end
         end
 
 
         wait_latency1 : begin
-            count <= count -1;
-            
-            if (count == 0) begin
-                count <= num_bits/4-1;
-                
-                if (is_read)
-                    state <= recieve_data;
-                else
-                    state <= send_data;
-            end
-        end
+            if (clock_tick)
+                count <= count -1;
 
-
-        wait_latency2 : begin
-            count <= count -1;
-            
-            if (count == 0) begin
-                count <= num_bits/4-1;
+            if (count == 0 && clock_tick) begin
+                count <= num_bits/BUS_WIDTH -1;
                 
                 if (is_read)
                     state <= recieve_data;

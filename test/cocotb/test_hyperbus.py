@@ -5,10 +5,14 @@ import cocotb
 from cocotb_tools.runner import get_runner
 from cocotb.triggers import Timer, First, FallingEdge, RisingEdge
 from cocotb.clock import Clock
+from cocotb.types import LogicArray
 
 
 class HyperRamModel:
     def __init__(self, dut, size=8*1024*1024):
+        self.LATENCY = 4
+        self._CA_LENGTH = 6
+
         self.log = logging.getLogger("MemoryModel")
         self.log.setLevel(logging.DEBUG)
         self.dut = dut
@@ -17,7 +21,9 @@ class HyperRamModel:
         self.is_register_space = 0
         self.is_linear_burst = 0
 
-        # 8 MB default
+        # in the hyperbus spec one address always addresses 2 bytes
+        # so this is a bit wrong
+        self._MEMORY_SIZE = size
         self.mem = bytearray(size)
 
         self._run_coroutine_obj = None
@@ -50,12 +56,19 @@ class HyperRamModel:
             self.log.debug(f"Is linear burst is {self.is_linear_burst}")
             self.log.debug("address is 0x%06x", self.addr)
 
+            await self._latency(False)
+
+            if self.is_read:
+                await self._read_transaction(self.addr)
+            else:
+                await self._write_transaction(self.addr)
+
 
     async def _read_ca(self):
         clk_edge = RisingEdge(self.dut.o_SpiClk)
         clk_neg_edge = RisingEdge(self.dut.o_SpiClk_neg)
         ca = 0
-        for _ in range(6):
+        for _ in range(self._CA_LENGTH):
             await First(clk_edge, clk_neg_edge)
             word = int(self.dut.io_QD.value)
             ca <<= 8
@@ -65,21 +78,54 @@ class HyperRamModel:
         return ca
 
 
+    async def _latency(self, is_long):
+        clk_edge = RisingEdge(self.dut.o_SpiClk)
+        clk_neg_edge = RisingEdge(self.dut.o_SpiClk_neg)
+        
+        if is_long:
+            latency = self.LATENCY *2
+        else:
+            latency = self.LATENCY
+
+        for _ in range(latency):
+                await First(clk_edge, clk_neg_edge)
+            
+
+
     async def _write_transaction(self, addr):
+        clk_edge = RisingEdge(self.dut.o_SpiClk)
+        clk_neg_edge = RisingEdge(self.dut.o_SpiClk_neg)
+
         while not self.dut.o_ChipSelect_neg.value:
-            await RisingEdge(self.dut.o_SpiClk)
-            data = int(self.dut.io_QD.value)
-            self.mem[addr] = data
+            await clk_edge
+            if self.dut.io_Data_Strobe.value == 0:
+                data = int(self.dut.io_QD.value)
+                self.mem[addr % self._MEMORY_SIZE] = data
+                self.log.debug("Recieved 0x%02x", data)
+            else:
+                self.log.debug("Masked address")
+            addr += 1
+
+            await clk_neg_edge
+            if self.dut.io_Data_Strobe.value == 0:
+                data = int(self.dut.io_QD.value)
+                self.log.debug("Recieved 0x%02x", data)
+                self.mem[addr % self._MEMORY_SIZE] = data
+            else:
+                self.log.debug("Masked address")
             addr += 1
 
 
     async def _read_transaction(self, addr):
+        clk_edge = RisingEdge(self.dut.o_SpiClk)
+        clk_neg_edge = RisingEdge(self.dut.o_SpiClk_neg)
+
         while not self.dut.o_ChipSelect_neg.value:
-            data = self.mem[addr]
-            self.dut.io_QD.value = BinaryValue(data, 8)
-            await FallingEdge(self.dut.o_SpiClk)
+            await First(clk_edge, clk_neg_edge)
+            data = self.mem[addr % self._MEMORY_SIZE]
+            self.dut.io_QD.value = LogicArray(data, 8)
             addr += 1
-        self.dut.io_QD.value = BinaryValue("zzzzzzzz")
+        self.dut.io_QD.value = LogicArray("zzzzzzzz")
 
 
 @cocotb.test()
@@ -108,6 +154,41 @@ async def transmission_test(dut):
     assert memory_model.is_register_space == False
     assert memory_model.is_linear_burst == False
 
+
+@cocotb.test()
+async def read_test(dut):
+    memory_model = HyperRamModel(dut)
+
+    dut.is_read.value           = True
+    dut.is_register_space.value = False
+    dut.is_linear_burst.value   = False
+    dut.address.value           = 0x00000000
+    dut.num_bits.value          = 32
+
+    for i in range(8):
+        memory_model.mem[i] = i+1
+
+    c = Clock(dut.clk  , 20, 'ns')
+    cocotb.start_soon(c.start())
+
+    dut.go.value = 0
+    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
+    dut.go.value = 1
+    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
+    dut.go.value = 0
+    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
+    await dut.o_ChipSelect_neg.value_change
+
+    assert memory_model.addr == 0x00000000
+    assert memory_model.is_read == True
+    assert memory_model.is_register_space == False
+    assert memory_model.is_linear_burst == False
+
+    assert dut.buffer[0].value == 1
+    assert dut.buffer[1].value == 2
+    assert dut.buffer[2].value == 3
+    assert dut.buffer[3].value == 4
+    assert dut.buffer[4].value == LogicArray("XXXXXXXX")
 
 
 def test_hyperbus():
