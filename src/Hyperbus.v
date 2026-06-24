@@ -72,7 +72,7 @@ parameter integer recieve_data    = 4;
 parameter integer TIMER_COUNT       = 15;
 parameter integer OPCODE_LENGTH     = 8;
 parameter integer ADDRESS_LENGTH    = 6;
-parameter integer LATENCY           = 4;
+parameter integer LATENCY           = 8;
 
 assign enDataStrobe = (state == send_data || state == send_data_setup);
 assign io_Data_Strobe = (enDataStrobe) ? DataStrobeOut : 1'bZ;
@@ -141,7 +141,9 @@ always @(posedge clk) begin : sm_logic
                 if (io_Data_Strobe)
                     count <= LATENCY *2 -1;
                 else
-                    count <= LATENCY -1;
+                    count <= LATENCY -3;    
+                    // for a single latency of 4 cycles it begins already after the sample point of the upper address
+                    // therefore we can subtract one cycle (-2) from the latency
 
                 state <= wait_latency1;
             end

@@ -10,7 +10,7 @@ from cocotb.types import LogicArray
 
 class HyperRamModel:
     def __init__(self, dut, size=8*1024*1024):
-        self.LATENCY = 4
+        self.LATENCY = 8
         self._CA_LENGTH = 6
 
         self.log = logging.getLogger("MemoryModel")
@@ -83,9 +83,9 @@ class HyperRamModel:
         clk_neg_edge = RisingEdge(self.dut.o_SpiClk_neg)
         
         if is_long:
-            latency = self.LATENCY *2
+            latency = self.LATENCY *2 -2
         else:
-            latency = self.LATENCY
+            latency = self.LATENCY -2
 
         for _ in range(latency):
                 await First(clk_edge, clk_neg_edge)
