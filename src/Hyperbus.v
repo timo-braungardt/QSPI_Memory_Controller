@@ -24,16 +24,13 @@ wire enDataStrobe;
 reg  DataStrobeOut;
 wire DataStrobeIn;
 
-genvar i;
+genvar x;
 generate
-    for (i = 0; i < BUS_WIDTH; i++) begin
-        assign io_QD[i] = (enSerialOut) ? SerialOut[i] : 1'bZ;
-        assign SerialIn[i] = io_QD[i];
+    for (x = 0; x < BUS_WIDTH; x = x+1) begin
+        assign io_QD[x] = (enSerialOut) ? SerialOut[x] : 1'bZ;
+        assign SerialIn[x] = io_QD[x];
     end
 endgenerate
-assign enDataStrobe = (state == send_data || state == send_data_setup);
-assign io_Data_Strobe = (enDataStrobe) ? DataStrobeOut : 1'bZ;
-assign DataStrobeIn = io_Data_Strobe;
 
 // Logic stuff
 reg         is_read;
@@ -77,6 +74,9 @@ parameter integer OPCODE_LENGTH     = 8;
 parameter integer ADDRESS_LENGTH    = 6;
 parameter integer LATENCY           = 4;
 
+assign enDataStrobe = (state == send_data || state == send_data_setup);
+assign io_Data_Strobe = (enDataStrobe) ? DataStrobeOut : 1'bZ;
+assign DataStrobeIn = io_Data_Strobe;
 
 initial begin : setup_registers
     enSerialOut         <= 0;
@@ -109,7 +109,7 @@ always @(posedge clk) begin: spi_clock
     end
 end
 
-
+integer i;
 always @(posedge clk) begin : sm_logic
     case (state)
         idle : begin
@@ -130,7 +130,7 @@ always @(posedge clk) begin : sm_logic
 
 
         send_ca : begin
-            for (integer i = 0; i < BUS_WIDTH; i++)
+            for (i = 0; i < BUS_WIDTH; i = i+1)
                 SerialOut[i] <= ca[{count, i[2:0]}];
 
             if (clock_tick)
@@ -170,7 +170,7 @@ always @(posedge clk) begin : sm_logic
                 count <= count -1;
                 buffer_count <= buffer_count +1;
 
-                for (integer i = 0; i < BUS_WIDTH; i++) begin
+                for (i = 0; i < BUS_WIDTH; i = i+1) begin
                     buffer[buffer_count][i] <= SerialIn[i];
                 end
             end
@@ -184,7 +184,7 @@ always @(posedge clk) begin : sm_logic
 
         send_data_setup : begin
             buffer_count <= buffer_count +1;
-            for (integer i = 0; i < BUS_WIDTH; i++) begin
+            for (i = 0; i < BUS_WIDTH; i = i+1) begin
                 SerialOut[i] <= buffer[buffer_count][i];
             end
             state <= send_data;
@@ -195,7 +195,7 @@ always @(posedge clk) begin : sm_logic
             if (clock_tick) begin
                 count <= count -1;
                 buffer_count <= buffer_count +1;
-                for (integer i = 0; i < BUS_WIDTH; i++) begin
+                for (i = 0; i < BUS_WIDTH; i = i+1) begin
                     SerialOut[i] <= buffer[buffer_count][i];
                 end
             end
