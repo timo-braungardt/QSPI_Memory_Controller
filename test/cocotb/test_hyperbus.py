@@ -243,7 +243,7 @@ def test_hyperbus():
         waves=True
     )
     runner.test(hdl_toplevel="Hyperbus", 
-				test_module="test_hyperbus",
+                test_module="test_hyperbus",
                 waves=True)
 
 

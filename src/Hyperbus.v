@@ -13,7 +13,7 @@ module Hyperbus (
     inout                   io_Data_Strobe
 );
 
-parameter BUS_WIDTH = 8;
+localparam BUS_WIDTH = 8;
 
 // Pin tristate stuff
 wire  enClk;
@@ -58,21 +58,21 @@ integer buffer_count    = 0;
 reg  [7:0] buffer [0:15];
 
 // states
-parameter integer idle            = 0;
-parameter integer cl_low          = 5;
-parameter integer cl_high         = 8;
-parameter integer send_ca         = 11;
-parameter integer wait_latency1   = 9;
-parameter integer wait_latency2   = 10;
-parameter integer send_data       = 3;
-parameter integer send_data_setup = 12;
-parameter integer recieve_data    = 4;
+localparam integer idle            = 0;
+localparam integer cl_low          = 5;
+localparam integer cl_high         = 8;
+localparam integer send_ca         = 11;
+localparam integer wait_latency1   = 9;
+localparam integer wait_latency2   = 10;
+localparam integer send_data       = 3;
+localparam integer send_data_setup = 12;
+localparam integer recieve_data    = 4;
 
 // constants
-parameter integer TIMER_COUNT       = 15;
-parameter integer OPCODE_LENGTH     = 8;
-parameter integer ADDRESS_LENGTH    = 6;
-parameter integer LATENCY           = 8;
+localparam integer TIMER_COUNT       = 15;
+localparam integer OPCODE_LENGTH     = 8;
+localparam integer ADDRESS_LENGTH    = 6;
+localparam integer LATENCY           = 8;
 
 assign enDataStrobe = (state == send_data || state == send_data_setup);
 assign io_Data_Strobe = (enDataStrobe) ? DataStrobeOut : 1'bZ;
@@ -138,6 +138,7 @@ always @(posedge clk) begin : sm_logic
 
             if (count == 0 && clock_tick) begin
                 buffer_count <= 0;
+                // ToDo: this may not be checked here but a few cycles earlier
                 if (io_Data_Strobe)
                     count <= LATENCY *2 -1;
                 else
