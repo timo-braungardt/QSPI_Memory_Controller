@@ -6,6 +6,7 @@ from cocotb_tools.runner import get_runner
 from cocotb.triggers import Timer, First, FallingEdge, RisingEdge
 from cocotb.clock import Clock
 from cocotb.types import LogicArray
+from unittest import SkipTest
 
 
 @cocotb.test()
@@ -91,6 +92,10 @@ async def write_test(dut):
 
 
 def test_hyperbus_model():
+    required_file = Path("../../test/memory_models/infineon-s27kl0641-simulationmodels-en/s27kl0641/model/s27kl0641.v")
+    if not required_file.exists():
+        raise SkipTest(f"Simulation Model for S27KL0641 not found!")
+
     sim = os.getenv("SIM", "icarus")
     proj_path = Path(__file__).resolve().parent
     sources = [
