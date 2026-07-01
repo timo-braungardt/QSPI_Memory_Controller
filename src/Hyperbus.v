@@ -14,6 +14,7 @@ module Hyperbus (
 );
 
 localparam BUS_WIDTH = 8;
+localparam BUFFER_SIZE = 16;
 
 // Pin tristate stuff
 wire  enClk;
@@ -55,7 +56,7 @@ reg     SpiClk          = 0;
 wire    clock_tick;
 integer buffer_count    = 0;
 
-reg  [7:0] buffer [0:15];
+reg  [7:0] buffer [0:BUFFER_SIZE -1];
 
 // states
 localparam integer idle            = 0;
