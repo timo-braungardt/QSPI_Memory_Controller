@@ -72,7 +72,7 @@ localparam integer recieve_data    = 4;
 localparam integer TIMER_COUNT       = 15;
 localparam integer OPCODE_LENGTH     = 8;
 localparam integer ADDRESS_LENGTH    = 6;
-localparam integer LATENCY           = 8;
+localparam integer LATENCY           = 6 *2;    // times two because of the two clock edges
 
 assign enDataStrobe = (state == send_data || state == send_data_setup);
 assign io_Data_Strobe = (enDataStrobe) ? DataStrobeOut : 1'bZ;
@@ -140,7 +140,7 @@ always @(posedge clk) begin : sm_logic
                 buffer_count <= 0;
                 // ToDo: this may not be checked here but a few cycles earlier
                 if (io_Data_Strobe)
-                    count <= LATENCY *2 -1;
+                    count <= LATENCY *2 -3;
                 else
                     count <= LATENCY -3;    
                     // for a single latency of 4 cycles it begins already after the sample point of the upper address

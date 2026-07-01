@@ -5,8 +5,18 @@ import cocotb
 from cocotb_tools.runner import get_runner
 from cocotb.triggers import Timer, First, FallingEdge, RisingEdge
 from cocotb.clock import Clock
-from cocotb.types import LogicArray
+from cocotb.types import Logic, LogicArray
 from unittest import SkipTest
+
+
+async def reset_model(dut):
+    dut.reset.value = 0
+    await Timer(10, unit='us')
+    dut.reset.value = 1
+    await Timer(10, unit='us')
+
+    if dut.RAM.PoweredUp.value == 0:
+        await dut.RAM.PoweredUp.value_change
 
 
 @cocotb.test()
@@ -23,7 +33,7 @@ async def read_test(dut):
     c = Clock(dut.clk  , 20, 'ns')
     cocotb.start_soon(c.start())
 
-    await dut.RAM.PoweredUp.value_change
+    await reset_model(dut)
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -33,14 +43,14 @@ async def read_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
     await dut.controller.o_ChipSelect_neg.value_change
 
-    assert dut.controller.buffer[0] == 0xFF
-    assert dut.controller.buffer[1] == 0xFF
-    assert dut.controller.buffer[2] == 0xFF
-    assert dut.controller.buffer[3] == 0xFF
-    assert dut.controller.buffer[4] == 0xFF
+    assert dut.controller.buffer[0].value == 0xFF
+    assert dut.controller.buffer[1].value == 0xFF
+    assert dut.controller.buffer[2].value == 0xFF
+    assert dut.controller.buffer[3].value == 0xFF
+    assert dut.controller.buffer[4].value == 0xFF
 
 
-#@cocotb.test()
+@cocotb.test()
 async def write_test(dut):
     dut.controller.is_read.value           = False
     dut.controller.is_register_space.value = False
@@ -54,7 +64,7 @@ async def write_test(dut):
     c = Clock(dut.clk  , 20, 'ns')
     cocotb.start_soon(c.start())
 
-    await dut.RAM.PoweredUp.value_change
+    await reset_model(dut)
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -65,13 +75,13 @@ async def write_test(dut):
     await dut.controller.o_ChipSelect_neg.value_change
 
     # Read Back
-    await cocotb.triggers.ClockCycles(dut.clk, 100, rising=True)
+    await Timer(50, unit='us')
 
     dut.controller.is_read.value           = True
     dut.controller.is_register_space.value = False
     dut.controller.is_linear_burst.value   = False
     dut.controller.address.value           = 0x00000000
-    dut.controller.num_bits.value          = 512
+    dut.controller.num_bits.value          = 32
 
     for i in range(8):
         dut.controller.buffer[i].value = 0
@@ -84,11 +94,12 @@ async def write_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
     await dut.controller.o_ChipSelect_neg.value_change
 
-    assert dut.controller.buffer[0] == 1
-    assert dut.controller.buffer[1] == 2
-    assert dut.controller.buffer[2] == 3
-    assert dut.controller.buffer[3] == 4
-    assert dut.controller.buffer[4] == 0
+
+    assert dut.controller.buffer[0].value == 0x01
+    assert dut.controller.buffer[1].value == 0x02
+    assert dut.controller.buffer[2].value == 0x03
+    assert dut.controller.buffer[3].value == 0x04
+    assert dut.controller.buffer[4].value == 0x00
 
 
 def test_hyperbus_model():

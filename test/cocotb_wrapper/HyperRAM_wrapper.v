@@ -1,8 +1,9 @@
 `timescale 1ns/100ps
 
 module HyperRAM_wrapper;
-    reg clk = 0;
-    reg go  = 0;
+    reg clk   = 1'b0;
+    reg go    = 1'b0;
+    reg reset = 1'b1;
 
     wire SerialClk;
     wire ChipSelect;
@@ -34,7 +35,7 @@ module HyperRAM_wrapper;
         .RWDS(DataStrobe),
         .CSNeg(ChipSelect),
         .CK(SerialClk),
-        .RESETNeg(1'b1)
+        .RESETNeg(reset)
     );
 
 endmodule
