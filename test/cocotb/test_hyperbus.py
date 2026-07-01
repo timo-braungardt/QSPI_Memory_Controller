@@ -10,7 +10,7 @@ from cocotb.types import LogicArray
 
 class HyperRamModel:
     def __init__(self, dut, size=8*1024*1024):
-        self.LATENCY = 8
+        self.LATENCY = 6 *2
         self._CA_LENGTH = 6
 
         self.log = logging.getLogger("MemoryModel")
