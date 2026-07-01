@@ -24,6 +24,7 @@ wire [BUS_WIDTH-1 : 0] SerialIn;
 wire enDataStrobe;
 reg  DataStrobeOut;
 wire DataStrobeIn;
+reg  has_latency;
 
 genvar x;
 generate
@@ -63,8 +64,7 @@ localparam integer idle            = 0;
 localparam integer cl_low          = 5;
 localparam integer cl_high         = 8;
 localparam integer send_ca         = 11;
-localparam integer wait_latency1   = 9;
-localparam integer wait_latency2   = 10;
+localparam integer wait_latency    = 9;
 localparam integer send_data       = 3;
 localparam integer send_data_setup = 12;
 localparam integer recieve_data    = 4;
@@ -73,7 +73,7 @@ localparam integer recieve_data    = 4;
 localparam integer TIMER_COUNT       = 15;
 localparam integer OPCODE_LENGTH     = 8;
 localparam integer ADDRESS_LENGTH    = 6;
-localparam integer LATENCY           = 6 *2;    // times two because of the two clock edges
+localparam integer LATENCY_CYCLES    = 6 *2;    // times two because of the two clock edges
 
 assign enDataStrobe = (state == send_data || state == send_data_setup);
 assign io_Data_Strobe = (enDataStrobe) ? DataStrobeOut : 1'bZ;
@@ -127,6 +127,7 @@ always @(posedge clk) begin : sm_logic
 
             if (clock_tick)
                 state <= send_ca;
+                has_latency <= DataStrobeIn;
         end
 
 
@@ -139,20 +140,19 @@ always @(posedge clk) begin : sm_logic
 
             if (count == 0 && clock_tick) begin
                 buffer_count <= 0;
-                // ToDo: this may not be checked here but a few cycles earlier
-                if (io_Data_Strobe)
-                    count <= LATENCY *2 -3;
+                // the first latency already begins after the sample point of the upper address
+                // therefore we have to subtract one cycle (-2) from the latency
+                if (has_latency)
+                    count <= LATENCY_CYCLES *2 -3;
                 else
-                    count <= LATENCY -3;    
-                    // for a single latency of 4 cycles it begins already after the sample point of the upper address
-                    // therefore we can subtract one cycle (-2) from the latency
+                    count <= LATENCY_CYCLES -3;    
 
-                state <= wait_latency1;
+                state <= wait_latency;
             end
         end
 
 
-        wait_latency1 : begin
+        wait_latency : begin
             if (clock_tick)
                 count <= count -1;
 
