@@ -94,12 +94,45 @@ async def write_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
     await dut.controller.o_ChipSelect_neg.value_change
 
-
     assert dut.controller.buffer[0].value == 0x01
     assert dut.controller.buffer[1].value == 0x02
     assert dut.controller.buffer[2].value == 0x03
     assert dut.controller.buffer[3].value == 0x04
     assert dut.controller.buffer[4].value == 0x00
+
+
+@cocotb.test()
+async def read_register_test(dut):
+    """
+    This is a bit weird, apparently the data should follow right after the CA bits are sent (zero latency).
+    But the simulation model uses 2 latencies and only has 16 bits for the register, where there should be 6 16 Bit registers.
+    """
+    dut.controller.is_read.value           = True
+    dut.controller.is_register_space.value = True
+    dut.controller.is_linear_burst.value   = False
+    dut.controller.address.value           = 0x00000000
+    dut.controller.num_bits.value          = 32
+
+    for i in range(8):
+        dut.controller.buffer[i].value = 0
+
+    c = Clock(dut.clk  , 20, 'ns')
+    cocotb.start_soon(c.start())
+
+    await reset_model(dut)
+
+    dut.go.value = 0
+    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
+    dut.go.value = 1
+    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
+    dut.go.value = 0
+    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
+    await dut.controller.o_ChipSelect_neg.value_change
+
+    assert dut.controller.buffer[0].value == 0b10001111
+    assert dut.controller.buffer[1].value == 0b00011111
+    assert dut.controller.buffer[2].value == 0b10001111
+    assert dut.controller.buffer[3].value == 0b00011111
 
 
 def test_hyperbus_model():
