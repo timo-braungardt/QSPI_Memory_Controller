@@ -38,7 +38,7 @@ class HyperRamModel:
 
     async def _run(self):
         while True:
-            await FallingEdge(self.dut.o_ChipSelect_neg)
+            await FallingEdge(self.dut.o_chip_select_neg)
             ca = await self._read_ca()
 
             self.is_read = (ca >> 47) & 1
@@ -65,12 +65,12 @@ class HyperRamModel:
 
 
     async def _read_ca(self):
-        clk_edge = RisingEdge(self.dut.o_SpiClk)
-        clk_neg_edge = RisingEdge(self.dut.o_SpiClk_neg)
+        clk_edge = RisingEdge(self.dut.o_bus_clock)
+        clk_neg_edge = RisingEdge(self.dut.o_bus_clock_neg)
         ca = 0
         for _ in range(self._CA_LENGTH):
             await First(clk_edge, clk_neg_edge)
-            word = int(self.dut.io_QD.value)
+            word = int(self.dut.io_data.value)
             ca <<= 8
             ca |= word
         
@@ -79,8 +79,8 @@ class HyperRamModel:
 
 
     async def _latency(self, is_long):
-        clk_edge = RisingEdge(self.dut.o_SpiClk)
-        clk_neg_edge = RisingEdge(self.dut.o_SpiClk_neg)
+        clk_edge = RisingEdge(self.dut.o_bus_clock)
+        clk_neg_edge = RisingEdge(self.dut.o_bus_clock_neg)
         
         if is_long:
             latency = self.LATENCY *2 -2
@@ -93,13 +93,13 @@ class HyperRamModel:
 
 
     async def _write_transaction(self, addr):
-        clk_edge = RisingEdge(self.dut.o_SpiClk)
-        clk_neg_edge = RisingEdge(self.dut.o_SpiClk_neg)
+        clk_edge = RisingEdge(self.dut.o_bus_clock)
+        clk_neg_edge = RisingEdge(self.dut.o_bus_clock_neg)
 
-        while not self.dut.o_ChipSelect_neg.value:
+        while not self.dut.o_chip_select_neg.value:
             await clk_edge
-            if self.dut.io_Data_Strobe.value == 0:
-                data = int(self.dut.io_QD.value)
+            if self.dut.io_data_strobe.value == 0:
+                data = int(self.dut.io_data.value)
                 self.mem[addr % self._MEMORY_SIZE] = data
                 self.log.debug("Recieved 0x%02x", data)
             else:
@@ -107,8 +107,8 @@ class HyperRamModel:
             addr += 1
 
             await clk_neg_edge
-            if self.dut.io_Data_Strobe.value == 0:
-                data = int(self.dut.io_QD.value)
+            if self.dut.io_data_strobe.value == 0:
+                data = int(self.dut.io_data.value)
                 self.log.debug("Recieved 0x%02x", data)
                 self.mem[addr % self._MEMORY_SIZE] = data
             else:
@@ -117,15 +117,15 @@ class HyperRamModel:
 
 
     async def _read_transaction(self, addr):
-        clk_edge = RisingEdge(self.dut.o_SpiClk)
-        clk_neg_edge = RisingEdge(self.dut.o_SpiClk_neg)
+        clk_edge = RisingEdge(self.dut.o_bus_clock)
+        clk_neg_edge = RisingEdge(self.dut.o_bus_clock_neg)
 
-        while not self.dut.o_ChipSelect_neg.value:
+        while not self.dut.o_chip_select_neg.value:
             await First(clk_edge, clk_neg_edge)
             data = self.mem[addr % self._MEMORY_SIZE]
-            self.dut.io_QD.value = LogicArray(data, 8)
+            self.dut.io_data.value = LogicArray(data, 8)
             addr += 1
-        self.dut.io_QD.value = LogicArray("zzzzzzzz")
+        self.dut.io_data.value = LogicArray("zzzzzzzz")
 
 
 @cocotb.test()
@@ -147,7 +147,7 @@ async def transmission_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.o_ChipSelect_neg.value_change
+    await dut.o_chip_select_neg.value_change
 
     assert memory_model.addr == 0x8000000d
     assert memory_model.is_read == True
@@ -177,7 +177,7 @@ async def read_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.o_ChipSelect_neg.value_change
+    await dut.o_chip_select_neg.value_change
 
     assert memory_model.addr == 0x00000000
     assert memory_model.is_read == True
@@ -213,7 +213,7 @@ async def write_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.o_ChipSelect_neg.value_change
+    await dut.o_chip_select_neg.value_change
 
     assert memory_model.addr == 0x00000000
     assert memory_model.is_read == False

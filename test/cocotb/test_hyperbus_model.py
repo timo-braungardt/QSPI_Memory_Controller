@@ -41,7 +41,7 @@ async def read_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.controller.o_ChipSelect_neg.value_change
+    await dut.controller.o_chip_select_neg.value_change
 
     assert dut.controller.buffer[0].value == 0xFF
     assert dut.controller.buffer[1].value == 0xFF
@@ -72,7 +72,7 @@ async def write_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.controller.o_ChipSelect_neg.value_change
+    await dut.controller.o_chip_select_neg.value_change
 
     # Read Back
     await Timer(50, unit='us')
@@ -92,7 +92,7 @@ async def write_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.controller.o_ChipSelect_neg.value_change
+    await dut.controller.o_chip_select_neg.value_change
 
     assert dut.controller.buffer[0].value == 0x01
     assert dut.controller.buffer[1].value == 0x02
@@ -127,7 +127,7 @@ async def read_register_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.controller.o_ChipSelect_neg.value_change
+    await dut.controller.o_chip_select_neg.value_change
 
     assert dut.controller.buffer[0].value == 0b10001111
     assert dut.controller.buffer[1].value == 0b00011111
