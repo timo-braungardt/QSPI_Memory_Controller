@@ -5,21 +5,23 @@ module BasicSPI (
     input go,
     
     // SPI Pins
-    output reg o_SpiClk,
-    output reg o_ChipSelect_neg,
-    output o_Reset,
-    inout io_ManagerSerialIn,
-    inout io_ManagerSerialOut
+    output reg o_bus_clock,
+    output reg o_chip_select_neg,
+    output o_reset,
+    inout io_manager_serial_in,
+    inout io_manager_serial_out
 );
 
-// Pin tristate stuff
-wire enClk;
-reg  enSerialOut;
-reg  SerialOut;
-wire SerialIn;
+localparam BUFFER_SIZE = 16;
 
-assign io_ManagerSerialOut = (enSerialOut)  ? SerialOut : 1'bZ;
-assign SerialIn =            io_ManagerSerialIn;
+// Pin tristate stuff
+wire en_bus_clock;
+reg  en_serial_out;
+reg  serial_out;
+wire serial_in;
+
+assign io_manager_serial_out = (en_serial_out)  ? serial_out : 1'bZ;
+assign serial_in =            io_manager_serial_in;
 
 // Logic stuff
 reg  [7:0] opcode;
@@ -32,36 +34,36 @@ integer    state;
 
 integer count           = 0;
 integer clock_count     = 0;
-reg     SpiClk          = 0;
+reg     bus_clock          = 0;
 reg     clock_tick_pos  = 0;
 reg     clock_tick_neg  = 0;
 integer buffer_count    = 0;
 
-reg  [7:0] buffer [0:15];
+reg  [7:0] buffer [0:BUFFER_SIZE -1];
 
 // states
-parameter integer idle          = 0;
-parameter integer cl_low        = 5;
-parameter integer cl_high       = 8;
-parameter integer send_opcode   = 1;
-parameter integer send_address  = 2;
-parameter integer send_data     = 3;
-parameter integer recieve_data  = 4;
+localparam integer idle          = 0;
+localparam integer cl_low        = 5;
+localparam integer cl_high       = 8;
+localparam integer send_opcode   = 1;
+localparam integer send_address  = 2;
+localparam integer send_data     = 3;
+localparam integer recieve_data  = 4;
 
 // constants
-parameter integer TIMER_COUNT       = 2;
-parameter integer OPCODE_LENGTH     = 8;
-parameter integer ADDRESS_LENGTH    = 24; // can also be 32
+localparam integer TIMER_COUNT       = 2;
+localparam integer OPCODE_LENGTH     = 8;
+localparam integer ADDRESS_LENGTH    = 24; // can also be 32
 
 
 initial begin : setup_registers
     opcode      <= 0;
     address     <= 0;
-    enSerialOut <= 0;
-    SerialOut   <= 0;
+    en_serial_out <= 0;
+    serial_out   <= 0;
     state       <= 0;
-    o_ChipSelect_neg <= 1'b1;
-    o_SpiClk    <= 1'b0;
+    o_chip_select_neg <= 1'b1;
+    o_bus_clock    <= 1'b0;
 
     // the default case is reading from an address.
     write_address   <= 1;
@@ -71,12 +73,12 @@ initial begin : setup_registers
 end
 
 
-assign enClk = (state != idle)? 1'b1 : 1'b0;
+assign en_bus_clock = (state != idle)? 1'b1 : 1'b0;
 always @(posedge clk) begin: spi_clock
-    o_SpiClk <= SpiClk;
+    o_bus_clock <= bus_clock;
 
-    if (~enClk) begin
-        SpiClk        <= 1'b0;
+    if (~en_bus_clock) begin
+        bus_clock        <= 1'b0;
         clock_count     <= TIMER_COUNT;
         clock_tick_pos  <= 1'b0;
         clock_tick_neg  <= 1'b0;
@@ -84,9 +86,9 @@ always @(posedge clk) begin: spi_clock
     else begin
         if (clock_count == 0) begin
             clock_count     <= TIMER_COUNT;
-            clock_tick_pos  <= ~SpiClk;
-            clock_tick_neg  <= SpiClk;
-            SpiClk        <= ~SpiClk;
+            clock_tick_pos  <= ~bus_clock;
+            clock_tick_neg  <= bus_clock;
+            bus_clock        <= ~bus_clock;
         end
         else begin
             clock_count     <= clock_count -1;
@@ -100,21 +102,21 @@ end
 always @(posedge clk) begin : sm_logic
     case (state)
         idle : begin
-            o_ChipSelect_neg <= 1'b1;
-            enSerialOut <= 1'b0;
+            o_chip_select_neg <= 1'b1;
+            en_serial_out <= 1'b0;
             if (go) state <= cl_low;
         end
 
         cl_low : begin
-            o_ChipSelect_neg <= 1'b0;
+            o_chip_select_neg <= 1'b0;
             count <= OPCODE_LENGTH -1;
-            enSerialOut <= 1'b1;
-            SerialOut <= opcode[OPCODE_LENGTH -1];     // this is a bit shitty - but otherwise the old last sent value is sent out // ToDo: still needed with counter-clock?
+            en_serial_out <= 1'b1;
+            serial_out <= opcode[OPCODE_LENGTH -1];     // this is a bit shitty - but otherwise the old last sent value is sent out // ToDo: still needed with counter-clock?
             state <= send_opcode;
         end
 
         send_opcode : begin
-            SerialOut <= opcode[count];
+            serial_out <= opcode[count];
 
             if (clock_tick_neg) begin
                 count <= count -1;
@@ -134,7 +136,7 @@ always @(posedge clk) begin : sm_logic
         end
 
         send_address : begin
-            SerialOut <= address[count];
+            serial_out <= address[count];
 
             if (clock_tick_neg)
                 count <= count -1;
@@ -157,10 +159,10 @@ always @(posedge clk) begin : sm_logic
                 count <= count -1;
                 buffer_count <= buffer_count +1;
 
-                buffer[buffer_count[6:3]][count[2:0]] <= SerialIn;
+                buffer[buffer_count[6:3]][count[2:0]] <= serial_in;
                 
-                SerialOut <= SerialIn;
-                //enSerialOut <= 1'b0;
+                serial_out <= serial_in;
+                //en_serial_out <= 1'b0;
             end
 
             if (count == 0 & clock_tick_pos) begin
@@ -174,7 +176,7 @@ always @(posedge clk) begin : sm_logic
             if (clock_tick_neg) begin
                 count <= count -1;
                 buffer_count <= buffer_count +1;
-                SerialOut <= buffer[buffer_count[6:3]][count[2:0]];
+                serial_out <= buffer[buffer_count[6:3]][count[2:0]];
             end
 
             if (count == 0 & clock_tick_neg) begin
@@ -187,8 +189,8 @@ always @(posedge clk) begin : sm_logic
         cl_high : begin
             if (clock_tick_neg) begin
                 state <= idle;
-                o_ChipSelect_neg <= 1'b1;
-                enSerialOut <= 1'b0;
+                o_chip_select_neg <= 1'b1;
+                en_serial_out <= 1'b0;
             end
         end
 

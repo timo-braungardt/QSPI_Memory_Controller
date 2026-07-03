@@ -48,12 +48,12 @@ async def transmission_test(dut):
     qspi_subordinate = SimpleQSpiSubordinate(
                     QSpiBus(
                         entity=dut, 
-                        sclk_name='o_SpiClk', 
-                        mosi_d1_name='io_ManagerSerialOut_QD1', 
-                        miso_d0_name='io_ManagerSerialIn_QD0',
-                        d2_name='io_DQ2',
-                        d3_name='io_DQ3',
-                        cs_name='o_ChipSelect_neg'),
+                        sclk_name='o_bus_clock', 
+                        mosi_d1_name='io_dq1_manager_serial_out', 
+                        miso_d0_name='io_dq0_manager_serial_in',
+                        d2_name='io_dq2',
+                        d3_name='io_dq3',
+                        cs_name='o_chip_select_neg'),
                     QSpiConfig(
                         word_width=8,
                         sclk_freq=20e6,
@@ -81,7 +81,7 @@ async def transmission_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.o_ChipSelect_neg.value_change
+    await dut.o_chip_select_neg.value_change
 
     assert qspi_subordinate.opcode == 0x05
     assert qspi_subordinate.address == 0x800001
@@ -93,12 +93,12 @@ async def read_test(dut):
     qspi_subordinate = SimpleQSpiSubordinate(
                     QSpiBus(
                         entity=dut, 
-                        sclk_name='o_SpiClk', 
-                        mosi_d1_name='io_ManagerSerialOut_QD1', 
-                        miso_d0_name='io_ManagerSerialIn_QD0',
-                        d2_name='io_DQ2',
-                        d3_name='io_DQ3',
-                        cs_name='o_ChipSelect_neg'),
+                        sclk_name='o_bus_clock', 
+                        mosi_d1_name='io_dq1_manager_serial_out', 
+                        miso_d0_name='io_dq0_manager_serial_in',
+                        d2_name='io_dq2',
+                        d3_name='io_dq3',
+                        cs_name='o_chip_select_neg'),
                     QSpiConfig(
                         word_width=8,
                         sclk_freq=20e6,
@@ -128,7 +128,7 @@ async def read_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.o_ChipSelect_neg.value_change
+    await dut.o_chip_select_neg.value_change
 
     assert qspi_subordinate.opcode == 0x03
     assert qspi_subordinate.address == 20
@@ -144,12 +144,12 @@ async def write_test(dut):
     qspi_subordinate = SimpleQSpiSubordinate(
                     QSpiBus(
                         entity=dut, 
-                        sclk_name='o_SpiClk', 
-                        mosi_d1_name='io_ManagerSerialOut_QD1', 
-                        miso_d0_name='io_ManagerSerialIn_QD0',
-                        d2_name='io_DQ2',
-                        d3_name='io_DQ3',
-                        cs_name='o_ChipSelect_neg'),
+                        sclk_name='o_bus_clock', 
+                        mosi_d1_name='io_dq1_manager_serial_out', 
+                        miso_d0_name='io_dq0_manager_serial_in',
+                        d2_name='io_dq2',
+                        d3_name='io_dq3',
+                        cs_name='o_chip_select_neg'),
                     QSpiConfig(
                         word_width=8,
                         sclk_freq=20e6,
@@ -179,7 +179,7 @@ async def write_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.o_ChipSelect_neg.value_change
+    await dut.o_chip_select_neg.value_change
 
     assert qspi_subordinate.opcode == 0x06
     assert qspi_subordinate.write_enable
@@ -201,7 +201,7 @@ async def write_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.o_ChipSelect_neg.value_change
+    await dut.o_chip_select_neg.value_change
 
     assert qspi_subordinate.opcode == 0x02
     assert qspi_subordinate.address == 21

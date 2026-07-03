@@ -5,29 +5,31 @@ module QuadSPI (
     input go,
     
     // SPI Pins
-    output reg o_SpiClk,
-    output reg o_ChipSelect_neg,
-    output o_Reset,
-    inout io_ManagerSerialIn_QD0,
-    inout io_ManagerSerialOut_QD1,
-    inout io_DQ2,
-    inout io_DQ3
+    output reg o_bus_clock,
+    output reg o_chip_select_neg,
+    output o_reset,
+    inout io_dq0_manager_serial_in,
+    inout io_dq1_manager_serial_out,
+    inout io_dq2,
+    inout io_dq3
 );
 
-// Pin tristate stuff
-wire  enClk;
-reg  enSerialOut;
-reg  SerialOut0, SerialOut1, SerialOut2, SerialOut3;
-wire SerialIn0, SerialIn1, SerialIn2, SerialIn3;
+localparam BUFFER_SIZE = 16;
 
-assign io_ManagerSerialIn_QD0   = (enSerialOut)  ? SerialOut0 : 1'bZ;
-assign io_ManagerSerialOut_QD1  = (enSerialOut)  ? SerialOut1 : 1'bZ;       // ToDo: this pin is not serial out for spi mode!
-assign io_DQ2                   = (enSerialOut)  ? SerialOut2 : 1'bZ;
-assign io_DQ3                   = (enSerialOut)  ? SerialOut3 : 1'bZ;
-assign SerialIn0                = io_ManagerSerialIn_QD0;
-assign SerialIn1                = io_ManagerSerialOut_QD1;
-assign SerialIn2                = io_DQ2;
-assign SerialIn3                = io_DQ3;
+// Pin tristate stuff
+wire en_bus_clock;
+reg  en_serial_out;
+reg  serial_out_0, serial_out_1, serial_out_2, serial_out_3;
+wire serial_in_0, serial_in_1, serial_in_2, serial_in_3;
+
+assign io_dq0_manager_serial_in   = (en_serial_out)  ? serial_out_0 : 1'bZ;
+assign io_dq1_manager_serial_out  = (en_serial_out)  ? serial_out_1 : 1'bZ;       // ToDo: this pin is not serial out for spi mode!
+assign io_dq2                   = (en_serial_out)  ? serial_out_2 : 1'bZ;
+assign io_dq3                   = (en_serial_out)  ? serial_out_3 : 1'bZ;
+assign serial_in_0                = io_dq0_manager_serial_in;
+assign serial_in_1                = io_dq1_manager_serial_out;
+assign serial_in_2                = io_dq2;
+assign serial_in_3                = io_dq3;
 
 // Logic stuff
 reg  [7:0] opcode;
@@ -40,39 +42,39 @@ integer    state;
 
 integer count           = 0;
 integer clock_count     = 0;
-reg     SpiClk          = 0;
+reg     bus_clock          = 0;
 reg     clock_tick_pos  = 0;
 reg     clock_tick_neg  = 0;
 integer buffer_count    = 0;
 
-reg  [7:0] buffer [0:15];
+reg  [7:0] buffer [0:BUFFER_SIZE -1];
 
 // states
-parameter integer idle          = 0;
-parameter integer cl_low        = 5;
-parameter integer cl_high       = 8;
-parameter integer send_opcode   = 1;
-parameter integer send_address  = 2;
-parameter integer send_data     = 3;
-parameter integer recieve_data  = 4;
+localparam integer idle          = 0;
+localparam integer cl_low        = 5;
+localparam integer cl_high       = 8;
+localparam integer send_opcode   = 1;
+localparam integer send_address  = 2;
+localparam integer send_data     = 3;
+localparam integer recieve_data  = 4;
 
 // constants
-parameter integer TIMER_COUNT       = 2;
-parameter integer OPCODE_LENGTH     = 8;
-parameter integer ADDRESS_LENGTH    = 24; // can also be 32
+localparam integer TIMER_COUNT       = 2;
+localparam integer OPCODE_LENGTH     = 8;
+localparam integer ADDRESS_LENGTH    = 24; // can also be 32
 
 
 initial begin : setup_registers
     opcode      <= 0;
     address     <= 0;
-    enSerialOut <= 0;
-    SerialOut0  <= 0;
-    SerialOut1  <= 0;
-    SerialOut2  <= 0;
-    SerialOut3  <= 0;
+    en_serial_out <= 0;
+    serial_out_0  <= 0;
+    serial_out_1  <= 0;
+    serial_out_2  <= 0;
+    serial_out_3  <= 0;
     state       <= 0;
-    o_ChipSelect_neg <= 1'b1;
-    o_SpiClk    <= 1'b0;
+    o_chip_select_neg <= 1'b1;
+    o_bus_clock    <= 1'b0;
 
     // the default case is reading from an address.
     write_address   <= 1;
@@ -82,12 +84,12 @@ initial begin : setup_registers
 end
 
 
-assign enClk = (state != idle)? 1'b1 : 1'b0;
+assign en_bus_clock = (state != idle)? 1'b1 : 1'b0;
 always @(posedge clk) begin: spi_clock
-    o_SpiClk <= SpiClk;
+    o_bus_clock <= bus_clock;
 
-    if (~enClk) begin
-        SpiClk        <= 1'b0;
+    if (~en_bus_clock) begin
+        bus_clock        <= 1'b0;
         clock_count     <= TIMER_COUNT;
         clock_tick_pos  <= 1'b0;
         clock_tick_neg  <= 1'b0;
@@ -95,9 +97,9 @@ always @(posedge clk) begin: spi_clock
     else begin
         if (clock_count == 0) begin
             clock_count     <= TIMER_COUNT;
-            clock_tick_pos  <= ~SpiClk;
-            clock_tick_neg  <= SpiClk;
-            SpiClk        <= ~SpiClk;
+            clock_tick_pos  <= ~bus_clock;
+            clock_tick_neg  <= bus_clock;
+            bus_clock        <= ~bus_clock;
         end
         else begin
             clock_count     <= clock_count -1;
@@ -111,29 +113,29 @@ end
 always @(posedge clk) begin : sm_logic
     case (state)
         idle : begin
-            o_ChipSelect_neg <= 1'b1;
-            enSerialOut <= 1'b0;
+            o_chip_select_neg <= 1'b1;
+            en_serial_out <= 1'b0;
             if (go) state <= cl_low;
         end
 
 
         cl_low : begin
-            o_ChipSelect_neg <= 1'b0;
+            o_chip_select_neg <= 1'b0;
             count <= OPCODE_LENGTH/4 -1;
-            enSerialOut <= 1'b1;
-            SerialOut0 <= opcode[7];  // this is a bit shitty - but otherwise the old last sent value is sent out
-            SerialOut1 <= opcode[6];
-            SerialOut2 <= opcode[5];
-            SerialOut3 <= opcode[4];
+            en_serial_out <= 1'b1;
+            serial_out_0 <= opcode[7];  // this is a bit shitty - but otherwise the old last sent value is sent out
+            serial_out_1 <= opcode[6];
+            serial_out_2 <= opcode[5];
+            serial_out_3 <= opcode[4];
             state <= send_opcode;
         end
 
 
         send_opcode : begin
-            SerialOut0 <= opcode[{count[0], 2'd0}];
-            SerialOut1 <= opcode[{count[0], 2'd1}];
-            SerialOut2 <= opcode[{count[0], 2'd2}];
-            SerialOut3 <= opcode[{count[0], 2'd3}];
+            serial_out_0 <= opcode[{count[0], 2'd0}];
+            serial_out_1 <= opcode[{count[0], 2'd1}];
+            serial_out_2 <= opcode[{count[0], 2'd2}];
+            serial_out_3 <= opcode[{count[0], 2'd3}];
             
             if (clock_tick_neg) begin
                 count <= count -1;
@@ -154,10 +156,10 @@ always @(posedge clk) begin : sm_logic
 
 
         send_address : begin
-            SerialOut0 <= address[{count, 2'd0}];
-            SerialOut1 <= address[{count, 2'd1}];
-            SerialOut2 <= address[{count, 2'd2}];
-            SerialOut3 <= address[{count, 2'd3}];
+            serial_out_0 <= address[{count, 2'd0}];
+            serial_out_1 <= address[{count, 2'd1}];
+            serial_out_2 <= address[{count, 2'd2}];
+            serial_out_3 <= address[{count, 2'd3}];
 
             if (clock_tick_neg)
                 count <= count -1;
@@ -176,16 +178,16 @@ always @(posedge clk) begin : sm_logic
 
 
         recieve_data : begin
-            enSerialOut <= 1'b0;
+            en_serial_out <= 1'b0;
 
             if (clock_tick_pos) begin
                 count <= count -1;
                 buffer_count <= buffer_count +1;
 
-                buffer[buffer_count[6:1]][{count[0], 2'd0}] <= SerialIn0;
-                buffer[buffer_count[6:1]][{count[0], 2'd1}] <= SerialIn1;
-                buffer[buffer_count[6:1]][{count[0], 2'd2}] <= SerialIn2;
-                buffer[buffer_count[6:1]][{count[0], 2'd3}] <= SerialIn3;
+                buffer[buffer_count[6:1]][{count[0], 2'd0}] <= serial_in_0;
+                buffer[buffer_count[6:1]][{count[0], 2'd1}] <= serial_in_1;
+                buffer[buffer_count[6:1]][{count[0], 2'd2}] <= serial_in_2;
+                buffer[buffer_count[6:1]][{count[0], 2'd3}] <= serial_in_3;
             end
 
             if (count == 0 & clock_tick_pos) begin
@@ -199,10 +201,10 @@ always @(posedge clk) begin : sm_logic
             if (clock_tick_neg) begin
                 count <= count -1;
                 buffer_count <= buffer_count +1;
-                SerialOut0 <= buffer[buffer_count[6:1]][{count[0], 2'd0}];
-                SerialOut1 <= buffer[buffer_count[6:1]][{count[0], 2'd1}];
-                SerialOut2 <= buffer[buffer_count[6:1]][{count[0], 2'd2}];
-                SerialOut3 <= buffer[buffer_count[6:1]][{count[0], 2'd3}];
+                serial_out_0 <= buffer[buffer_count[6:1]][{count[0], 2'd0}];
+                serial_out_1 <= buffer[buffer_count[6:1]][{count[0], 2'd1}];
+                serial_out_2 <= buffer[buffer_count[6:1]][{count[0], 2'd2}];
+                serial_out_3 <= buffer[buffer_count[6:1]][{count[0], 2'd3}];
             end
 
             if (count == 0 & clock_tick_neg) begin
@@ -215,7 +217,7 @@ always @(posedge clk) begin : sm_logic
         cl_high : begin
             if (clock_tick_neg) begin
                 state <= idle;
-                enSerialOut <= 1'b0;
+                en_serial_out <= 1'b0;
             end
         end
 
