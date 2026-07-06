@@ -40,7 +40,7 @@ module axi_ram #
     // Width of ID signal
     parameter ID_WIDTH = 8,
     // Extra pipeline register on output
-    parameter PIPELINE_OUTPUT = 0
+    parameter PIPELINE_OUTPUT = 1'b0
 )
 (
     input  wire                   clk,
@@ -242,6 +242,9 @@ always @* begin
             end else begin
                 write_state_next = WRITE_STATE_RESP;
             end
+        end
+        default: begin
+            write_state_next = WRITE_STATE_IDLE;
         end
     endcase
 end
