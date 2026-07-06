@@ -1,40 +1,41 @@
-`timescale 1ns/100ps
+`timescale 1ns / 100ps
 
 module HyperRAM_wrapper;
     reg clk   = 1'b0;
     reg go    = 1'b0;
     reg reset = 1'b1;
 
-    wire SerialClk;
-    wire ChipSelect;
-    wire [7:0] DQ;
-    wire DataStrobe;
+    wire bus_clock;
+    wire chip_select_neg;
+    wire [7:0] data;
+    wire data_strobe;
 
 
-    Hyperbus controller(
+    Hyperbus controller (
         .clk(clk),
         .go(go),
-        .o_bus_clock(SerialClk),
+        .o_bus_clock(bus_clock),
         .o_bus_clock_neg(SerialClk_neg),
-        .o_chip_select_neg(ChipSelect),
-        .io_data(DQ),
-        .io_data_strobe(DataStrobe)
-        );
+        .o_chip_select_neg(chip_select_neg),
+        .io_data(data),
+        .io_data_strobe(data_strobe)
+    );
 
 
-    s27kl0641 #(.TimingModel("S27KL0641DABHI000"))
-    RAM (
-        .DQ7(DQ[7]),
-        .DQ6(DQ[6]),
-        .DQ5(DQ[5]),
-        .DQ4(DQ[4]),
-        .DQ3(DQ[3]),
-        .DQ2(DQ[2]),
-        .DQ1(DQ[1]),
-        .DQ0(DQ[0]),
-        .RWDS(DataStrobe),
-        .CSNeg(ChipSelect),
-        .CK(SerialClk),
+    s27kl0641 #(
+        .TimingModel("S27KL0641DABHI000")
+    ) RAM (
+        .DQ7(data[7]),
+        .DQ6(data[6]),
+        .DQ5(data[5]),
+        .DQ4(data[4]),
+        .DQ3(data[3]),
+        .DQ2(data[2]),
+        .DQ1(data[1]),
+        .DQ0(data[0]),
+        .RWDS(data_strobe),
+        .CSNeg(chip_select_neg),
+        .CK(bus_clock),
         .RESETNeg(reset)
     );
 
