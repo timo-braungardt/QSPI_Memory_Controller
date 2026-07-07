@@ -33,7 +33,6 @@ import pytest
 import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
-from cocotb.regression import TestFactory
 
 from cocotbext.axi import AxiBus, AxiMaster
 
@@ -72,6 +71,7 @@ class TB(object):
         await RisingEdge(self.dut.clk)
 
 
+@cocotb.test()
 async def run_test_write(dut, data_in=None, idle_inserter=None, backpressure_inserter=None, size=None):
 
     tb = TB(dut)
@@ -105,6 +105,7 @@ async def run_test_write(dut, data_in=None, idle_inserter=None, backpressure_ins
     await RisingEdge(dut.clk)
 
 
+@cocotb.test()
 async def run_test_read(dut, data_in=None, idle_inserter=None, backpressure_inserter=None, size=None):
 
     tb = TB(dut)
@@ -136,6 +137,7 @@ async def run_test_read(dut, data_in=None, idle_inserter=None, backpressure_inse
     await RisingEdge(dut.clk)
 
 
+@cocotb.test()
 async def run_stress_test(dut, idle_inserter=None, backpressure_inserter=None):
 
     tb = TB(dut)
@@ -176,33 +178,17 @@ def cycle_pause():
     return itertools.cycle([1, 1, 1, 0])
 
 
-if cocotb.SIM_NAME:
-
-    data_width = len(cocotb.top.s_axi_wdata)
-    byte_lanes = data_width // 8
-    max_burst_size = (byte_lanes-1).bit_length()
-
-    for test in [run_test_write, run_test_read]:
-
-        factory = TestFactory(test)
-        factory.add_option("idle_inserter", [None, cycle_pause])
-        factory.add_option("backpressure_inserter", [None, cycle_pause])
-        factory.add_option("size", [None]+list(range(max_burst_size)))
-        factory.generate_tests()
-
-    factory = TestFactory(run_stress_test)
-    factory.generate_tests()
 
 
 # cocotb-test
 
 tests_dir = os.path.abspath(os.path.dirname(__file__))
-rtl_dir = os.path.abspath(os.path.join(tests_dir, '..', '..', 'rtl'))
+rtl_dir = os.path.abspath(os.path.join(tests_dir, '..', '..', 'src'))
 
 
 @pytest.mark.parametrize("data_width", [8, 16, 32])
 def test_axi_ram(request, data_width):
-    dut = "axi_ram"
+    dut = "AXI"
     module = os.path.splitext(os.path.basename(__file__))[0]
     toplevel = dut
 

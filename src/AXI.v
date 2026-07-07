@@ -29,7 +29,7 @@ THE SOFTWARE.
 /*
  * AXI4 RAM
  */
-module axi_ram #(
+module AXI #(
     // Width of data bus in bits
     parameter DATA_WIDTH = 32,
     // Width of address bus in bits
