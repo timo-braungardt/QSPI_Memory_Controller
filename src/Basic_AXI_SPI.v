@@ -78,7 +78,12 @@ module Basic_AXI_SPI #(
     output wire [           1:0] s_axi_rresp,
     output wire                  s_axi_rlast,
     output wire                  s_axi_rvalid,
-    input  wire                  s_axi_rready
+    input  wire                  s_axi_rready,
+    output wire                  s_spi_clock,
+    output wire                  s_spi_chip_select_neg,
+    output wire                  s_spi_reset,
+    inout  wire                  s_spi_manager_serial_in,
+    inout  wire                  s_spi_manager_serial_out
 );
 
     parameter VALID_ADDR_WIDTH = ADDR_WIDTH - $clog2(STRB_WIDTH);
@@ -98,11 +103,11 @@ module Basic_AXI_SPI #(
         end
     end
 
-    localparam [0:0] READ_STATE_IDLE = 1'd0, READ_STATE_BURST = 1'd1;
+    localparam [1:0] READ_STATE_IDLE = 2'd0, READ_STATE_WAIT_SPI = 2'd1, READ_STATE_BURST = 2'd2;
 
-    reg [0:0] read_state_reg = READ_STATE_IDLE, read_state_next;
+    reg [1:0] read_state_reg = READ_STATE_IDLE, read_state_next;
 
-    localparam [1:0] WRITE_STATE_IDLE = 2'd0, WRITE_STATE_BURST = 2'd1, WRITE_STATE_RESP = 2'd2;
+    localparam [1:0] WRITE_STATE_IDLE = 2'd0, WRITE_STATE_BURST = 2'd1, WRITE_STATE_WAIT_SPI = 2'd2, WRITE_STATE_RESP = 2'd3;
 
     reg [1:0] write_state_reg = WRITE_STATE_IDLE, write_state_next;
 
@@ -166,6 +171,17 @@ module Basic_AXI_SPI #(
         end
     end
 
+    BasicSPI SPI_Controller (
+        .clk(clk),
+        .go(read_state_reg == READ_STATE_WAIT_SPI || write_state_reg == WRITE_STATE_WAIT_SPI),
+        .o_bus_clock(s_spi_clock),
+        .o_chip_select_neg(s_spi_chip_select_neg),
+        .o_reset(s_spi_reset),
+        .io_manager_serial_in(s_spi_manager_serial_in),
+        .io_manager_serial_out(s_spi_manager_serial_out)
+    );
+
+
     always @* begin
         write_state_next = WRITE_STATE_IDLE;
 
@@ -203,6 +219,7 @@ module Basic_AXI_SPI #(
             end
             WRITE_STATE_BURST: begin
                 s_axi_wready_next = 1'b1;
+                SPI_Controller.opcode = 8'd2;
 
                 if (s_axi_wready && s_axi_wvalid) begin
                     mem_wr_en = 1'b1;
@@ -218,7 +235,7 @@ module Basic_AXI_SPI #(
                             s_axi_bid_next = write_id_reg;
                             s_axi_bvalid_next = 1'b1;
                             s_axi_awready_next = 1'b1;
-                            write_state_next = WRITE_STATE_IDLE;
+                            write_state_next = WRITE_STATE_WAIT_SPI;
                         end else begin
                             write_state_next = WRITE_STATE_RESP;
                         end
@@ -232,10 +249,15 @@ module Basic_AXI_SPI #(
                     s_axi_bid_next = write_id_reg;
                     s_axi_bvalid_next = 1'b1;
                     s_axi_awready_next = 1'b1;
-                    write_state_next = WRITE_STATE_IDLE;
+                    write_state_next = WRITE_STATE_WAIT_SPI;
                 end else begin
                     write_state_next = WRITE_STATE_RESP;
                 end
+            end
+            WRITE_STATE_WAIT_SPI: begin
+                if (SPI_Controller.state == SPI_Controller.cl_high)
+                    write_state_next = WRITE_STATE_IDLE;
+                else write_state_next = WRITE_STATE_WAIT_SPI;
             end
             default: begin
                 write_state_next = WRITE_STATE_IDLE;
@@ -259,7 +281,7 @@ module Basic_AXI_SPI #(
 
         for (i = 0; i < WORD_WIDTH; i = i + 1) begin
             if (mem_wr_en & s_axi_wstrb[i]) begin
-                mem[write_addr_valid][WORD_SIZE*i +: WORD_SIZE] <= s_axi_wdata[WORD_SIZE*i +: WORD_SIZE];
+                SPI_Controller.buffer[i] <= s_axi_wdata[WORD_SIZE*i+:WORD_SIZE];
             end
         end
 
@@ -269,6 +291,14 @@ module Basic_AXI_SPI #(
             s_axi_awready_reg <= 1'b0;
             s_axi_wready_reg  <= 1'b0;
             s_axi_bvalid_reg  <= 1'b0;
+        end
+
+        // ToDo: this is hacky! there should be another state to load the address into the SPI register
+        // or do it with wires!
+        if (write_state_reg == WRITE_STATE_WAIT_SPI) begin
+            SPI_Controller.write_address <= 1;
+            SPI_Controller.write_data    <= 1;
+            SPI_Controller.read_data     <= 0;
         end
     end
 
@@ -302,10 +332,15 @@ module Basic_AXI_SPI #(
                     read_burst_next = s_axi_arburst;
 
                     s_axi_arready_next = 1'b0;
-                    read_state_next = READ_STATE_BURST;
+                    read_state_next = READ_STATE_WAIT_SPI;
                 end else begin
                     read_state_next = READ_STATE_IDLE;
                 end
+            end
+            READ_STATE_WAIT_SPI: begin
+                if (SPI_Controller.state == SPI_Controller.cl_high)
+                    read_state_next = READ_STATE_BURST;
+                else read_state_next = READ_STATE_WAIT_SPI;
             end
             READ_STATE_BURST: begin
                 if (s_axi_rready || (PIPELINE_OUTPUT && !s_axi_rvalid_pipe_reg) || !s_axi_rvalid_reg) begin
@@ -345,7 +380,12 @@ module Basic_AXI_SPI #(
         s_axi_rvalid_reg <= s_axi_rvalid_next;
 
         if (mem_rd_en) begin
-            s_axi_rdata_reg <= mem[read_addr_valid];
+            s_axi_rdata_reg <= {
+                SPI_Controller.buffer[3],
+                SPI_Controller.buffer[2],
+                SPI_Controller.buffer[1],
+                SPI_Controller.buffer[0]
+            };
         end
 
         if (!s_axi_rvalid_pipe_reg || s_axi_rready) begin
@@ -361,6 +401,18 @@ module Basic_AXI_SPI #(
             s_axi_arready_reg <= 1'b0;
             s_axi_rvalid_reg <= 1'b0;
             s_axi_rvalid_pipe_reg <= 1'b0;
+        end
+
+        // ToDo: this is hacky! there should be another state to load the address into the SPI register
+        // or do it with wires!
+        if (read_state_reg == READ_STATE_WAIT_SPI) begin
+            SPI_Controller.write_address <= 1;
+            SPI_Controller.write_data    <= 0;
+            SPI_Controller.read_data     <= 1;
+        end
+
+        if (read_state_reg != READ_STATE_IDLE) begin
+            SPI_Controller.opcode = 8'd3;
         end
     end
 
