@@ -1,0 +1,49 @@
+## Disclaimer: This script was generated with ChatGPT and not verified - use with caution!
+
+SRC_PATH := ./memory_model_test
+TESTBENCH_NAME ?= caching_tb_write
+
+WORK_LIB := work
+WLF_FILE := vsim.wlf
+
+all: simulate
+
+# Create Questa working library
+$(WORK_LIB):
+	vlib $(WORK_LIB)
+	vmap $(WORK_LIB) $(WORK_LIB)
+
+# Compile SystemVerilog sources
+sv_compile: $(WORK_LIB)
+	vlog -sv $(SRC_PATH)/*
+
+# Copy memory initialization files
+prepare_mem:
+	cp ../memory_models/infineon-s25hl512t-qspi-verilog-model-simulationmodels-en/s25hl512tRel/s25hl512tOTP.mem .
+	cp ../memory_models/infineon-s25hl512t-qspi-verilog-model-simulationmodels-en/s25hl512tRel/s25hl512t.mem .
+
+# Questa performs elaboration automatically during vsim startup
+elaborate: sv_compile prepare_mem
+
+# Run simulation in batch mode
+simulate: elaborate
+	vsim -c $(TESTBENCH_NAME) -do "run -all; quit -f"
+
+# Run simulation with GUI
+simulate_gui: elaborate
+	vsim $(TESTBENCH_NAME)
+
+# Run simulation and generate waveform database
+simulate_dump: elaborate
+	vsim -c $(TESTBENCH_NAME) -wlf $(WLF_FILE) -do "log -r /*; run -all; quit -f"
+	vsim -view $(WLF_FILE)
+
+# Clean generated files
+clean:
+	rm -rf $(WORK_LIB)
+	rm -rf transcript
+	rm -rf $(WLF_FILE)
+	rm -rf modelsim.ini
+	rm -rf *.log
+	rm -rf *.vstf
+	rm -rf *.ucdb

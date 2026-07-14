@@ -18,3 +18,9 @@ test/memory_models/*
 test/testbenches/*.mem
 .Xil/
 *.str
+
+# questa simulation files
+work/
+*.ini
+transcript
+*.wlf
