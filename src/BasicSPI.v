@@ -57,19 +57,19 @@ module BasicSPI (
 
 
     initial begin : setup_registers
-        opcode            <= 0;
-        address           <= 0;
-        en_serial_out     <= 0;
-        serial_out        <= 0;
-        state             <= 0;
-        o_chip_select_neg <= 1'b1;
-        o_bus_clock       <= 1'b0;
+        opcode            = 0;
+        address           = 0;
+        en_serial_out     = 0;
+        serial_out        = 0;
+        state             = 0;
+        o_chip_select_neg = 1'b1;
+        o_bus_clock       = 1'b0;
 
         // the default case is reading from an address.
-        write_address     <= 1;
-        write_data        <= 0;
-        read_data         <= 1;
-        num_bits          <= 32;
+        write_address     = 1;
+        write_data        = 0;
+        read_data         = 1;
+        num_bits          = 32;
     end
 
 

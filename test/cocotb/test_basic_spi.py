@@ -111,14 +111,14 @@ async def read_test(dut):
     # ToDo: this is not the data we expect to recieve
     # but the module can only shift out data on the next negative clock edge, 
     # therefore we have to manually shift the data for now        
-    #assert dut.buffer[0].value.integer == 0x12
-    #assert dut.buffer[1].value.integer == 0x34
-    #assert dut.buffer[2].value.integer == 0x56
-    #assert dut.buffer[3].value.integer == 0x78
-    assert dut.buffer[0].value.integer == 0b00001001
-    assert dut.buffer[1].value.integer == 0b00011010
-    assert dut.buffer[2].value.integer == 0b00101011
-    assert dut.buffer[3].value.integer == 0b00111100
+    #assert dut.buffer[0].value.to_unsigned() == 0x12
+    #assert dut.buffer[1].value.to_unsigned() == 0x34
+    #assert dut.buffer[2].value.to_unsigned() == 0x56
+    #assert dut.buffer[3].value.to_unsigned() == 0x78
+    assert dut.buffer[0].value.to_unsigned() == 0b00001001
+    assert dut.buffer[1].value.to_unsigned() == 0b00011010
+    assert dut.buffer[2].value.to_unsigned() == 0b00101011
+    assert dut.buffer[3].value.to_unsigned() == 0b00111100
 
 
 @cocotb.test()
