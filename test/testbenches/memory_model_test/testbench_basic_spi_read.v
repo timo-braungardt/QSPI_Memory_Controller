@@ -10,23 +10,24 @@ module testbench_basic_spi_read;
     reg clk, go;
     wire SerialIn, SerialOut, SerialClk, ChipSelect;
 
-    BasicSPI DUT(
+    BasicSPI DUT (
         .clk(clk),
         .go(go),
-        .o_SpiClk(SerialClk),
-        .o_ChipSelect_neg(ChipSelect),
-        .io_ManagerSerialIn(SerialOut),
-        .io_ManagerSerialOut(SerialIn)
-        );
+        .o_bus_clock(SerialClk),
+        .o_chip_select_neg(ChipSelect),
+        .io_manager_serial_in(SerialOut),
+        .io_manager_serial_out(SerialIn)
+    );
 
-    s25hl512t Memory ( 
+    s25hl512t Memory (
         .SI(SerialIn),
         .SO(SerialOut),
         .SCK(SerialClk),
         .CSNeg(ChipSelect),
+        .WPNeg(1'b1),
         .RESETNeg(1'b1)
-        );
-    
+    );
+
     initial begin
         clk <= 1'b0;
         forever #half_period clk <= ~clk;
@@ -38,12 +39,15 @@ module testbench_basic_spi_read;
         DUT.address <= 24'h010203;
         #500us;
         go <= 1'b1;
-        #(spi_period * 32) 
-        if(DUT.io_ManagerSerialIn !== 1'bZ) $fatal(1,"Data is wrong! Expected %h got %h", 1'bZ, DUT.io_ManagerSerialIn);
-        #(spi_period * 1) 
-        if(DUT.io_ManagerSerialIn !== 1'b1) $fatal(1,"Data is wrong! Expected %h got %h", 1'b1, DUT.io_ManagerSerialIn);
-        #(spi_period * 32) 
-        if(DUT.io_ManagerSerialIn !== 1'bZ) $fatal(1,"Data is wrong! Expected %h got %h", 1'bZ, DUT.io_ManagerSerialIn);
+        #(spi_period * 32)
+        if (DUT.io_manager_serial_in !== 1'bZ)
+            $fatal(1, "Data is wrong! Expected %h got %h", 1'bZ, DUT.io_manager_serial_in);
+        #(spi_period * 1)
+        if (DUT.io_manager_serial_in !== 1'b1)
+            $fatal(1, "Data is wrong! Expected %h got %h", 1'b1, DUT.io_manager_serial_in);
+        #(spi_period * 32)
+        if (DUT.io_manager_serial_in !== 1'bZ)
+            $fatal(1, "Data is wrong! Expected %h got %h", 1'bZ, DUT.io_manager_serial_in);
 
         $display("OK");
         $finish;
