@@ -8,6 +8,7 @@ Here are the download links to the models so you can download them yourself.
 [Infineon S27KL0641 Hyperbus (you have to unzip the .exe as well)](https://www.infineon.com/content/dam/infineon/row/public/documents/10/50/infineon-s27kl0641-simulationmodels-en.zip)  
 [Microchip 23LC1024 QSPI](https://www.microchip.com/en-us/product/23LC1024#Design%20Resources)  
 [Winbond](https://www.winbond.com/hq/support/documentation/?__locale=en&line=/product/customized-memory-solution/index.html&family=/product/customized-memory-solution/psram/index.html&category=/.categories/resources/verilog-model/)  
+[Micron](https://www.micron.com/products/storage/nor-flash/serial-nor/part-catalog/part-detail/mt25ql128aba8e12-0aat)  
 
 The infineon models cannot be run by open source simulators, because it uses the `specify` blocks in verilog.
 For the Infineon model `s25hl512t` you have to set the parameter `tdevice_CSRBL`, because it is not provided in the files.
