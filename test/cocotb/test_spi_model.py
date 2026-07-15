@@ -59,7 +59,7 @@ async def read_test(dut):
     dut.Controller.buffer[2].value = 0x56
     dut.Controller.buffer[3].value = 0x78
     dut.Controller.buffer[4].value = 0xFF
-    dut.Controller.num_bits.value = 8
+    dut.Controller.num_bits.value = 32
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -74,11 +74,14 @@ async def read_test(dut):
 
     dut.Controller.opcode.value = SPI_COMMANDS.read
     dut.Controller.address.value = 0x20
+
+    for i in range(8):
+        dut.Controller.buffer[i].value = 0
     
     dut.Controller.write_address.value = 0b1
     dut.Controller.write_data.value = 0b0
     dut.Controller.read_data.value = 0b1
-    dut.Controller.num_bits.value = 8
+    dut.Controller.num_bits.value = 32
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
