@@ -94,7 +94,7 @@ async def read_test(dut):
     assert dut.Controller.buffer[3].value.to_unsigned() == 0x78
 
 
-def test_spi_model():
+def test_spi_model(wave=False):
     required_file = Path("../../test/memory_models/infineon-s25hl512t-qspi-verilog-model-simulationmodels-en/s25hl512tRel/src/s25hl512t.sv")
     if not required_file.exists():
         raise SkipTest(f"Simulation Model for S25HL512T not found!")
@@ -120,9 +120,9 @@ def test_spi_model():
 
     runner.test(hdl_toplevel="SPI_wrapper",
                 test_module="test_spi_model",
-                gui=True,
+                gui=wave,
                 )
 
 
 if __name__ == "__main__":
-    test_spi_model()
+    test_spi_model(True)
