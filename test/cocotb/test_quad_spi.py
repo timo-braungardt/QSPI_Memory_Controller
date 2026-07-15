@@ -1,4 +1,5 @@
 import os
+import logging
 from pathlib import Path
 import cocotb
 from cocotb_tools.runner import get_runner
@@ -10,6 +11,7 @@ from cocotbext.qspi import QSpiSubordinateBase, QSpiBus, QSpiConfig
 
 class SimpleQSpiSubordinate(QSpiSubordinateBase):
     def __init__(self, bus: QSpiBus, config: QSpiConfig):
+        self.log = logging.getLogger(f"cocotb.qspi")
         self._config = config
         self.opcode = 0
         self.address = 0
@@ -25,6 +27,7 @@ class SimpleQSpiSubordinate(QSpiSubordinateBase):
 
     async def _transaction(self, frame_start, frame_end):
         await frame_start
+        self.log.info("QSPI transaction started!")
         self.idle.clear()
         self.opcode = int(await self._quad_recieve(8))
         if self.opcode == 0x06:
@@ -32,13 +35,17 @@ class SimpleQSpiSubordinate(QSpiSubordinateBase):
         else:
             self.address = int(await self._quad_recieve(24))
         
+        self.log.info("   opcode:  %x", self.opcode)
+        self.log.info("   address: %d", self.address)
         # Manager ordered a read
         if self.opcode == 0x03:
+            self.log.info("   Sending Data")
             await self._quad_send(32, 0x12345678)   # ToDo: always shifts out 4 bytes, change logic
 
         # Manager ordered a program
         if self.opcode == 0x02:
             self.data = int(await self._quad_recieve(16))   # ToDo: only reads two bytes, change to an array
+            self.log.info("   data %x", self.data)
 
         await frame_end
 
