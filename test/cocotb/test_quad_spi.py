@@ -132,10 +132,10 @@ async def read_test(dut):
 
     assert qspi_subordinate.opcode == 0x03
     assert qspi_subordinate.address == 20
-    assert dut.buffer[0].value.integer == 0x12
-    assert dut.buffer[1].value.integer == 0x34
-    assert dut.buffer[2].value.integer == 0x56
-    assert dut.buffer[3].value.integer == 0x78
+    assert dut.buffer[0].value.to_unsigned() == 0x12
+    assert dut.buffer[1].value.to_unsigned() == 0x34
+    assert dut.buffer[2].value.to_unsigned() == 0x56
+    assert dut.buffer[3].value.to_unsigned() == 0x78
 
 
 @cocotb.test()
