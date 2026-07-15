@@ -9,6 +9,10 @@ from cocotbext.spi import SpiSlaveBase, SpiBus, SpiConfig
 
 
 class SimpleSpiSubordinate(SpiSlaveBase):
+    write_enable = 0x06
+    program = 0x02
+    read = 0x03
+
     def __init__(self, bus):
         self.log = logging.getLogger(f"cocotb.spi")
         self._config = SpiConfig()
@@ -27,7 +31,7 @@ class SimpleSpiSubordinate(SpiSlaveBase):
         self.log.info("SPI transaction started!")
         self.idle.clear()
         self.opcode = int(await self._shift(8, tx_word=(0x00)))
-        if self.opcode == 0x06:
+        if self.opcode == SimpleSpiSubordinate.write_enable:
             self.write_enable = True
         else:
             self.address = int(await self._shift(24, tx_word=(0x000000)))
@@ -35,12 +39,12 @@ class SimpleSpiSubordinate(SpiSlaveBase):
         self.log.info("   opcode:  %x", self.opcode)
         self.log.info("   address: %d", self.address)
         # Manager ordered a read
-        if self.opcode == 0x03:
+        if self.opcode == SimpleSpiSubordinate.read:
             self.log.info("   Sending Data")
             await self._shift(32, 0x12345678)   # ToDo: always shifts out 4 bytes, change logic
 
         # Manager ordered a program
-        if self.opcode == 0x02:
+        if self.opcode == SimpleSpiSubordinate.program:
             self.data = int(await self._shift(16, tx_word=(0x00)))   # ToDo: only reads two bytes, change to an array
             self.log.info("   data %x", self.data)
 
@@ -92,7 +96,7 @@ async def read_test(dut):
                         cs_name='o_chip_select_neg')
                     )
     
-    dut.opcode.value = 0x03
+    dut.opcode.value = SimpleSpiSubordinate.read
     dut.address.value = 20
     
     dut.write_address.value = 0b1
@@ -112,7 +116,7 @@ async def read_test(dut):
     await dut.o_chip_select_neg.value_change
     [opcode, address] = await spi_subordinate.get_content()
 
-    assert opcode == 3
+    assert opcode == SimpleSpiSubordinate.read
     assert address == 20
 
     # ToDo: this is not the data we expect to recieve
@@ -140,7 +144,7 @@ async def write_test(dut):
                         cs_name='o_chip_select_neg')
                     )
     
-    dut.opcode.value = 0x06
+    dut.opcode.value = SimpleSpiSubordinate.write_enable
     
     dut.write_address.value = 0b0
     dut.write_data.value = 0b0
@@ -159,10 +163,10 @@ async def write_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
     await dut.o_chip_select_neg.value_change
 
-    assert spi_subordinate.opcode == 0x06
+    assert spi_subordinate.opcode == SimpleSpiSubordinate.write_enable
     assert spi_subordinate.write_enable
 
-    dut.opcode.value = 0x02
+    dut.opcode.value = SimpleSpiSubordinate.program
     dut.address.value = 21
     
     dut.write_address.value = 0b1
@@ -181,7 +185,7 @@ async def write_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
     await dut.o_chip_select_neg.value_change
 
-    assert spi_subordinate.opcode == 0x02
+    assert spi_subordinate.opcode == SimpleSpiSubordinate.program
     assert spi_subordinate.address == 21
     assert spi_subordinate.write_enable
     assert spi_subordinate.data == 0x8001
