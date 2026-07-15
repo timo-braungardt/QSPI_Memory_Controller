@@ -5,12 +5,12 @@ module Hyperbus (
     input go,
 
     // Hyperbus Pins
-    output                       o_bus_clock,
-    output                       o_bus_clock_neg,
-    output reg                   o_chip_select_neg,
-    output                       o_reset,
-    inout      [BUS_WIDTH-1 : 0] io_data,
-    inout                        io_data_strobe
+    output             o_bus_clock,
+    output             o_bus_clock_neg,
+    output reg         o_chip_select_neg,
+    output             o_reset,
+    inout      [7 : 0] io_data,
+    inout              io_data_strobe
 );
 
     localparam BUS_WIDTH = 8;
