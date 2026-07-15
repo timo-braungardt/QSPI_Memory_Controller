@@ -196,6 +196,7 @@ module Hyperbus (
                     end
                 end
 
+                // This works, because clock_tick triggers at count/2 and not at 0.
                 if (count == 0 & clock_tick) begin
                     count <= 0;  // otherwise underflow - can this be synthesised elegantly?
                     state <= cl_high;
