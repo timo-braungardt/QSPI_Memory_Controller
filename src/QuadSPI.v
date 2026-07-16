@@ -65,22 +65,22 @@ module QuadSPI (
 
 
     initial begin : setup_registers
-        opcode            <= 0;
-        address           <= 0;
-        en_serial_out     <= 0;
-        serial_out_0      <= 0;
-        serial_out_1      <= 0;
-        serial_out_2      <= 0;
-        serial_out_3      <= 0;
-        state             <= 0;
-        o_chip_select_neg <= 1'b1;
-        o_bus_clock       <= 1'b0;
+        opcode            = 0;
+        address           = 0;
+        en_serial_out     = 0;
+        serial_out_0      = 0;
+        serial_out_1      = 0;
+        serial_out_2      = 0;
+        serial_out_3      = 0;
+        state             = 0;
+        o_chip_select_neg = 1'b1;
+        o_bus_clock       = 1'b0;
 
         // the default case is reading from an address.
-        write_address     <= 1;
-        write_data        <= 0;
-        read_data         <= 1;
-        num_bits          <= 32;
+        write_address     = 1;
+        write_data        = 0;
+        read_data         = 1;
+        num_bits          = 32;
     end
 
 
@@ -151,10 +151,10 @@ module QuadSPI (
 
 
             send_address: begin
-                serial_out_0 <= address[{count, 2'd0}];
-                serial_out_1 <= address[{count, 2'd1}];
-                serial_out_2 <= address[{count, 2'd2}];
-                serial_out_3 <= address[{count, 2'd3}];
+                serial_out_0 <= address[{count[2:0], 2'd0}];
+                serial_out_1 <= address[{count[2:0], 2'd1}];
+                serial_out_2 <= address[{count[2:0], 2'd2}];
+                serial_out_3 <= address[{count[2:0], 2'd3}];
 
                 if (clock_tick_neg) count <= count - 1;
 
@@ -175,10 +175,10 @@ module QuadSPI (
                     count <= count - 1;
                     buffer_count <= buffer_count + 1;
 
-                    buffer[buffer_count[6:1]][{count[0], 2'd0}] <= serial_in_0;
-                    buffer[buffer_count[6:1]][{count[0], 2'd1}] <= serial_in_1;
-                    buffer[buffer_count[6:1]][{count[0], 2'd2}] <= serial_in_2;
-                    buffer[buffer_count[6:1]][{count[0], 2'd3}] <= serial_in_3;
+                    buffer[buffer_count[4:1]][{count[0], 2'd0}] <= serial_in_0;
+                    buffer[buffer_count[4:1]][{count[0], 2'd1}] <= serial_in_1;
+                    buffer[buffer_count[4:1]][{count[0], 2'd2}] <= serial_in_2;
+                    buffer[buffer_count[4:1]][{count[0], 2'd3}] <= serial_in_3;
                 end
 
                 if (count == 0 & clock_tick_pos) begin
@@ -192,10 +192,10 @@ module QuadSPI (
                 if (clock_tick_neg) begin
                     count <= count - 1;
                     buffer_count <= buffer_count + 1;
-                    serial_out_0 <= buffer[buffer_count[6:1]][{count[0], 2'd0}];
-                    serial_out_1 <= buffer[buffer_count[6:1]][{count[0], 2'd1}];
-                    serial_out_2 <= buffer[buffer_count[6:1]][{count[0], 2'd2}];
-                    serial_out_3 <= buffer[buffer_count[6:1]][{count[0], 2'd3}];
+                    serial_out_0 <= buffer[buffer_count[4:1]][{count[0], 2'd0}];
+                    serial_out_1 <= buffer[buffer_count[4:1]][{count[0], 2'd1}];
+                    serial_out_2 <= buffer[buffer_count[4:1]][{count[0], 2'd2}];
+                    serial_out_3 <= buffer[buffer_count[4:1]][{count[0], 2'd3}];
                 end
 
                 if (count == 0 & clock_tick_neg) begin

@@ -5,12 +5,12 @@ module Hyperbus (
     input go,
 
     // Hyperbus Pins
-    output                       o_bus_clock,
-    output                       o_bus_clock_neg,
-    output reg                   o_chip_select_neg,
-    output                       o_reset,
-    inout      [BUS_WIDTH-1 : 0] io_data,
-    inout                        io_data_strobe
+    output             o_bus_clock,
+    output             o_bus_clock_neg,
+    output reg         o_chip_select_neg,
+    output             o_reset,
+    inout      [7 : 0] io_data,
+    inout              io_data_strobe
 );
 
     localparam BUS_WIDTH = 8;
@@ -80,12 +80,12 @@ module Hyperbus (
     assign data_strobe_in = io_data_strobe;
 
     initial begin : setup_registers
-        en_data_out       <= 0;
-        data_out          <= 8'd0;
-        state             <= 0;
-        o_chip_select_neg <= 1'b1;
-        num_bits          <= 32;
-        data_strobe_out   <= 1'b0;
+        en_data_out       = 0;
+        data_out          = 8'd0;
+        state             = 0;
+        o_chip_select_neg = 1'b1;
+        num_bits          = 32;
+        data_strobe_out   = 1'b0;
     end
 
 
@@ -131,7 +131,7 @@ module Hyperbus (
 
             send_command_address: begin
                 for (i = 0; i < BUS_WIDTH; i = i + 1)
-                data_out[i] <= command_address[{count, i[2:0]}];
+                data_out[i] <= command_address[{count[2:0], i[2:0]}];
 
                 if (clock_tick) count <= count - 1;
 
@@ -196,6 +196,7 @@ module Hyperbus (
                     end
                 end
 
+                // This works, because clock_tick triggers at count/2 and not at 0.
                 if (count == 0 & clock_tick) begin
                     count <= 0;  // otherwise underflow - can this be synthesised elegantly?
                     state <= cl_high;
