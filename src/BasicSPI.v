@@ -151,7 +151,7 @@ module BasicSPI (
                     //en_serial_out <= 1'b0;
                 end
 
-                if (count == 0 & clock_tick_pos) begin
+                if (count == -1 & clock_tick_pos) begin
                     count <= 0;  // otherwise underflow - can this be synthesised elegantly?
                     state <= cl_high;
                 end
