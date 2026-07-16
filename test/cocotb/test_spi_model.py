@@ -124,6 +124,7 @@ def test_spi_model(wave=False):
     runner.test(hdl_toplevel="SPI_wrapper",
                 test_module="test_spi_model",
                 gui=wave,
+                pre_cmd=["source ../parameter_spi_model.tcl"]
                 )
 
 
