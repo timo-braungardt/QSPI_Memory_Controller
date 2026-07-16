@@ -3,7 +3,7 @@ import logging
 from pathlib import Path
 import cocotb
 from cocotb_tools.runner import get_runner
-from cocotb.triggers import Timer
+from cocotb.triggers import FallingEdge, First, RisingEdge, Timer
 from cocotb.clock import Clock
 from cocotbext.spi import SpiSlaveBase, SpiBus, SpiConfig
 
@@ -26,31 +26,65 @@ class SPIFlashMemory(SpiSlaveBase):
         await self.idle.wait()
         return self.opcode, self.address
 
+    async def _read_data(self, num_bits: int) -> int:
+        rx_word = 0
+
+        frame_end = (
+            RisingEdge(self._cs)
+            if self._config.cs_active_low
+            else FallingEdge(self._cs)
+        )
+
+        for k in range(num_bits):
+            if (
+                await First(RisingEdge(self._sclk), frame_end)
+            ) == frame_end or self._cs.value == 1:
+                raise SpiFrameError("End of frame in the middle of a transaction")
+
+            rx_word |= int(self._mosi.value) << (num_bits - 1 - k)
+        return rx_word
+
+    async def _write_data(self, num_bits: int, tx_word: int) -> int:
+        frame_end = (
+            RisingEdge(self._cs)
+            if self._config.cs_active_low
+            else FallingEdge(self._cs)
+        )
+
+        for k in range(num_bits):
+            if (
+                await First(FallingEdge(self._sclk), frame_end)
+            ) == frame_end or self._cs.value == 1:
+                raise SpiFrameError("End of frame in the middle of a transaction")
+
+            self._miso.value = bool(tx_word & (1 << (num_bits - 1 - k)))
+
     async def _transaction(self, frame_start, frame_end):
         await frame_start
         self.log.info("SPI transaction started!")
         self.idle.clear()
-        self.opcode = int(await self._shift(8, tx_word=(0x00)))
+        self.opcode = int(await self._read_data(8))
+        self.log.info("   opcode:  %x", self.opcode)
         if self.opcode == SPIFlashMemory.write_enable:
             self.write_enable = True
+            self.log.info("   writing enabled")
         else:
-            self.address = int(await self._shift(24, tx_word=(0x000000)))
+            self.address = int(await self._read_data(24))
+            self.log.info("   address: %d", self.address)
 
-        self.log.info("   opcode:  %x", self.opcode)
-        self.log.info("   address: %d", self.address)
         # Manager ordered a read
         if self.opcode == SPIFlashMemory.read:
-            self.log.info("   Sending Data")
-            await self._shift(
-                32, 0x12345678
+            await self._write_data(
+                32, tx_word=0x12345678
             )  # ToDo: always shifts out 4 bytes, change logic
+            self.log.info("   reading data %x", self.data)
 
         # Manager ordered a program
         if self.opcode == SPIFlashMemory.program:
             self.data = int(
-                await self._shift(16, tx_word=(0x00))
+                await self._read_data(16)
             )  # ToDo: only reads two bytes, change to an array
-            self.log.info("   data %x", self.data)
+            self.log.info("   sending Data")
 
         await frame_end
 
@@ -124,17 +158,10 @@ async def read_test(dut):
     assert opcode == SPIFlashMemory.read
     assert address == 20
 
-    # ToDo: this is not the data we expect to recieve
-    # but the module can only shift out data on the next negative clock edge,
-    # therefore we have to manually shift the data for now
-    # assert dut.buffer[0].value.to_unsigned() == 0x12
-    # assert dut.buffer[1].value.to_unsigned() == 0x34
-    # assert dut.buffer[2].value.to_unsigned() == 0x56
-    # assert dut.buffer[3].value.to_unsigned() == 0x78
-    assert dut.buffer[0].value.to_unsigned() == 0b00001001
-    assert dut.buffer[1].value.to_unsigned() == 0b00011010
-    assert dut.buffer[2].value.to_unsigned() == 0b00101011
-    assert dut.buffer[3].value.to_unsigned() == 0b00111100
+    assert dut.buffer[0].value.to_unsigned() == 0x12
+    assert dut.buffer[1].value.to_unsigned() == 0x34
+    assert dut.buffer[2].value.to_unsigned() == 0x56
+    assert dut.buffer[3].value.to_unsigned() == 0x78
 
 
 @cocotb.test()
