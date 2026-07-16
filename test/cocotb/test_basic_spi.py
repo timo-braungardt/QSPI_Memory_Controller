@@ -41,11 +41,15 @@ class SimpleSpiSubordinate(SpiSlaveBase):
         # Manager ordered a read
         if self.opcode == SimpleSpiSubordinate.read:
             self.log.info("   Sending Data")
-            await self._shift(32, 0x12345678)   # ToDo: always shifts out 4 bytes, change logic
+            await self._shift(
+                32, 0x12345678
+            )  # ToDo: always shifts out 4 bytes, change logic
 
         # Manager ordered a program
         if self.opcode == SimpleSpiSubordinate.program:
-            self.data = int(await self._shift(16, tx_word=(0x00)))   # ToDo: only reads two bytes, change to an array
+            self.data = int(
+                await self._shift(16, tx_word=(0x00))
+            )  # ToDo: only reads two bytes, change to an array
             self.log.info("   data %x", self.data)
 
         await frame_end
@@ -54,14 +58,15 @@ class SimpleSpiSubordinate(SpiSlaveBase):
 @cocotb.test()
 async def transmission_test(dut):
     spi_subordinate = SimpleSpiSubordinate(
-                    SpiBus(
-                        entity=dut, 
-                        sclk_name='o_bus_clock', 
-                        mosi_name='io_manager_serial_out', 
-                        miso_name='io_manager_serial_in', 
-                        cs_name='o_chip_select_neg')
-                    )
-    
+        SpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_name="io_manager_serial_out",
+            miso_name="io_manager_serial_in",
+            cs_name="o_chip_select_neg",
+        )
+    )
+
     dut.opcode.value = 0x81
     dut.address.value = 0x800001
 
@@ -69,7 +74,7 @@ async def transmission_test(dut):
     dut.write_data.value = 0b0
     dut.read_data.value = 0b0
 
-    c = Clock(dut.clk  , 20, 'ns')
+    c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
 
     dut.go.value = 0
@@ -88,23 +93,24 @@ async def transmission_test(dut):
 async def read_test(dut):
 
     spi_subordinate = SimpleSpiSubordinate(
-                    SpiBus(
-                        entity=dut, 
-                        sclk_name='o_bus_clock', 
-                        mosi_name='io_manager_serial_out', 
-                        miso_name='io_manager_serial_in', 
-                        cs_name='o_chip_select_neg')
-                    )
-    
+        SpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_name="io_manager_serial_out",
+            miso_name="io_manager_serial_in",
+            cs_name="o_chip_select_neg",
+        )
+    )
+
     dut.opcode.value = SimpleSpiSubordinate.read
     dut.address.value = 20
-    
+
     dut.write_address.value = 0b1
     dut.write_data.value = 0b0
     dut.read_data.value = 0b1
     dut.num_bits.value = 32
 
-    c = Clock(dut.clk  , 20, 'ns')
+    c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
 
     dut.go.value = 0
@@ -120,12 +126,12 @@ async def read_test(dut):
     assert address == 20
 
     # ToDo: this is not the data we expect to recieve
-    # but the module can only shift out data on the next negative clock edge, 
-    # therefore we have to manually shift the data for now        
-    #assert dut.buffer[0].value.to_unsigned() == 0x12
-    #assert dut.buffer[1].value.to_unsigned() == 0x34
-    #assert dut.buffer[2].value.to_unsigned() == 0x56
-    #assert dut.buffer[3].value.to_unsigned() == 0x78
+    # but the module can only shift out data on the next negative clock edge,
+    # therefore we have to manually shift the data for now
+    # assert dut.buffer[0].value.to_unsigned() == 0x12
+    # assert dut.buffer[1].value.to_unsigned() == 0x34
+    # assert dut.buffer[2].value.to_unsigned() == 0x56
+    # assert dut.buffer[3].value.to_unsigned() == 0x78
     assert dut.buffer[0].value.to_unsigned() == 0b00001001
     assert dut.buffer[1].value.to_unsigned() == 0b00011010
     assert dut.buffer[2].value.to_unsigned() == 0b00101011
@@ -136,21 +142,22 @@ async def read_test(dut):
 async def write_test(dut):
 
     spi_subordinate = SimpleSpiSubordinate(
-                    SpiBus(
-                        entity=dut, 
-                        sclk_name='o_bus_clock', 
-                        mosi_name='io_manager_serial_out', 
-                        miso_name='io_manager_serial_in', 
-                        cs_name='o_chip_select_neg')
-                    )
-    
+        SpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_name="io_manager_serial_out",
+            miso_name="io_manager_serial_in",
+            cs_name="o_chip_select_neg",
+        )
+    )
+
     dut.opcode.value = SimpleSpiSubordinate.write_enable
-    
+
     dut.write_address.value = 0b0
     dut.write_data.value = 0b0
     dut.read_data.value = 0b0
 
-    c = Clock(dut.clk  , 20, 'ns')
+    c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
 
     assert not spi_subordinate.write_enable
@@ -168,7 +175,7 @@ async def write_test(dut):
 
     dut.opcode.value = SimpleSpiSubordinate.program
     dut.address.value = 21
-    
+
     dut.write_address.value = 0b1
     dut.write_data.value = 0b1
     dut.read_data.value = 0b0
@@ -200,15 +207,8 @@ def test_basic_spi():
     sources = [proj_path / "../../src/BasicSPI.v"]
 
     runner = get_runner(sim)
-    runner.build(
-        sources=sources,
-        hdl_toplevel="BasicSPI",
-        always=True,
-        waves=True
-    )
-    runner.test(hdl_toplevel="BasicSPI", 
-				test_module="test_basic_spi",
-                waves=True)
+    runner.build(sources=sources, hdl_toplevel="BasicSPI", always=True, waves=True)
+    runner.test(hdl_toplevel="BasicSPI", test_module="test_basic_spi", waves=True)
 
 
 if __name__ == "__main__":
