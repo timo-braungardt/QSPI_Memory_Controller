@@ -60,6 +60,8 @@ async def read_test(dut):
     dut.write_data.value = 0b0
     dut.read_data.value = 0b1
     dut.num_bits.value = 32
+    spi_subordinate.num_bytes = 32 //8
+    spi_subordinate.data = [0x12, 0x34, 0x56, 0x78]
 
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
@@ -127,6 +129,7 @@ async def write_test(dut):
     dut.buffer[1].value = 0x01
     dut.buffer[2].value = 0xFF
     dut.num_bits.value = 16
+    spi_subordinate.num_bytes = 16 //8
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -139,7 +142,7 @@ async def write_test(dut):
     assert spi_subordinate.opcode == SpiFlashMemory.program
     assert spi_subordinate.address == 21
     assert spi_subordinate.write_enable
-    assert spi_subordinate.data == 0x8001
+    assert spi_subordinate.data == [0x80, 0x01]
 
 
 def test_basic_spi():

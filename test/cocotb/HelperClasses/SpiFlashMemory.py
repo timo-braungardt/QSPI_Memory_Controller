@@ -15,7 +15,8 @@ class SpiFlashMemory(SpiSlaveBase):
         self.opcode = 0
         self.address = 0
         self.write_enable = False
-        self.data = 0
+        self.data = []
+        self.num_bytes = 4
         super().__init__(bus)
 
     async def get_content(self):
@@ -60,16 +61,18 @@ class SpiFlashMemory(SpiSlaveBase):
 
         # Manager ordered a read
         if self.opcode == SpiFlashMemory.read:
-            await self._send_data(
-                32, tx_word=0x12345678
-            )  # ToDo: always shifts out 4 bytes, change logic
-            self.log.info("   reading data %x", self.data)
+            for i in range(self.num_bytes):
+                data = 0
+                if len(self.data) >= self.num_bytes:
+                    data = self.data[i]
+                await self._send_data(8, data)
+                self.log.info("   sending %x", data)
 
         # Manager ordered a program
         if self.opcode == SpiFlashMemory.program:
-            self.data = int(
-                await self._recieve_data(16)
-            )  # ToDo: only reads two bytes, change to an array
-            self.log.info("   sending Data")
+            for i in range(self.num_bytes):
+                data = int(await self._recieve_data(8))
+                self.log.info(f"   recieved {data}")
+                self.data.append(data)
 
         await frame_end
