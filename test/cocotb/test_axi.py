@@ -48,7 +48,7 @@ async def transmission_test(dut):
     assert spi_subordinate.data[3] == 3
 
     data = await axi_master.read(addr, length)
-    #assert data.data == test_data  # ToDo: the SPI write is offset by one clock edge...
+    assert data.data == test_data
 
 
 def test_axi():
