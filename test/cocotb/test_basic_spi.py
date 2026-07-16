@@ -1,87 +1,15 @@
 import os
-import logging
 from pathlib import Path
 import cocotb
 from cocotb_tools.runner import get_runner
-from cocotb.triggers import FallingEdge, First, RisingEdge, Timer
 from cocotb.clock import Clock
-from cocotbext.spi import SpiSlaveBase, SpiBus, SpiConfig
-
-
-class SPIFlashMemory(SpiSlaveBase):
-    write_enable = 0x06
-    program = 0x02
-    read = 0x03
-
-    def __init__(self, bus):
-        self.log = logging.getLogger(f"cocotb.spi")
-        self._config = SpiConfig()
-        self.opcode = 0
-        self.address = 0
-        self.write_enable = False
-        self.data = 0
-        super().__init__(bus)
-
-    async def get_content(self):
-        await self.idle.wait()
-        return self.opcode, self.address
-
-    async def _read_data(self, num_bits: int) -> int:
-        rx_word = 0
-
-        frame_end = RisingEdge(self._cs) if self._config.cs_active_low else FallingEdge(self._cs)
-
-        for k in range(num_bits):
-            if (await First(RisingEdge(self._sclk), frame_end)) == frame_end or self._cs.value == 1:
-                raise SpiFrameError("End of frame in the middle of a transaction")
-
-            rx_word |= int(self._mosi.value) << (num_bits - 1 - k)
-        return rx_word
-
-    async def _write_data(self, num_bits: int, tx_word: int) -> int:
-        frame_end = RisingEdge(self._cs) if self._config.cs_active_low else FallingEdge(self._cs)
-
-        for k in range(num_bits):
-            if (
-                await First(FallingEdge(self._sclk), frame_end)
-            ) == frame_end or self._cs.value == 1:
-                raise SpiFrameError("End of frame in the middle of a transaction")
-
-            self._miso.value = bool(tx_word & (1 << (num_bits - 1 - k)))
-
-    async def _transaction(self, frame_start, frame_end):
-        await frame_start
-        self.log.info("SPI transaction started!")
-        self.idle.clear()
-        self.opcode = int(await self._read_data(8))
-        self.log.info("   opcode:  %x", self.opcode)
-        if self.opcode == SPIFlashMemory.write_enable:
-            self.write_enable = True
-            self.log.info("   writing enabled")
-        else:
-            self.address = int(await self._read_data(24))
-            self.log.info("   address: %d", self.address)
-
-        # Manager ordered a read
-        if self.opcode == SPIFlashMemory.read:
-            await self._write_data(
-                32, tx_word=0x12345678
-            )  # ToDo: always shifts out 4 bytes, change logic
-            self.log.info("   reading data %x", self.data)
-
-        # Manager ordered a program
-        if self.opcode == SPIFlashMemory.program:
-            self.data = int(
-                await self._read_data(16)
-            )  # ToDo: only reads two bytes, change to an array
-            self.log.info("   sending Data")
-
-        await frame_end
+from cocotbext.spi import SpiBus
+from HelperClasses import SpiFlashMemory
 
 
 @cocotb.test()
 async def transmission_test(dut):
-    spi_subordinate = SPIFlashMemory(
+    spi_subordinate = SpiFlashMemory(
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -115,7 +43,7 @@ async def transmission_test(dut):
 
 @cocotb.test()
 async def read_test(dut):
-    spi_subordinate = SPIFlashMemory(
+    spi_subordinate = SpiFlashMemory(
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -125,7 +53,7 @@ async def read_test(dut):
         )
     )
 
-    dut.opcode.value = SPIFlashMemory.read
+    dut.opcode.value = SpiFlashMemory.read
     dut.address.value = 20
 
     dut.write_address.value = 0b1
@@ -145,7 +73,7 @@ async def read_test(dut):
     await dut.o_chip_select_neg.value_change
     [opcode, address] = await spi_subordinate.get_content()
 
-    assert opcode == SPIFlashMemory.read
+    assert opcode == SpiFlashMemory.read
     assert address == 20
 
     assert dut.buffer[0].value.to_unsigned() == 0x12
@@ -157,7 +85,7 @@ async def read_test(dut):
 @cocotb.test()
 async def write_test(dut):
 
-    spi_subordinate = SPIFlashMemory(
+    spi_subordinate = SpiFlashMemory(
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -167,7 +95,7 @@ async def write_test(dut):
         )
     )
 
-    dut.opcode.value = SPIFlashMemory.write_enable
+    dut.opcode.value = SpiFlashMemory.write_enable
 
     dut.write_address.value = 0b0
     dut.write_data.value = 0b0
@@ -186,10 +114,10 @@ async def write_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
     await dut.o_chip_select_neg.value_change
 
-    assert spi_subordinate.opcode == SPIFlashMemory.write_enable
+    assert spi_subordinate.opcode == SpiFlashMemory.write_enable
     assert spi_subordinate.write_enable
 
-    dut.opcode.value = SPIFlashMemory.program
+    dut.opcode.value = SpiFlashMemory.program
     dut.address.value = 21
 
     dut.write_address.value = 0b1
@@ -208,7 +136,7 @@ async def write_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
     await dut.o_chip_select_neg.value_change
 
-    assert spi_subordinate.opcode == SPIFlashMemory.program
+    assert spi_subordinate.opcode == SpiFlashMemory.program
     assert spi_subordinate.address == 21
     assert spi_subordinate.write_enable
     assert spi_subordinate.data == 0x8001
