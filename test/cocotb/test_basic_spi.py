@@ -29,27 +29,17 @@ class SPIFlashMemory(SpiSlaveBase):
     async def _read_data(self, num_bits: int) -> int:
         rx_word = 0
 
-        frame_end = (
-            RisingEdge(self._cs)
-            if self._config.cs_active_low
-            else FallingEdge(self._cs)
-        )
+        frame_end = RisingEdge(self._cs) if self._config.cs_active_low else FallingEdge(self._cs)
 
         for k in range(num_bits):
-            if (
-                await First(RisingEdge(self._sclk), frame_end)
-            ) == frame_end or self._cs.value == 1:
+            if (await First(RisingEdge(self._sclk), frame_end)) == frame_end or self._cs.value == 1:
                 raise SpiFrameError("End of frame in the middle of a transaction")
 
             rx_word |= int(self._mosi.value) << (num_bits - 1 - k)
         return rx_word
 
     async def _write_data(self, num_bits: int, tx_word: int) -> int:
-        frame_end = (
-            RisingEdge(self._cs)
-            if self._config.cs_active_low
-            else FallingEdge(self._cs)
-        )
+        frame_end = RisingEdge(self._cs) if self._config.cs_active_low else FallingEdge(self._cs)
 
         for k in range(num_bits):
             if (

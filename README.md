@@ -8,4 +8,7 @@ For Verilog the [Verible formater](https://open-vsx.org/extension/bmpenuelas/sys
 "systemverilogFormatter.commandLineArguments": "--indentation_spaces 4"
 ```
 
-For python the [Black formater](https://marketplace.visualstudio.com/items?itemName=ms-python.black-formatter) was used.
+For python the [Black formater](https://marketplace.visualstudio.com/items?itemName=ms-python.black-formatter) was used with the settings:
+```
+"black-formatter.args": ["--line-length", "100"]
+```
