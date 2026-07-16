@@ -151,6 +151,8 @@ module BasicSPI (
                     //en_serial_out <= 1'b0;
                 end
 
+                // ToDo: the problem is, that when the count is 0, we still need to read one more bit
+                // we would have to wait one more clock to output the last bit.
                 if (count == -1 & clock_tick_pos) begin
                     count <= 0;  // otherwise underflow - can this be synthesised elegantly?
                     state <= cl_high;
