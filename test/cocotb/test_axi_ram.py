@@ -22,6 +22,7 @@ THE SOFTWARE.
 
 """
 
+from pathlib import Path
 import itertools
 import logging
 import os
@@ -31,6 +32,7 @@ import cocotb_test.simulator
 import pytest
 
 import cocotb
+from cocotb_tools.runner import get_runner
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
 
@@ -187,14 +189,14 @@ rtl_dir = os.path.abspath(os.path.join(tests_dir, '..', '..', 'src'))
 
 
 @pytest.mark.parametrize("data_width", [8, 16, 32])
-def test_axi_ram(request, data_width):
-    dut = "AXI"
-    module = os.path.splitext(os.path.basename(__file__))[0]
-    toplevel = dut
-
-    verilog_sources = [
-        os.path.join(rtl_dir, f"{dut}.v"),
-    ]
+def test_axi_ram(data_width):
+    """
+    Test axi to spi.
+    """
+    top_level = "AXI"
+    sim = os.getenv("SIM", "icarus")
+    proj_path = Path(__file__).resolve().parent
+    sources = [proj_path / f"../../src/{top_level}.v"]
 
     parameters = {}
 
@@ -203,18 +205,23 @@ def test_axi_ram(request, data_width):
     parameters['STRB_WIDTH'] = parameters['DATA_WIDTH'] // 8
     parameters['ID_WIDTH'] = 8
     parameters['PIPELINE_OUTPUT'] = 0
-
     extra_env = {f'PARAM_{k}': str(v) for k, v in parameters.items()}
 
-    sim_build = os.path.join(tests_dir, "sim_build",
-        request.node.name.replace('[', '-').replace(']', ''))
-
-    cocotb_test.simulator.run(
-        python_search=[tests_dir],
-        verilog_sources=verilog_sources,
-        toplevel=toplevel,
-        module=module,
-        parameters=parameters,
-        sim_build=sim_build,
-        extra_env=extra_env,
+    runner = get_runner(sim)
+    runner.build(
+        sources=sources,
+        hdl_toplevel=top_level,
+        always=True,
+        waves=True
     )
+
+    runner.test(hdl_toplevel=top_level, 
+                test_module="test_axi_ram",
+                parameters=parameters,
+                waves=True,
+                extra_env=extra_env
+                )
+
+
+if __name__ == "__main__":
+    test_axi_ram(32)
