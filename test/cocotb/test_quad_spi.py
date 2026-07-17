@@ -34,17 +34,19 @@ class SimpleQSpiSubordinate(QSpiSubordinateBase):
             self.write_enable = True
         else:
             self.address = int(await self._quad_recieve(24))
-        
+
         self.log.info("   opcode:  %x", self.opcode)
         self.log.info("   address: %d", self.address)
         # Manager ordered a read
         if self.opcode == 0x03:
             self.log.info("   Sending Data")
-            await self._quad_send(32, 0x12345678)   # ToDo: always shifts out 4 bytes, change logic
+            await self._quad_send(32, 0x12345678)  # ToDo: always shifts out 4 bytes, change logic
 
         # Manager ordered a program
         if self.opcode == 0x02:
-            self.data = int(await self._quad_recieve(16))   # ToDo: only reads two bytes, change to an array
+            self.data = int(
+                await self._quad_recieve(16)
+            )  # ToDo: only reads two bytes, change to an array
             self.log.info("   data %x", self.data)
 
         await frame_end
@@ -53,25 +55,27 @@ class SimpleQSpiSubordinate(QSpiSubordinateBase):
 @cocotb.test()
 async def transmission_test(dut):
     qspi_subordinate = SimpleQSpiSubordinate(
-                    QSpiBus(
-                        entity=dut, 
-                        sclk_name='o_bus_clock', 
-                        mosi_d1_name='io_dq1_manager_serial_out', 
-                        miso_d0_name='io_dq0_manager_serial_in',
-                        d2_name='io_dq2',
-                        d3_name='io_dq3',
-                        cs_name='o_chip_select_neg'),
-                    QSpiConfig(
-                        word_width=8,
-                        sclk_freq=20e6,
-                        cpol=0,
-                        cpha=0,
-                        msb_first=True,
-                        frame_spacing_ns=10,
-                        ignore_rx_value=None,
-                        cs_active_low=True,
-                        is_quad_mode=True,)
-                    )
+        QSpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_d1_name="io_dq1_manager_serial_out",
+            miso_d0_name="io_dq0_manager_serial_in",
+            d2_name="io_dq2",
+            d3_name="io_dq3",
+            cs_name="o_chip_select_neg",
+        ),
+        QSpiConfig(
+            word_width=8,
+            sclk_freq=20e6,
+            cpol=0,
+            cpha=0,
+            msb_first=True,
+            frame_spacing_ns=10,
+            ignore_rx_value=None,
+            cs_active_low=True,
+            is_quad_mode=True,
+        ),
+    )
 
     dut.opcode.value = 5
     dut.address.value = 0x800001
@@ -79,7 +83,7 @@ async def transmission_test(dut):
     dut.write_data.value = 0b0
     dut.read_data.value = 0b0
 
-    c = Clock(dut.clk  , 20, 'ns')
+    c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
 
     dut.go.value = 0
@@ -98,35 +102,37 @@ async def transmission_test(dut):
 async def read_test(dut):
 
     qspi_subordinate = SimpleQSpiSubordinate(
-                    QSpiBus(
-                        entity=dut, 
-                        sclk_name='o_bus_clock', 
-                        mosi_d1_name='io_dq1_manager_serial_out', 
-                        miso_d0_name='io_dq0_manager_serial_in',
-                        d2_name='io_dq2',
-                        d3_name='io_dq3',
-                        cs_name='o_chip_select_neg'),
-                    QSpiConfig(
-                        word_width=8,
-                        sclk_freq=20e6,
-                        cpol=0,
-                        cpha=0,
-                        msb_first=True,
-                        frame_spacing_ns=10,
-                        ignore_rx_value=None,
-                        cs_active_low=True,
-                        is_quad_mode=True,)
-                    )
-    
+        QSpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_d1_name="io_dq1_manager_serial_out",
+            miso_d0_name="io_dq0_manager_serial_in",
+            d2_name="io_dq2",
+            d3_name="io_dq3",
+            cs_name="o_chip_select_neg",
+        ),
+        QSpiConfig(
+            word_width=8,
+            sclk_freq=20e6,
+            cpol=0,
+            cpha=0,
+            msb_first=True,
+            frame_spacing_ns=10,
+            ignore_rx_value=None,
+            cs_active_low=True,
+            is_quad_mode=True,
+        ),
+    )
+
     dut.opcode.value = 0x03
     dut.address.value = 20
-    
+
     dut.write_address.value = 0b1
     dut.write_data.value = 0b0
     dut.read_data.value = 0b1
     dut.num_bits.value = 32
-    
-    c = Clock(dut.clk  , 20, 'ns')
+
+    c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
 
     dut.go.value = 0
@@ -149,33 +155,35 @@ async def read_test(dut):
 async def write_test(dut):
 
     qspi_subordinate = SimpleQSpiSubordinate(
-                    QSpiBus(
-                        entity=dut, 
-                        sclk_name='o_bus_clock', 
-                        mosi_d1_name='io_dq1_manager_serial_out', 
-                        miso_d0_name='io_dq0_manager_serial_in',
-                        d2_name='io_dq2',
-                        d3_name='io_dq3',
-                        cs_name='o_chip_select_neg'),
-                    QSpiConfig(
-                        word_width=8,
-                        sclk_freq=20e6,
-                        cpol=0,
-                        cpha=0,
-                        msb_first=True,
-                        frame_spacing_ns=10,
-                        ignore_rx_value=None,
-                        cs_active_low=True,
-                        is_quad_mode=True,)
-                    )
-    
+        QSpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_d1_name="io_dq1_manager_serial_out",
+            miso_d0_name="io_dq0_manager_serial_in",
+            d2_name="io_dq2",
+            d3_name="io_dq3",
+            cs_name="o_chip_select_neg",
+        ),
+        QSpiConfig(
+            word_width=8,
+            sclk_freq=20e6,
+            cpol=0,
+            cpha=0,
+            msb_first=True,
+            frame_spacing_ns=10,
+            ignore_rx_value=None,
+            cs_active_low=True,
+            is_quad_mode=True,
+        ),
+    )
+
     dut.opcode.value = 0x06
-    
+
     dut.write_address.value = 0b0
     dut.write_data.value = 0b0
     dut.read_data.value = 0b0
 
-    c = Clock(dut.clk  , 20, 'ns')
+    c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
 
     assert not qspi_subordinate.write_enable
@@ -193,7 +201,7 @@ async def write_test(dut):
 
     dut.opcode.value = 0x02
     dut.address.value = 21
-    
+
     dut.write_address.value = 0b1
     dut.write_data.value = 0b1
     dut.read_data.value = 0b0
@@ -225,15 +233,8 @@ def test_quad_spi():
     sources = [proj_path / "../../src/QuadSPI.v"]
 
     runner = get_runner(sim)
-    runner.build(
-        sources=sources,
-        hdl_toplevel="QuadSPI",
-        always=True,
-        waves=True
-    )
-    runner.test(hdl_toplevel="QuadSPI", 
-				test_module="test_quad_spi",
-                waves=True)
+    runner.build(sources=sources, hdl_toplevel="QuadSPI", always=True, waves=True)
+    runner.test(hdl_toplevel="QuadSPI", test_module="test_quad_spi", waves=True)
 
 
 if __name__ == "__main__":

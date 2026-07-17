@@ -12,7 +12,7 @@ from HelperClasses import SpiFlashMemory
 
 @cocotb.test()
 async def transmission_test(dut):
-    c = Clock(dut.clk  , 20, 'ns')
+    c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
 
     dut.rst.setimmediatevalue(0)
@@ -27,20 +27,21 @@ async def transmission_test(dut):
 
     axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.rst)
     spi_subordinate = SpiFlashMemory(
-                    SpiBus(
-                        entity=dut, 
-                        sclk_name='s_spi_clock', 
-                        mosi_name='s_spi_manager_serial_out', 
-                        miso_name='s_spi_manager_serial_in', 
-                        cs_name='s_spi_chip_select_neg')
-                    )
+        SpiBus(
+            entity=dut,
+            sclk_name="s_spi_clock",
+            mosi_name="s_spi_manager_serial_out",
+            miso_name="s_spi_manager_serial_in",
+            cs_name="s_spi_chip_select_neg",
+        )
+    )
 
     addr = 0x1000
     length = 4
     spi_subordinate.length = 4
     test_data = bytearray([x % 256 for x in range(length)])
     await axi_master.write(addr, test_data)
-    await Timer(8, 'us')
+    await Timer(8, "us")
 
     assert spi_subordinate.data[0] == 0
     assert spi_subordinate.data[1] == 1
@@ -58,20 +59,11 @@ def test_axi():
     top_level = "Basic_AXI_SPI"
     sim = os.getenv("SIM", "icarus")
     proj_path = Path(__file__).resolve().parent
-    sources = [proj_path / f"../../src/{top_level}.v",
-               proj_path / "../../src/BasicSPI.v"]
-
+    sources = [proj_path / f"../../src/{top_level}.v", proj_path / "../../src/BasicSPI.v"]
 
     runner = get_runner(sim)
-    runner.build(
-        sources=sources,
-        hdl_toplevel=top_level,
-        always=True,
-        waves=True
-    )
-    runner.test(hdl_toplevel=top_level, 
-                test_module="test_axi",
-                waves=True)
+    runner.build(sources=sources, hdl_toplevel=top_level, always=True, waves=True)
+    runner.test(hdl_toplevel=top_level, test_module="test_axi", waves=True)
 
 
 if __name__ == "__main__":

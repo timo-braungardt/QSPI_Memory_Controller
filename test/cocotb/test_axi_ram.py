@@ -71,7 +71,9 @@ class TB(object):
 
 
 @cocotb.test()
-async def run_test_write(dut, data_in=None, idle_inserter=None, backpressure_inserter=None, size=None):
+async def run_test_write(
+    dut, data_in=None, idle_inserter=None, backpressure_inserter=None, size=None
+):
 
     tb = TB(dut)
 
@@ -86,26 +88,30 @@ async def run_test_write(dut, data_in=None, idle_inserter=None, backpressure_ins
     tb.set_idle_generator(idle_inserter)
     tb.set_backpressure_generator(backpressure_inserter)
 
-    for length in list(range(1, byte_lanes*2))+[1024]:
-        for offset in list(range(byte_lanes, byte_lanes*2))+list(range(4096-byte_lanes, 4096)):
+    for length in list(range(1, byte_lanes * 2)) + [1024]:
+        for offset in list(range(byte_lanes, byte_lanes * 2)) + list(
+            range(4096 - byte_lanes, 4096)
+        ):
             tb.log.info("length %d, offset %d, size %d", length, offset, size)
-            addr = offset+0x1000
+            addr = offset + 0x1000
             test_data = bytearray([x % 256 for x in range(length)])
 
-            await tb.axi_master.write(addr-4, b'\xaa'*(length+8))
+            await tb.axi_master.write(addr - 4, b"\xaa" * (length + 8))
 
             await tb.axi_master.write(addr, test_data, size=size)
 
-            data = await tb.axi_master.read(addr-1, length+2)
+            data = await tb.axi_master.read(addr - 1, length + 2)
 
-            assert data.data == b'\xaa'+test_data+b'\xaa'
+            assert data.data == b"\xaa" + test_data + b"\xaa"
 
     await RisingEdge(dut.clk)
     await RisingEdge(dut.clk)
 
 
 @cocotb.test()
-async def run_test_read(dut, data_in=None, idle_inserter=None, backpressure_inserter=None, size=None):
+async def run_test_read(
+    dut, data_in=None, idle_inserter=None, backpressure_inserter=None, size=None
+):
 
     tb = TB(dut)
 
@@ -120,10 +126,12 @@ async def run_test_read(dut, data_in=None, idle_inserter=None, backpressure_inse
     tb.set_idle_generator(idle_inserter)
     tb.set_backpressure_generator(backpressure_inserter)
 
-    for length in list(range(1, byte_lanes*2))+[1024]:
-        for offset in list(range(byte_lanes, byte_lanes*2))+list(range(4096-byte_lanes, 4096)):
+    for length in list(range(1, byte_lanes * 2)) + [1024]:
+        for offset in list(range(byte_lanes, byte_lanes * 2)) + list(
+            range(4096 - byte_lanes, 4096)
+        ):
             tb.log.info("length %d, offset %d, size %d", length, offset, size)
-            addr = offset+0x1000
+            addr = offset + 0x1000
             test_data = bytearray([x % 256 for x in range(length)])
 
             await tb.axi_master.write(addr, test_data)
@@ -149,14 +157,14 @@ async def run_stress_test(dut, idle_inserter=None, backpressure_inserter=None):
     async def worker(master, offset, aperture, count=16):
         for k in range(count):
             length = random.randint(1, min(512, aperture))
-            addr = offset+random.randint(0, aperture-length)
+            addr = offset + random.randint(0, aperture - length)
             test_data = bytearray([x % 256 for x in range(length)])
 
-            await Timer(random.randint(1, 100), 'ns')
+            await Timer(random.randint(1, 100), "ns")
 
             await master.write(addr, test_data)
 
-            await Timer(random.randint(1, 100), 'ns')
+            await Timer(random.randint(1, 100), "ns")
 
             data = await master.read(addr, length)
             assert data.data == test_data
@@ -164,7 +172,7 @@ async def run_stress_test(dut, idle_inserter=None, backpressure_inserter=None):
     workers = []
 
     for k in range(16):
-        workers.append(cocotb.start_soon(worker(tb.axi_master, k*0x1000, 0x1000, count=16)))
+        workers.append(cocotb.start_soon(worker(tb.axi_master, k * 0x1000, 0x1000, count=16)))
 
     while workers:
         await workers.pop(0).join()
@@ -177,12 +185,10 @@ def cycle_pause():
     return itertools.cycle([1, 1, 1, 0])
 
 
-
-
 # cocotb-test
 
 tests_dir = os.path.abspath(os.path.dirname(__file__))
-rtl_dir = os.path.abspath(os.path.join(tests_dir, '..', '..', 'src'))
+rtl_dir = os.path.abspath(os.path.join(tests_dir, "..", "..", "src"))
 
 
 @pytest.mark.parametrize("data_width", [8, 16, 32])
@@ -197,27 +203,23 @@ def test_axi_ram(data_width):
 
     parameters = {}
 
-    parameters['DATA_WIDTH'] = data_width
-    parameters['ADDR_WIDTH'] = 16
-    parameters['STRB_WIDTH'] = parameters['DATA_WIDTH'] // 8
-    parameters['ID_WIDTH'] = 8
-    parameters['PIPELINE_OUTPUT'] = 0
-    extra_env = {f'PARAM_{k}': str(v) for k, v in parameters.items()}
+    parameters["DATA_WIDTH"] = data_width
+    parameters["ADDR_WIDTH"] = 16
+    parameters["STRB_WIDTH"] = parameters["DATA_WIDTH"] // 8
+    parameters["ID_WIDTH"] = 8
+    parameters["PIPELINE_OUTPUT"] = 0
+    extra_env = {f"PARAM_{k}": str(v) for k, v in parameters.items()}
 
     runner = get_runner(sim)
-    runner.build(
-        sources=sources,
-        hdl_toplevel=top_level,
-        always=True,
-        waves=True
-    )
+    runner.build(sources=sources, hdl_toplevel=top_level, always=True, waves=True)
 
-    runner.test(hdl_toplevel=top_level, 
-                test_module="test_axi_ram",
-                parameters=parameters,
-                waves=True,
-                extra_env=extra_env
-                )
+    runner.test(
+        hdl_toplevel=top_level,
+        test_module="test_axi_ram",
+        parameters=parameters,
+        waves=True,
+        extra_env=extra_env,
+    )
 
 
 if __name__ == "__main__":
