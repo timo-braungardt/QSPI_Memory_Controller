@@ -120,6 +120,10 @@ module BasicSPI (
                         end else if (write_data) begin
                             count <= num_bits - 1;
                             state <= send_data;
+                        end else if (read_data) begin
+                            count <= num_bits - 1;
+                            buffer_count <= 0;
+                            state <= recieve_data;
                         end else state <= cl_high;
                     end
                 end
