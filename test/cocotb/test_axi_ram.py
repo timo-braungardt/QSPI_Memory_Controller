@@ -28,14 +28,11 @@ import logging
 import os
 import random
 
-import cocotb_test.simulator
 import pytest
-
 import cocotb
 from cocotb_tools.runner import get_runner
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
-
 from cocotbext.axi import AxiBus, AxiMaster
 
 
