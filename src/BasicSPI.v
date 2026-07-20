@@ -16,12 +16,19 @@ module BasicSPI (
 
     // Pin tristate stuff
     wire en_bus_clock;
-    reg  en_serial_out;
+    wire en_serial_out;
     reg  serial_out;
     wire serial_in;
 
     assign io_manager_serial_out = (en_serial_out) ? serial_out : 1'bZ;
     assign serial_in             = io_manager_serial_in;
+
+    // SPI Clock
+    reg            clk_bus_nxt;
+    integer        clock_count_nxt;
+
+    reg            clk_bus_reg = 0;
+    integer        clock_count_reg = 0;
 
     // Logic stuff
     reg     [ 7:0] opcode;
@@ -30,16 +37,17 @@ module BasicSPI (
     reg            write_data;
     reg            read_data;
     integer        num_bits;
-    integer        state;
+    integer        state_reg;
+    integer        state_nxt;
 
-    integer        count = 0;
-    integer        clock_count = 0;
-    reg            bus_clock = 0;
+    integer        count_reg = 0;
+    integer        count_nxt = 0;
     wire           clock_tick_pos;
     wire           clock_tick_neg;
-    integer        buffer_count = 0;
+    integer        buffer_count_reg = 0;
+    integer        buffer_count_nxt = 0;
 
-    reg     [ 7:0] buffer           [0:BUFFER_SIZE -1];
+    reg     [ 7:0] buffer               [0:BUFFER_SIZE -1];
 
     // states
     localparam integer idle = 0;
@@ -60,9 +68,8 @@ module BasicSPI (
     initial begin : setup_registers
         opcode            = 0;
         address           = 0;
-        en_serial_out     = 0;
         serial_out        = 0;
-        state             = 0;
+        state_reg         = 0;
         o_chip_select_neg = 1'b1;
 
         // the default case is reading from an address.
@@ -73,132 +80,143 @@ module BasicSPI (
     end
 
 
-    assign en_bus_clock   = (state != idle && state != cl_high) ? 1'b1 : 1'b0;
-    assign clock_tick_pos = (clock_count == 0 && ~bus_clock) ? 1'b1 : 1'b0;
-    assign clock_tick_neg = (clock_count == 0 && bus_clock) ? 1'b1 : 1'b0;
+    assign en_bus_clock   = (state_reg != idle && state_reg != cl_high);
+    assign clock_tick_pos = (clock_count_reg == 0 && ~clk_bus_reg);
+    assign clock_tick_neg = (clock_count_reg == 0 && clk_bus_reg);
+    assign en_serial_out = (state_reg != idle && state_reg != recieve_data);
 
-    assign o_bus_clock    = (en_bus_clock) ? bus_clock : 1'b0;
+    assign o_bus_clock    = (en_bus_clock) ? clk_bus_reg : 1'b0;
 
-    always @(posedge clk) begin : spi_clock
-        if (state == idle) begin
-            bus_clock   <= 1'b0;
-            clock_count <= TIMER_COUNT;
+    always @(*) begin : clock_handler_logic
+        if (state_reg == idle) begin
+            clk_bus_nxt = 1'b0;
+            clock_count_nxt = TIMER_COUNT;
         end else begin
-            if (clock_count == 0) begin
-                clock_count <= TIMER_COUNT;
-                bus_clock   <= ~bus_clock;
-            end else clock_count <= clock_count - 1;
+            if (clock_count_reg == 0) begin
+                clk_bus_nxt = ~clk_bus_reg;
+                clock_count_nxt = TIMER_COUNT;
+            end else begin
+                clk_bus_nxt = clk_bus_reg;
+                clock_count_nxt = clock_count_reg - 1;
+            end
         end
     end
 
 
-    always @(posedge clk) begin : sm_logic
-        case (state)
+    always @(posedge clk) begin : clock_handler_register
+        clk_bus_reg <= clk_bus_nxt;
+        clock_count_reg <= clock_count_nxt;
+    end
+
+
+    always @(*) begin : state_machine_logic
+        case (state_reg)
             idle: begin
-                o_chip_select_neg <= 1'b1;
-                en_serial_out <= 1'b0;
-                if (go) state <= cl_low;
+                if (go) state_nxt = cl_low;
             end
 
             cl_low: begin
-                o_chip_select_neg <= 1'b0;
-                count <= OPCODE_LENGTH - 1;
-                en_serial_out <= 1'b1;
-                serial_out <= opcode[OPCODE_LENGTH -1];     // this is a bit shitty - but otherwise the old last sent value is sent out // ToDo: still needed with counter-clock?
-                state <= send_opcode;
+                count_nxt = OPCODE_LENGTH - 1;
+                serial_out = opcode[OPCODE_LENGTH -1];     // this is a bit shitty - but otherwise the old last sent value is sent out // ToDo: still needed with counter-clock?
+                state_nxt = send_opcode;
             end
 
             send_opcode: begin
-                serial_out <= opcode[count];
+                serial_out = opcode[count_reg];
 
                 if (clock_tick_neg) begin
-                    count <= count - 1;
-                    if (count == 0) begin
+                    count_nxt = count_reg - 1;
+                    if (count_reg == 0) begin
                         if (write_address) begin
-                            count <= ADDRESS_LENGTH - 1;
-                            state <= send_address;
+                            count_nxt = ADDRESS_LENGTH - 1;
+                            state_nxt = send_address;
                         end else if (write_data) begin
-                            count <= num_bits - 1;
-                            state <= send_data;
+                            count_nxt = num_bits - 1;
+                            state_nxt = send_data;
                         end else if (read_data) begin
-                            count <= num_bits - 1;
-                            buffer_count <= 0;
-                            state <= recieve_data;
-                        end else state <= cl_high;
+                            count_nxt = num_bits - 1;
+                            buffer_count_nxt = 0;
+                            state_nxt = recieve_data;
+                        end else state_nxt = cl_high;
                     end
                 end
             end
 
             send_address: begin
-                serial_out <= address[count];
+                serial_out = address[count_reg];
 
-                if (clock_tick_neg) count <= count - 1;
+                if (clock_tick_neg) count_nxt = count_reg - 1;
 
-                if (count == 0 && clock_tick_neg) begin
-                    count <= num_bits - 1;
-                    buffer_count <= 0;
-                    if (write_data) state <= send_data_setup;
-                    else if (read_data) state <= recieve_data;
-                    else state <= cl_high;
+                if (count_reg == 0 && clock_tick_neg) begin
+                    count_nxt = num_bits - 1;
+                    buffer_count_nxt = 0;
+                    if (write_data) state_nxt = send_data_setup;
+                    else if (read_data) state_nxt = recieve_data;
+                    else state_nxt = cl_high;
                 end
             end
 
 
             recieve_data: begin
                 if (clock_tick_pos) begin
-                    count <= count - 1;
-                    buffer_count <= buffer_count + 1;
+                    count_nxt = count_reg - 1;
+                    buffer_count_nxt = buffer_count_reg + 1;
 
-                    buffer[buffer_count[6:3]][count[2:0]] <= serial_in;
+                    buffer[buffer_count_reg[6:3]][count_reg[2:0]] = serial_in;
 
-                    serial_out <= serial_in;
-                    //en_serial_out <= 1'b0;
+                    serial_out = serial_in;
                 end
 
                 // ToDo: the problem is, that when the count is 0, we still need to read one more bit
                 // we would have to wait one more clock to output the last bit.
-                if (count == -1 & clock_tick_pos) begin
-                    count <= 0;  // otherwise underflow - can this be synthesised elegantly?
-                    state <= cl_high;
+                if (count_reg == -1 & clock_tick_pos) begin
+                    count_nxt = 0;  // otherwise underflow - can this be synthesised elegantly?
+                    state_nxt = cl_high;
                 end
             end
 
 
             send_data_setup: begin
-                count <= count - 1;
-                buffer_count <= buffer_count + 1;
-                serial_out <= buffer[buffer_count[6:3]][count[2:0]];
-                state <= send_data;
+                count_nxt = count_reg - 1;
+                buffer_count_nxt = buffer_count_reg + 1;
+                serial_out = buffer[buffer_count_reg[6:3]][count_reg[2:0]];
+                state_nxt = send_data;
             end
 
             // ToDo: the problem is, that the count is 0, we shift out the new value and then go to the next state, which deactivates the output and the clock
             // we would have to wait one more clock to output the last bit.
             send_data: begin
                 if (clock_tick_neg) begin
-                    count <= count - 1;
-                    buffer_count <= buffer_count + 1;
-                    serial_out <= buffer[buffer_count[6:3]][count[2:0]];
+                    count_nxt = count_reg - 1;
+                    buffer_count_nxt = buffer_count_reg + 1;
+                    serial_out = buffer[buffer_count_reg[6:3]][count_reg[2:0]];
                 end
 
                 // ToDo: this is needed, otherwise the last bit is not transfered
                 // this is not nice, but the file will hopefully be rewritten soon anyways...
-                if (count == -1 & clock_tick_neg) begin
-                    count <= 0;  // otherwise underflow - can this be synthesised elegantly?
-                    state <= cl_high;
+                if (count_reg == -1 & clock_tick_neg) begin
+                    count_nxt = 0;  // otherwise underflow - can this be synthesised elegantly?
+                    state_nxt = cl_high;
                 end
             end
 
 
             cl_high: begin
                 if (clock_tick_pos) begin
-                    state <= idle;
-                    en_serial_out <= 1'b0;
+                    state_nxt = idle;
                 end
             end
 
 
-            default: state <= idle;
+            default: state_nxt = idle;
         endcase
     end
 
+    always @(posedge clk) begin : state_machine_register
+        state_reg <= state_nxt;
+        count_reg <= count_nxt;
+        buffer_count_reg <= buffer_count_nxt;
+        o_chip_select_neg <= ~(state_reg != idle);
+    end
+    
 endmodule
