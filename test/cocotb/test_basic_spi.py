@@ -56,7 +56,7 @@ async def timing_read_test(dut):
         )
     )
 
-    dut.opcode.value = 0x00
+    dut.opcode.value = SpiFlashMemory.read
     dut.address.value = 0x000000
 
     dut.write_address.value = 0b1
@@ -64,7 +64,7 @@ async def timing_read_test(dut):
     dut.read_data.value = 0b1
     dut.num_bits.value = 16
     spi_subordinate.num_bytes = 16 // 8
-    spi_subordinate.data = [0x12, 0x34]
+    spi_subordinate.data = [0x80, 0x01]
 
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
@@ -101,7 +101,7 @@ async def timing_write_test(dut):
         )
     )
 
-    dut.opcode.value = 0x00
+    dut.opcode.value = SpiFlashMemory.program
     dut.address.value = 0x000000
 
     dut.write_address.value = 0b1
@@ -109,7 +109,8 @@ async def timing_write_test(dut):
     dut.read_data.value = 0b0
     dut.num_bits.value = 16
     spi_subordinate.num_bytes = 16 // 8
-    spi_subordinate.data = [0x12, 0x34]
+    dut.buffer[0].value = 0x80
+    dut.buffer[1].value = 0x01
 
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
