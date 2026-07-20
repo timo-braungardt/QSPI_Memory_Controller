@@ -31,11 +31,11 @@ async def transmission_test(dut):
     cocotb.start_soon(c.start())
 
     dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
+    await ClockCycles(dut.clk, 5, rising=True)
     dut.go.value = 1
-    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
+    await ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
+    await ClockCycles(dut.clk, 2, rising=True)
     await dut.o_chip_select_neg.value_change
     [opcode, address] = await spi_subordinate.get_content()
     assert opcode == 0x81
@@ -158,11 +158,11 @@ async def read_test(dut):
     cocotb.start_soon(c.start())
 
     dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
+    await ClockCycles(dut.clk, 5, rising=True)
     dut.go.value = 1
-    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
+    await ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
+    await ClockCycles(dut.clk, 2, rising=True)
     await dut.o_chip_select_neg.value_change
     [opcode, address] = await spi_subordinate.get_content()
 
@@ -200,11 +200,11 @@ async def write_test(dut):
     assert not spi_subordinate.write_enable
 
     dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
+    await ClockCycles(dut.clk, 5, rising=True)
     dut.go.value = 1
-    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
+    await ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
+    await ClockCycles(dut.clk, 2, rising=True)
     await dut.o_chip_select_neg.value_change
 
     assert spi_subordinate.opcode == SpiFlashMemory.write_enable
@@ -223,11 +223,11 @@ async def write_test(dut):
     spi_subordinate.num_bytes = 16 // 8
 
     dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
+    await ClockCycles(dut.clk, 5, rising=True)
     dut.go.value = 1
-    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
+    await ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
+    await ClockCycles(dut.clk, 2, rising=True)
     await dut.o_chip_select_neg.value_change
 
     assert spi_subordinate.opcode == SpiFlashMemory.program
