@@ -3,6 +3,7 @@ from pathlib import Path
 import cocotb
 from cocotb_tools.runner import get_runner
 from cocotb.clock import Clock
+from cocotb.triggers import Timer, First, ClockCycles, RisingEdge
 from cocotbext.spi import SpiBus
 from HelperClasses import SpiFlashMemory
 
@@ -39,6 +40,96 @@ async def transmission_test(dut):
     [opcode, address] = await spi_subordinate.get_content()
     assert opcode == 0x81
     assert address == 0x800001
+
+
+@cocotb.test()
+async def timing_read_test(dut):
+    timeout = Timer(100, unit="us")
+
+    spi_subordinate = SpiFlashMemory(
+        SpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_name="io_manager_serial_out",
+            miso_name="io_manager_serial_in",
+            cs_name="o_chip_select_neg",
+        )
+    )
+
+    dut.opcode.value = 0x00
+    dut.address.value = 0x000000
+
+    dut.write_address.value = 0b1
+    dut.write_data.value = 0b0
+    dut.read_data.value = 0b1
+    dut.num_bits.value = 16
+    spi_subordinate.num_bytes = 16 // 8
+    spi_subordinate.data = [0x12, 0x34]
+
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    num_clock_cycles = 8 + 24 + 16
+
+    dut.go.value = 0
+    await ClockCycles(dut.clk, 5, rising=True)
+    dut.go.value = 1
+    await ClockCycles(dut.clk, 1, rising=True)
+    dut.go.value = 0
+
+    trigger = await First(
+        ClockCycles(dut.o_bus_clock, num_clock_cycles, rising=True), timeout
+    )
+    assert trigger != timeout
+    assert dut.o_chip_select_neg.value == False
+
+    trigger = await First(RisingEdge(dut.o_chip_select_neg), timeout)
+    assert trigger != timeout
+
+
+@cocotb.test()
+async def timing_write_test(dut):
+    timeout = Timer(100, unit="us")
+
+    spi_subordinate = SpiFlashMemory(
+        SpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_name="io_manager_serial_out",
+            miso_name="io_manager_serial_in",
+            cs_name="o_chip_select_neg",
+        )
+    )
+
+    dut.opcode.value = 0x00
+    dut.address.value = 0x000000
+
+    dut.write_address.value = 0b1
+    dut.write_data.value = 0b1
+    dut.read_data.value = 0b0
+    dut.num_bits.value = 16
+    spi_subordinate.num_bytes = 16 // 8
+    spi_subordinate.data = [0x12, 0x34]
+
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    num_clock_cycles = 8 + 24 + 16
+
+    dut.go.value = 0
+    await ClockCycles(dut.clk, 5, rising=True)
+    dut.go.value = 1
+    await ClockCycles(dut.clk, 1, rising=True)
+    dut.go.value = 0
+
+    trigger = await First(
+        ClockCycles(dut.o_bus_clock, num_clock_cycles, rising=True), timeout
+    )
+    assert trigger != timeout
+    assert dut.o_chip_select_neg.value == False
+
+    trigger = await First(RisingEdge(dut.o_chip_select_neg), timeout)
+    assert trigger != timeout
 
 
 @cocotb.test()
