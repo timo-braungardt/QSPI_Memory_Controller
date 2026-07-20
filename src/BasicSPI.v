@@ -51,8 +51,6 @@ module BasicSPI (
 
     // states
     localparam integer idle = 0;
-    localparam integer cl_low = 5;
-    localparam integer cl_high = 8;
     localparam integer send_opcode = 1;
     localparam integer send_address = 2;
     localparam integer send_data = 3;
@@ -80,7 +78,7 @@ module BasicSPI (
     end
 
 
-    assign en_bus_clock   = (state_reg != idle && state_reg != cl_high);
+    assign en_bus_clock   = (state_reg != idle);
     assign clock_tick_pos = (clock_count_reg == 0 && ~clk_bus_reg);
     assign clock_tick_neg = (clock_count_reg == 0 && clk_bus_reg);
     assign en_serial_out = (state_reg != idle && state_reg != recieve_data);
@@ -112,13 +110,10 @@ module BasicSPI (
     always @(*) begin : state_machine_logic
         case (state_reg)
             idle: begin
-                if (go) state_nxt = cl_low;
-            end
-
-            cl_low: begin
-                count_nxt = OPCODE_LENGTH - 1;
-                serial_out = opcode[OPCODE_LENGTH -1];     // this is a bit shitty - but otherwise the old last sent value is sent out // ToDo: still needed with counter-clock?
-                state_nxt = send_opcode;
+                if (go) begin
+                    state_nxt = send_opcode;
+                    count_nxt = OPCODE_LENGTH - 1;
+                end
             end
 
             send_opcode: begin
@@ -137,7 +132,7 @@ module BasicSPI (
                             count_nxt = num_bits - 1;
                             buffer_count_nxt = 0;
                             state_nxt = recieve_data;
-                        end else state_nxt = cl_high;
+                        end else state_nxt = idle;
                     end
                 end
             end
@@ -152,7 +147,7 @@ module BasicSPI (
                     buffer_count_nxt = 0;
                     if (write_data) state_nxt = send_data_setup;
                     else if (read_data) state_nxt = recieve_data;
-                    else state_nxt = cl_high;
+                    else state_nxt = idle;
                 end
             end
 
@@ -171,7 +166,7 @@ module BasicSPI (
                 // we would have to wait one more clock to output the last bit.
                 if (count_reg == -1 & clock_tick_pos) begin
                     count_nxt = 0;  // otherwise underflow - can this be synthesised elegantly?
-                    state_nxt = cl_high;
+                    state_nxt = idle;
                 end
             end
 
@@ -196,13 +191,6 @@ module BasicSPI (
                 // this is not nice, but the file will hopefully be rewritten soon anyways...
                 if (count_reg == -1 & clock_tick_neg) begin
                     count_nxt = 0;  // otherwise underflow - can this be synthesised elegantly?
-                    state_nxt = cl_high;
-                end
-            end
-
-
-            cl_high: begin
-                if (clock_tick_pos) begin
                     state_nxt = idle;
                 end
             end
@@ -218,5 +206,5 @@ module BasicSPI (
         buffer_count_reg <= buffer_count_nxt;
         o_chip_select_neg <= ~(state_reg != idle);
     end
-    
+
 endmodule
