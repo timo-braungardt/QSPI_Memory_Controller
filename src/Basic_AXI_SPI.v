@@ -255,7 +255,7 @@ module Basic_AXI_SPI #(
                 end
             end
             WRITE_STATE_WAIT_SPI: begin
-                if (SPI_Controller.state == SPI_Controller.cl_high)
+                if (SPI_Controller.state_reg == SPI_Controller.idle)
                     write_state_next = WRITE_STATE_IDLE;
                 else write_state_next = WRITE_STATE_WAIT_SPI;
             end
@@ -338,7 +338,7 @@ module Basic_AXI_SPI #(
                 end
             end
             READ_STATE_WAIT_SPI: begin
-                if (SPI_Controller.state == SPI_Controller.cl_high)
+                if (SPI_Controller.state_reg == SPI_Controller.idle)
                     read_state_next = READ_STATE_BURST;
                 else read_state_next = READ_STATE_WAIT_SPI;
             end
