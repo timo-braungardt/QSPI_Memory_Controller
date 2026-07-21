@@ -13,6 +13,9 @@ module BasicSPI (
 );
 
     localparam BUFFER_SIZE = 16;
+    localparam BYTE_SEL_WIDTH = $clog2(BUFFER_SIZE);
+    localparam BYTE_SEL_LSB = $clog2(8);
+    localparam BYTE_SEL_MSB = BYTE_SEL_LSB + BYTE_SEL_WIDTH - 1;
 
     // Pin tristate stuff
     wire en_bus_clock;
@@ -179,7 +182,7 @@ module BasicSPI (
             end
 
             SEND_DATA: begin
-                serial_out_nxt = buffer[buffer_count_reg[6:3]][count_reg[2:0]];
+                serial_out_nxt = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][count_reg[BYTE_SEL_LSB-1:0]];
                 if (clock_tick_neg) begin
                     count_nxt = count_reg - 1;
                     buffer_count_nxt = buffer_count_reg + 1;
@@ -205,7 +208,7 @@ module BasicSPI (
         transmission_finished_reg <= transmission_finished_nxt;
 
         if (state_reg == RECEIVE_DATA && clock_tick_pos) begin
-            buffer[buffer_count_reg[6:3]][count_reg[2:0]] <= serial_in;
+            buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][count_reg[BYTE_SEL_LSB-1:0]] <= serial_in;
         end
     end
 
