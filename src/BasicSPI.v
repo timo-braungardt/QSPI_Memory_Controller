@@ -50,7 +50,7 @@ module BasicSPI (
     reg            transmission_finished_nxt = 0;
     reg            transmission_finished_reg = 0;
 
-    reg     [ 7:0] buffer               [0:BUFFER_SIZE -1];
+    reg     [ 7:0] buffer                        [0:BUFFER_SIZE -1];
 
     // states
     localparam integer idle = 0;
@@ -87,6 +87,7 @@ module BasicSPI (
     assign en_serial_out = (state_reg != idle && state_reg != recieve_data);
 
     assign o_bus_clock    = (en_bus_clock) ? clk_bus_reg : 1'b0;
+
 
     always @(*) begin : clock_handler_logic
         if (state_reg == idle) begin
@@ -155,7 +156,6 @@ module BasicSPI (
                 end
             end
 
-
             recieve_data: begin
                 if (clock_tick_pos) begin
                     count_nxt = count_reg - 1;
@@ -186,10 +186,10 @@ module BasicSPI (
                 end
             end
 
-
             default: state_nxt = idle;
         endcase
     end
+
 
     always @(posedge clk) begin : state_machine_register
         state_reg <= state_nxt;
