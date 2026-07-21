@@ -58,7 +58,7 @@ module BasicSPI (
     localparam integer send_address = 2;
     localparam integer send_data = 3;
     localparam integer send_data_setup = 12;
-    localparam integer recieve_data = 4;
+    localparam integer receive_data = 4;
 
     // constants
     localparam integer TIMER_COUNT = 2;
@@ -85,7 +85,7 @@ module BasicSPI (
     assign en_bus_clock   = (state_reg != idle);
     assign clock_tick_pos = (clock_count_reg == 0 && ~clk_bus_reg);
     assign clock_tick_neg = (clock_count_reg == 0 && clk_bus_reg);
-    assign en_serial_out  = (state_reg != idle && state_reg != recieve_data);
+    assign en_serial_out  = (state_reg != idle && state_reg != receive_data);
 
     assign o_bus_clock    = (en_bus_clock) ? clk_bus_reg : 1'b0;
     assign o_reset        = 1'b0;
@@ -146,7 +146,7 @@ module BasicSPI (
                         end else if (read_data) begin
                             count_nxt = num_bits - 1;
                             buffer_count_nxt = 0;
-                            state_nxt = recieve_data;
+                            state_nxt = receive_data;
                         end else state_nxt = idle;
                     end
                 end
@@ -161,12 +161,12 @@ module BasicSPI (
                     count_nxt = num_bits - 1;
                     buffer_count_nxt = 0;
                     if (write_data) state_nxt = send_data;
-                    else if (read_data) state_nxt = recieve_data;
+                    else if (read_data) state_nxt = receive_data;
                     else state_nxt = idle;
                 end
             end
 
-            recieve_data: begin
+            receive_data: begin
                 if (clock_tick_pos) begin
                     count_nxt = count_reg - 1;
                     buffer_count_nxt = buffer_count_reg + 1;
@@ -205,7 +205,7 @@ module BasicSPI (
         serial_out_reg <= serial_out_nxt;
         transmission_finished_reg <= transmission_finished_nxt;
 
-        if (state_reg == recieve_data && clock_tick_pos) begin
+        if (state_reg == receive_data && clock_tick_pos) begin
             buffer[buffer_count_reg[6:3]][count_reg[2:0]] <= serial_in;
         end
     end

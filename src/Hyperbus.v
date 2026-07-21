@@ -67,7 +67,7 @@ module Hyperbus (
     localparam integer wait_latency = 9;
     localparam integer send_data = 3;
     localparam integer send_data_setup = 12;
-    localparam integer recieve_data = 4;
+    localparam integer receive_data = 4;
 
     // constants
     localparam integer TIMER_COUNT = 15;
@@ -153,13 +153,13 @@ module Hyperbus (
                 if (count == 0 && clock_tick) begin
                     count <= num_bits / BUS_WIDTH - 1;
 
-                    if (is_read) state <= recieve_data;
+                    if (is_read) state <= receive_data;
                     else state <= send_data_setup;
                 end
             end
 
 
-            recieve_data: begin
+            receive_data: begin
                 en_data_out <= 1'b0;
 
                 if (clock_tick) begin

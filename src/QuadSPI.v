@@ -56,7 +56,7 @@ module QuadSPI (
     localparam integer send_opcode = 1;
     localparam integer send_address = 2;
     localparam integer send_data = 3;
-    localparam integer recieve_data = 4;
+    localparam integer receive_data = 4;
 
     // constants
     localparam integer TIMER_COUNT = 2;
@@ -162,13 +162,13 @@ module QuadSPI (
                     count <= num_bits / 4 - 1;
                     buffer_count <= 0;
                     if (write_data) state <= send_data;
-                    else if (read_data) state <= recieve_data;
+                    else if (read_data) state <= receive_data;
                     else state <= cl_high;
                 end
             end
 
 
-            recieve_data: begin
+            receive_data: begin
                 en_serial_out <= 1'b0;
 
                 if (clock_tick_pos) begin
