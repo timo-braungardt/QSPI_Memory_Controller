@@ -90,6 +90,9 @@ module BasicSPI (
 
 
     always @(*) begin : clock_handler_logic
+        clk_bus_nxt = clk_bus_reg;
+        clock_count_nxt = clock_count_reg;
+
         if (state_reg == idle) begin
             clk_bus_nxt = 1'b0;
             clock_count_nxt = TIMER_COUNT;
@@ -112,9 +115,14 @@ module BasicSPI (
 
 
     always @(*) begin : state_machine_logic
+        serial_out_nxt = serial_out_reg;
+        state_nxt = state_reg;
+        count_nxt = count_reg;
+        buffer_count_nxt = buffer_count_reg;
+        transmission_finished_nxt = transmission_finished_reg;
+
         case (state_reg)
             idle: begin
-                serial_out_nxt = 1'b0;
                 if (go) begin
                     state_nxt = send_opcode;
                     count_nxt = OPCODE_LENGTH - 1;
