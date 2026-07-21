@@ -17,10 +17,11 @@ module BasicSPI (
     // Pin tristate stuff
     wire en_bus_clock;
     wire en_serial_out;
-    reg  serial_out;
+    reg  serial_out_reg;
+    reg  serial_out_nxt;
     wire serial_in;
 
-    assign io_manager_serial_out = (en_serial_out) ? serial_out : 1'bZ;
+    assign io_manager_serial_out = (en_serial_out) ? serial_out_reg : 1'bZ;
     assign serial_in             = io_manager_serial_in;
 
     // SPI Clock
@@ -46,6 +47,8 @@ module BasicSPI (
     wire           clock_tick_neg;
     integer        buffer_count_reg = 0;
     integer        buffer_count_nxt = 0;
+    reg            transmission_finished_nxt = 0;
+    reg            transmission_finished_reg = 0;
 
     reg     [ 7:0] buffer               [0:BUFFER_SIZE -1];
 
@@ -66,8 +69,8 @@ module BasicSPI (
     initial begin : setup_registers
         opcode            = 0;
         address           = 0;
-        serial_out        = 0;
         state_reg         = 0;
+        state_nxt         = 0;
         o_chip_select_neg = 1'b1;
 
         // the default case is reading from an address.
@@ -110,6 +113,7 @@ module BasicSPI (
     always @(*) begin : state_machine_logic
         case (state_reg)
             idle: begin
+                serial_out_nxt = 1'b0;
                 if (go) begin
                     state_nxt = send_opcode;
                     count_nxt = OPCODE_LENGTH - 1;
@@ -117,7 +121,7 @@ module BasicSPI (
             end
 
             send_opcode: begin
-                serial_out = opcode[count_reg];
+                serial_out_nxt = opcode[count_reg];
 
                 if (clock_tick_neg) begin
                     count_nxt = count_reg - 1;
@@ -138,14 +142,14 @@ module BasicSPI (
             end
 
             send_address: begin
-                serial_out = address[count_reg];
+                serial_out_nxt = address[count_reg];
 
                 if (clock_tick_neg) count_nxt = count_reg - 1;
 
                 if (count_reg == 0 && clock_tick_neg) begin
                     count_nxt = num_bits - 1;
                     buffer_count_nxt = 0;
-                    if (write_data) state_nxt = send_data_setup;
+                    if (write_data) state_nxt = send_data;
                     else if (read_data) state_nxt = recieve_data;
                     else state_nxt = idle;
                 end
@@ -156,42 +160,29 @@ module BasicSPI (
                 if (clock_tick_pos) begin
                     count_nxt = count_reg - 1;
                     buffer_count_nxt = buffer_count_reg + 1;
-
-                    buffer[buffer_count_reg[6:3]][count_reg[2:0]] = serial_in;
-
-                    serial_out = serial_in;
+                    serial_out_nxt = serial_in;
                 end
 
-                // ToDo: the problem is, that when the count is 0, we still need to read one more bit
-                // we would have to wait one more clock to output the last bit.
-                if (count_reg == -1 & clock_tick_pos) begin
+                transmission_finished_nxt = (count_reg == 0 & clock_tick_neg) || transmission_finished_reg;
+                if (transmission_finished_reg & clock_tick_neg) begin
                     count_nxt = 0;  // otherwise underflow - can this be synthesised elegantly?
                     state_nxt = idle;
+                    transmission_finished_nxt = 0;
                 end
             end
 
-
-            send_data_setup: begin
-                count_nxt = count_reg - 1;
-                buffer_count_nxt = buffer_count_reg + 1;
-                serial_out = buffer[buffer_count_reg[6:3]][count_reg[2:0]];
-                state_nxt = send_data;
-            end
-
-            // ToDo: the problem is, that the count is 0, we shift out the new value and then go to the next state, which deactivates the output and the clock
-            // we would have to wait one more clock to output the last bit.
             send_data: begin
+                serial_out_nxt = buffer[buffer_count_reg[6:3]][count_reg[2:0]];
                 if (clock_tick_neg) begin
                     count_nxt = count_reg - 1;
                     buffer_count_nxt = buffer_count_reg + 1;
-                    serial_out = buffer[buffer_count_reg[6:3]][count_reg[2:0]];
                 end
 
-                // ToDo: this is needed, otherwise the last bit is not transfered
-                // this is not nice, but the file will hopefully be rewritten soon anyways...
-                if (count_reg == -1 & clock_tick_neg) begin
+                transmission_finished_nxt = (count_reg == 0 & clock_tick_pos) || transmission_finished_reg;
+                if (transmission_finished_reg & clock_tick_neg) begin
                     count_nxt = 0;  // otherwise underflow - can this be synthesised elegantly?
                     state_nxt = idle;
+                    transmission_finished_nxt = 0;
                 end
             end
 
@@ -205,6 +196,12 @@ module BasicSPI (
         count_reg <= count_nxt;
         buffer_count_reg <= buffer_count_nxt;
         o_chip_select_neg <= ~(state_reg != idle);
+        serial_out_reg <= serial_out_nxt;
+        transmission_finished_reg <= transmission_finished_nxt;
+
+        if (state_reg == recieve_data && clock_tick_pos) begin
+            buffer[buffer_count_reg[6:3]][count_reg[2:0]] <= serial_in;
+        end
     end
 
 endmodule
