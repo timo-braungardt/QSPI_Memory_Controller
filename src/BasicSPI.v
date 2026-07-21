@@ -53,12 +53,11 @@ module BasicSPI (
     reg     [ 7:0] buffer                        [0:BUFFER_SIZE -1];
 
     // states
-    localparam integer idle = 0;
-    localparam integer send_opcode = 1;
-    localparam integer send_address = 2;
-    localparam integer send_data = 3;
-    localparam integer send_data_setup = 12;
-    localparam integer receive_data = 4;
+    localparam integer IDLE = 0;
+    localparam integer SEND_OPCODE = 1;
+    localparam integer SEND_ADDRESS = 2;
+    localparam integer SEND_DATA = 3;
+    localparam integer RECEIVE_DATA = 4;
 
     // constants
     localparam integer TIMER_COUNT = 2;
@@ -82,10 +81,10 @@ module BasicSPI (
     end
 
 
-    assign en_bus_clock   = (state_reg != idle);
+    assign en_bus_clock   = (state_reg != IDLE);
     assign clock_tick_pos = (clock_count_reg == 0 && ~clk_bus_reg);
     assign clock_tick_neg = (clock_count_reg == 0 && clk_bus_reg);
-    assign en_serial_out  = (state_reg != idle && state_reg != receive_data);
+    assign en_serial_out  = (state_reg != IDLE && state_reg != RECEIVE_DATA);
 
     assign o_bus_clock    = (en_bus_clock) ? clk_bus_reg : 1'b0;
     assign o_reset        = 1'b0;
@@ -95,7 +94,7 @@ module BasicSPI (
         clk_bus_nxt = clk_bus_reg;
         clock_count_nxt = clock_count_reg;
 
-        if (state_reg == idle) begin
+        if (state_reg == IDLE) begin
             clk_bus_nxt = 1'b0;
             clock_count_nxt = TIMER_COUNT;
         end else begin
@@ -124,14 +123,14 @@ module BasicSPI (
         transmission_finished_nxt = 0;
 
         case (state_reg)
-            idle: begin
+            IDLE: begin
                 if (go) begin
-                    state_nxt = send_opcode;
+                    state_nxt = SEND_OPCODE;
                     count_nxt = OPCODE_LENGTH - 1;
                 end
             end
 
-            send_opcode: begin
+            SEND_OPCODE: begin
                 serial_out_nxt = opcode[count_reg];
 
                 if (clock_tick_neg) begin
@@ -139,20 +138,20 @@ module BasicSPI (
                     if (count_reg == 0) begin
                         if (write_address) begin
                             count_nxt = ADDRESS_LENGTH - 1;
-                            state_nxt = send_address;
+                            state_nxt = SEND_ADDRESS;
                         end else if (write_data) begin
                             count_nxt = num_bits - 1;
-                            state_nxt = send_data;
+                            state_nxt = SEND_DATA;
                         end else if (read_data) begin
                             count_nxt = num_bits - 1;
                             buffer_count_nxt = 0;
-                            state_nxt = receive_data;
-                        end else state_nxt = idle;
+                            state_nxt = RECEIVE_DATA;
+                        end else state_nxt = IDLE;
                     end
                 end
             end
 
-            send_address: begin
+            SEND_ADDRESS: begin
                 serial_out_nxt = address[count_reg];
 
                 if (clock_tick_neg) count_nxt = count_reg - 1;
@@ -160,13 +159,13 @@ module BasicSPI (
                 if (count_reg == 0 && clock_tick_neg) begin
                     count_nxt = num_bits - 1;
                     buffer_count_nxt = 0;
-                    if (write_data) state_nxt = send_data;
-                    else if (read_data) state_nxt = receive_data;
-                    else state_nxt = idle;
+                    if (write_data) state_nxt = SEND_DATA;
+                    else if (read_data) state_nxt = RECEIVE_DATA;
+                    else state_nxt = IDLE;
                 end
             end
 
-            receive_data: begin
+            RECEIVE_DATA: begin
                 if (clock_tick_pos) begin
                     count_nxt = count_reg - 1;
                     buffer_count_nxt = buffer_count_reg + 1;
@@ -175,11 +174,11 @@ module BasicSPI (
 
                 transmission_finished_nxt = (count_reg == 0 & clock_tick_neg) || transmission_finished_reg;
                 if (transmission_finished_reg & clock_tick_neg) begin
-                    state_nxt = idle;
+                    state_nxt = IDLE;
                 end
             end
 
-            send_data: begin
+            SEND_DATA: begin
                 serial_out_nxt = buffer[buffer_count_reg[6:3]][count_reg[2:0]];
                 if (clock_tick_neg) begin
                     count_nxt = count_reg - 1;
@@ -188,11 +187,11 @@ module BasicSPI (
 
                 transmission_finished_nxt = (count_reg == 0 & clock_tick_pos) || transmission_finished_reg;
                 if (transmission_finished_reg & clock_tick_neg) begin
-                    state_nxt = idle;
+                    state_nxt = IDLE;
                 end
             end
 
-            default: state_nxt = idle;
+            default: state_nxt = IDLE;
         endcase
     end
 
@@ -201,11 +200,11 @@ module BasicSPI (
         state_reg <= state_nxt;
         count_reg <= count_nxt;
         buffer_count_reg <= buffer_count_nxt;
-        o_chip_select_neg <= ~(state_reg != idle);  // state_nxt possible for perfect sync with state
+        o_chip_select_neg <= ~(state_reg != IDLE);  // state_nxt possible for perfect sync with state
         serial_out_reg <= serial_out_nxt;
         transmission_finished_reg <= transmission_finished_nxt;
 
-        if (state_reg == receive_data && clock_tick_pos) begin
+        if (state_reg == RECEIVE_DATA && clock_tick_pos) begin
             buffer[buffer_count_reg[6:3]][count_reg[2:0]] <= serial_in;
         end
     end
