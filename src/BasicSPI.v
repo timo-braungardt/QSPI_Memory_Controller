@@ -72,6 +72,7 @@ module BasicSPI (
         state_reg         = 0;
         state_nxt         = 0;
         o_chip_select_neg = 1'b1;
+        serial_out_reg    = 1'b0;
 
         // the default case is reading from an address.
         write_address     = 1;
@@ -84,9 +85,10 @@ module BasicSPI (
     assign en_bus_clock   = (state_reg != idle);
     assign clock_tick_pos = (clock_count_reg == 0 && ~clk_bus_reg);
     assign clock_tick_neg = (clock_count_reg == 0 && clk_bus_reg);
-    assign en_serial_out = (state_reg != idle && state_reg != recieve_data);
+    assign en_serial_out  = (state_reg != idle && state_reg != recieve_data);
 
     assign o_bus_clock    = (en_bus_clock) ? clk_bus_reg : 1'b0;
+    assign o_reset        = 1'b0;
 
 
     always @(*) begin : clock_handler_logic
@@ -119,7 +121,7 @@ module BasicSPI (
         state_nxt = state_reg;
         count_nxt = count_reg;
         buffer_count_nxt = buffer_count_reg;
-        transmission_finished_nxt = transmission_finished_reg;
+        transmission_finished_nxt = 0;
 
         case (state_reg)
             idle: begin
@@ -173,9 +175,7 @@ module BasicSPI (
 
                 transmission_finished_nxt = (count_reg == 0 & clock_tick_neg) || transmission_finished_reg;
                 if (transmission_finished_reg & clock_tick_neg) begin
-                    count_nxt = 0;  // otherwise underflow - can this be synthesised elegantly?
                     state_nxt = idle;
-                    transmission_finished_nxt = 0;
                 end
             end
 
@@ -188,9 +188,7 @@ module BasicSPI (
 
                 transmission_finished_nxt = (count_reg == 0 & clock_tick_pos) || transmission_finished_reg;
                 if (transmission_finished_reg & clock_tick_neg) begin
-                    count_nxt = 0;  // otherwise underflow - can this be synthesised elegantly?
                     state_nxt = idle;
-                    transmission_finished_nxt = 0;
                 end
             end
 
@@ -203,7 +201,7 @@ module BasicSPI (
         state_reg <= state_nxt;
         count_reg <= count_nxt;
         buffer_count_reg <= buffer_count_nxt;
-        o_chip_select_neg <= ~(state_reg != idle);
+        o_chip_select_neg <= ~(state_reg != idle);  // state_nxt possible for perfect sync with state
         serial_out_reg <= serial_out_nxt;
         transmission_finished_reg <= transmission_finished_nxt;
 
