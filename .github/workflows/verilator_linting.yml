@@ -11,10 +11,12 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y verilator
-      - name: Discover Verilog/SystemVerilog files
-        id: files
+      - name: Run Verilator lint (per-file)
         run: |
-          FILES=$(git ls-files '*.v' '*.sv' '*.vh' '*.svh' | tr '\n' ' ')
-          echo "files=$FILES" >> "$GITHUB_OUTPUT"
-      - name: Run Verilator lint
-        run: verilator --lint-only -Wall ${{ steps.files.outputs.files }}
+          status=0
+          for f in $(git ls-files '*.v' '*.sv'); do
+            echo "::group::Linting $f"
+            verilator --lint-only -Wall "$f" || status=1
+            echo "::endgroup::"
+          done
+          exit $status
