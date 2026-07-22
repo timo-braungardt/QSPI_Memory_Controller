@@ -1,0 +1,20 @@
+name: Verilator Lint
+
+on: [push]
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Verilator
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y verilator
+      - name: Discover Verilog/SystemVerilog files
+        id: files
+        run: |
+          FILES=$(git ls-files '*.v' '*.sv' '*.vh' '*.svh' | tr '\n' ' ')
+          echo "files=$FILES" >> "$GITHUB_OUTPUT"
+      - name: Run Verilator lint
+        run: verilator --lint-only -Wall ${{ steps.files.outputs.files }}
