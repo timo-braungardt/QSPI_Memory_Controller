@@ -70,6 +70,9 @@ class SpiFlashMemory(SpiSlaveBase):
 
         # Manager ordered a program
         if self.opcode == SpiFlashMemory.program:
+            if not self.write_enable:
+                raise RuntimeError("Write enable not set!")
+
             for i in range(self.num_bytes):
                 data = int(await self._recieve_data(8))
                 self.log.info(f"   recieved {data}")
