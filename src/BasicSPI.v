@@ -27,7 +27,7 @@ module BasicSPI (
     assign io_manager_serial_out = (en_serial_out) ? serial_out_reg : 1'bZ;
     assign serial_in             = io_manager_serial_in;
 
-    // SPI Clock
+    // Bus Clock
     reg            clk_bus_nxt;
     integer        clock_count_nxt;
 
@@ -172,7 +172,6 @@ module BasicSPI (
                 if (clock_tick_pos) begin
                     count_nxt = count_reg - 1;
                     buffer_count_nxt = buffer_count_reg + 1;
-                    serial_out_nxt = serial_in;
                 end
 
                 transmission_finished_nxt = (count_reg == 0 & clock_tick_neg) || transmission_finished_reg;
