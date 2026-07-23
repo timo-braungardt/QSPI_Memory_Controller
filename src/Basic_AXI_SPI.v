@@ -114,7 +114,7 @@ module Basic_AXI_SPI #(
     localparam [2:0] CONTROLL_STATE_IDLE            = 3'd0;
     localparam [2:0] CONTROLL_STATE_WRITE_ENABLE    = 3'd1;
     localparam [2:0] CONTROLL_STATE_WRITE           = 3'd2;
-    localparam [2:0] CONTROLL_STATE_READ           = 3'd3;
+    localparam [2:0] CONTROLL_STATE_READ            = 3'd3;
     localparam [2:0] CONTROLL_STATE_FINISH          = 3'd4;
     localparam [2:0] CONTROLL_STATE_WAIT_DATA       = 3'd5;
     localparam [2:0] CONTROLL_STATE_WAIT_CONFIG     = 3'd6;
@@ -344,8 +344,7 @@ module Basic_AXI_SPI #(
                 end
             end
             READ_STATE_WAIT_SPI: begin
-                if (controll_state_reg == CONTROLL_STATE_FINISH)
-                    read_state_next = READ_STATE_BURST;
+                if (controll_state_reg == CONTROLL_STATE_FINISH) read_state_next = READ_STATE_BURST;
                 else read_state_next = READ_STATE_WAIT_SPI;
             end
             READ_STATE_BURST: begin
@@ -408,12 +407,6 @@ module Basic_AXI_SPI #(
             s_axi_rvalid_reg <= 1'b0;
             s_axi_rvalid_pipe_reg <= 1'b0;
         end
-
-        // ToDo: this is hacky! there should be another state to load the address into the SPI register
-        // or do it with wires!
-        if (read_state_reg == READ_STATE_WAIT_SPI) begin
-            
-        end
     end
 
 
@@ -424,7 +417,7 @@ module Basic_AXI_SPI #(
             CONTROLL_STATE_IDLE: begin
                 if (read_state_reg == READ_STATE_WAIT_SPI) begin
                     controll_state_next = CONTROLL_STATE_READ;
-                end else if(write_state_reg == WRITE_STATE_WAIT_SPI) begin
+                end else if (write_state_reg == WRITE_STATE_WAIT_SPI) begin
                     controll_state_next = CONTROLL_STATE_WRITE_ENABLE;
                 end
             end
@@ -434,50 +427,48 @@ module Basic_AXI_SPI #(
             CONTROLL_STATE_WAIT_CONFIG: begin
                 if (SPI_Controller.state == SPI_Controller.idle)
                     controll_state_next = CONTROLL_STATE_WRITE;
-                else
-                    controll_state_next = CONTROLL_STATE_WAIT_CONFIG;  
+                else controll_state_next = CONTROLL_STATE_WAIT_CONFIG;
             end
             CONTROLL_STATE_WRITE: begin
                 controll_state_next = CONTROLL_STATE_WAIT_DATA;
-            end 
+            end
             CONTROLL_STATE_READ: begin
-                controll_state_next = CONTROLL_STATE_WAIT_DATA;                
+                controll_state_next = CONTROLL_STATE_WAIT_DATA;
             end
             CONTROLL_STATE_WAIT_DATA: begin
                 if (SPI_Controller.state == SPI_Controller.idle)
                     controll_state_next = CONTROLL_STATE_FINISH;
-                else
-                    controll_state_next = CONTROLL_STATE_WAIT_DATA;                
-            end 
+                else controll_state_next = CONTROLL_STATE_WAIT_DATA;
+            end
             CONTROLL_STATE_FINISH: begin
-                controll_state_next = CONTROLL_STATE_IDLE;                
-            end 
+                controll_state_next = CONTROLL_STATE_IDLE;
+            end
             default: controll_state_next = CONTROLL_STATE_IDLE;
         endcase
     end
 
 
-    always @(posedge clk ) begin : Controll_Logic_Register
+    always @(posedge clk) begin : Controll_Logic_Register
         controll_state_reg <= controll_state_next;
 
         case (controll_state_reg)
             CONTROLL_STATE_WRITE_ENABLE: begin
-                SPI_Controller.opcode <= 8'h06;
+                SPI_Controller.opcode        <= 8'h06;
                 SPI_Controller.write_address <= 0;
                 SPI_Controller.write_data    <= 0;
                 SPI_Controller.read_data     <= 0;
             end
             CONTROLL_STATE_WRITE: begin
-                SPI_Controller.opcode <= 8'h02;
+                SPI_Controller.opcode        <= 8'h02;
                 SPI_Controller.write_address <= 1;
                 SPI_Controller.write_data    <= 1;
                 SPI_Controller.read_data     <= 0;
-            end 
-            CONTROLL_STATE_READ: begin    
-                SPI_Controller.opcode <= 8'h03;
+            end
+            CONTROLL_STATE_READ: begin
+                SPI_Controller.opcode        <= 8'h03;
                 SPI_Controller.write_address <= 1;
                 SPI_Controller.write_data    <= 0;
-                SPI_Controller.read_data     <= 1;         
+                SPI_Controller.read_data     <= 1;
             end
         endcase
     end

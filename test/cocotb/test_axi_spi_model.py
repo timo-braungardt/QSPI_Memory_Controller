@@ -36,7 +36,7 @@ async def transmission_test(dut):
     length = 4
     test_data = bytearray([x % 256 for x in range(length)])
     await axi_master.write(addr, test_data)
-    
+
     await Timer(480, unit="us")  # T_PP typ in the datasheet
     data = await axi_master.read(addr, length)
     assert data.data == test_data
