@@ -92,7 +92,10 @@ async def transmission_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.o_chip_select_neg.value_change
+
+    timeout = Timer(100, unit="us")
+    trigger = await First(dut.o_chip_select_neg.value_change, timeout)
+    assert trigger != timeout
 
     assert qspi_subordinate.opcode == 0x05
     assert qspi_subordinate.address == 0x800001
