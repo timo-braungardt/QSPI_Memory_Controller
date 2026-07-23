@@ -11,12 +11,22 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y verilator
-      - name: Run Verilator lint (per-file)
+      - name: Lint files separately
         run: |
           status=0
           for f in $(git ls-files '*.v' '*.sv'); do
-            echo "::group::Linting $f"
-            verilator --lint-only -Wall "$f" || status=1
-            echo "::endgroup::"
+            echo "Linting: $f"
+            verilator --lint-only -Wall -Wno-MODMISSING "$f" || status=1
+          done
+          exit $status
+      - name: Lint modules
+        run: |
+          status=0
+          count=$(yq -r '.groups | length' lint_groups_config.yml)
+          for i in $(seq 0 $((count - 1))); do
+            top=$(yq -r ".groups[$i].top" lint_groups_config.yml)
+            files=$(yq -r ".groups[$i].files[]" lint_groups_config.yml | tr '\n' ' ')
+            echo "Linting: $top"
+            verilator --lint-only -Wall --top-module "$top" $files || status=1
           done
           exit $status

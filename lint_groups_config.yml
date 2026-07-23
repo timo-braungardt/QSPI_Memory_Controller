@@ -1,0 +1,6 @@
+# Files with dependencies are set up to be linted by the verilator CI job
+groups:
+  - top: SPI_wrapper
+    files:
+      - test/cocotb_wrapper/SPI_wrapper.v 
+      - src/BasicSPI.v
