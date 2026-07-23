@@ -31,8 +31,8 @@ jobs:
         run: git config --global --add safe.directory '*'
       - name: Install yq
         run: |
-          sudo apt-get update
-          sudo apt-get install -y yq
+          apt-get update
+          apt-get install -y yq
       - name: Lint groups
         run: |
           status=0
