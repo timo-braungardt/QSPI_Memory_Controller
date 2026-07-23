@@ -5,12 +5,10 @@ on: [push]
 jobs:
   lint-files:
     runs-on: ubuntu-latest
+    container:
+      image: verilator/verilator:latest
     steps:
       - uses: actions/checkout@v6
-      - name: Install Verilator
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y verilator
       - name: Lint files
         run: |
           verilator --version
@@ -23,12 +21,10 @@ jobs:
 
   lint-groups:
     runs-on: ubuntu-latest
+    container:
+      image: verilator/verilator:latest
     steps:
       - uses: actions/checkout@v6
-      - name: Install Verilator
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y verilator
       - name: Lint groups
         run: |
           status=0
