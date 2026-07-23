@@ -13,6 +13,7 @@ jobs:
           sudo apt-get install -y verilator
       - name: Lint files
         run: |
+          verilator --version
           status=0
           for f in $(git ls-files '*.v' '*.sv'); do
             echo "Linting: $f"
