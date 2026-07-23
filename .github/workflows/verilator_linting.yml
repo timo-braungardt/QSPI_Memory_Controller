@@ -3,7 +3,7 @@ name: Verilator Lint
 on: [push]
 
 jobs:
-  lint:
+  lint-files:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -11,7 +11,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y verilator
-      - name: Lint files separately
+      - name: Lint files
         run: |
           status=0
           for f in $(git ls-files '*.v' '*.sv'); do
@@ -19,7 +19,16 @@ jobs:
             verilator --lint-only -Wall -Wno-MODMISSING "$f" || status=1
           done
           exit $status
-      - name: Lint modules
+
+  lint-groups:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Install Verilator
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y verilator
+      - name: Lint groups
         run: |
           status=0
           count=$(yq -r '.groups | length' lint_groups_config.yml)
