@@ -9,6 +9,8 @@ jobs:
       image: verilator/verilator:latest
     steps:
       - uses: actions/checkout@v6
+      - name: Mark all directories safe
+        run: git config --global --add safe.directory '*'
       - name: Lint files
         run: |
           verilator --version
@@ -25,6 +27,12 @@ jobs:
       image: verilator/verilator:latest
     steps:
       - uses: actions/checkout@v6
+      - name: Mark all directories safe
+        run: git config --global --add safe.directory '*'
+      - name: Install yq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y yq
       - name: Lint groups
         run: |
           status=0
