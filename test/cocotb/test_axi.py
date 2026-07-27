@@ -41,7 +41,7 @@ async def transmission_test(dut):
     spi_subordinate.length = 4
     test_data = bytearray([x % 256 for x in range(length)])
     await axi_master.write(addr, test_data)
-    await Timer(8, "us")
+    await Timer(10, "us")
 
     assert spi_subordinate.data[0] == 0
     assert spi_subordinate.data[1] == 1

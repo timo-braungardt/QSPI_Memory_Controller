@@ -111,6 +111,21 @@ module Basic_AXI_SPI #(
 
     reg [1:0] write_state_reg = WRITE_STATE_IDLE, write_state_next;
 
+    localparam [2:0] CONTROLL_STATE_IDLE            = 3'd0;
+    localparam [2:0] CONTROLL_STATE_WRITE_ENABLE    = 3'd1;
+    localparam [2:0] CONTROLL_STATE_WRITE           = 3'd2;
+    localparam [2:0] CONTROLL_STATE_READ            = 3'd3;
+    localparam [2:0] CONTROLL_STATE_FINISH          = 3'd4;
+    localparam [2:0] CONTROLL_STATE_WAIT_DATA       = 3'd5;
+    localparam [2:0] CONTROLL_STATE_WAIT_CONFIG     = 3'd6;
+
+    reg [2:0] controll_state_reg = CONTROLL_STATE_IDLE, controll_state_next;
+    wire spi_go;
+    assign spi_go = (controll_state_reg == CONTROLL_STATE_WRITE_ENABLE ||
+                     controll_state_reg == CONTROLL_STATE_WRITE ||
+                     controll_state_reg == CONTROLL_STATE_READ);
+
+
     reg mem_wr_en;
     reg mem_rd_en;
 
@@ -173,7 +188,7 @@ module Basic_AXI_SPI #(
 
     BasicSPI SPI_Controller (
         .clk(clk),
-        .go(read_state_reg == READ_STATE_WAIT_SPI || write_state_reg == WRITE_STATE_WAIT_SPI),
+        .go(spi_go),
         .o_bus_clock(s_spi_clock),
         .o_chip_select_neg(s_spi_chip_select_neg),
         .o_reset(s_spi_reset),
@@ -219,7 +234,6 @@ module Basic_AXI_SPI #(
             end
             WRITE_STATE_BURST: begin
                 s_axi_wready_next = 1'b1;
-                SPI_Controller.opcode = 8'd2;
 
                 if (s_axi_wready && s_axi_wvalid) begin
                     mem_wr_en = 1'b1;
@@ -255,7 +269,7 @@ module Basic_AXI_SPI #(
                 end
             end
             WRITE_STATE_WAIT_SPI: begin
-                if (SPI_Controller.state_reg == SPI_Controller.IDLE)
+                if (controll_state_reg == CONTROLL_STATE_FINISH)
                     write_state_next = WRITE_STATE_IDLE;
                 else write_state_next = WRITE_STATE_WAIT_SPI;
             end
@@ -291,14 +305,6 @@ module Basic_AXI_SPI #(
             s_axi_awready_reg <= 1'b0;
             s_axi_wready_reg  <= 1'b0;
             s_axi_bvalid_reg  <= 1'b0;
-        end
-
-        // ToDo: this is hacky! there should be another state to load the address into the SPI register
-        // or do it with wires!
-        if (write_state_reg == WRITE_STATE_WAIT_SPI) begin
-            SPI_Controller.write_address <= 1;
-            SPI_Controller.write_data    <= 1;
-            SPI_Controller.read_data     <= 0;
         end
     end
 
@@ -338,8 +344,7 @@ module Basic_AXI_SPI #(
                 end
             end
             READ_STATE_WAIT_SPI: begin
-                if (SPI_Controller.state_reg == SPI_Controller.IDLE)
-                    read_state_next = READ_STATE_BURST;
+                if (controll_state_reg == CONTROLL_STATE_FINISH) read_state_next = READ_STATE_BURST;
                 else read_state_next = READ_STATE_WAIT_SPI;
             end
             READ_STATE_BURST: begin
@@ -402,18 +407,70 @@ module Basic_AXI_SPI #(
             s_axi_rvalid_reg <= 1'b0;
             s_axi_rvalid_pipe_reg <= 1'b0;
         end
+    end
 
-        // ToDo: this is hacky! there should be another state to load the address into the SPI register
-        // or do it with wires!
-        if (read_state_reg == READ_STATE_WAIT_SPI) begin
-            SPI_Controller.write_address <= 1;
-            SPI_Controller.write_data    <= 0;
-            SPI_Controller.read_data     <= 1;
-        end
 
-        if (read_state_reg != READ_STATE_IDLE) begin
-            SPI_Controller.opcode = 8'd3;
-        end
+    always @(*) begin : Controll_Logic
+        controll_state_next = controll_state_reg;
+
+        case (controll_state_reg)
+            CONTROLL_STATE_IDLE: begin
+                if (read_state_reg == READ_STATE_WAIT_SPI) begin
+                    controll_state_next = CONTROLL_STATE_READ;
+                end else if (write_state_reg == WRITE_STATE_WAIT_SPI) begin
+                    controll_state_next = CONTROLL_STATE_WRITE_ENABLE;
+                end
+            end
+            CONTROLL_STATE_WRITE_ENABLE: begin
+                controll_state_next = CONTROLL_STATE_WAIT_CONFIG;
+            end
+            CONTROLL_STATE_WAIT_CONFIG: begin
+                if (SPI_Controller.state == SPI_Controller.idle)
+                    controll_state_next = CONTROLL_STATE_WRITE;
+                else controll_state_next = CONTROLL_STATE_WAIT_CONFIG;
+            end
+            CONTROLL_STATE_WRITE: begin
+                controll_state_next = CONTROLL_STATE_WAIT_DATA;
+            end
+            CONTROLL_STATE_READ: begin
+                controll_state_next = CONTROLL_STATE_WAIT_DATA;
+            end
+            CONTROLL_STATE_WAIT_DATA: begin
+                if (SPI_Controller.state == SPI_Controller.idle)
+                    controll_state_next = CONTROLL_STATE_FINISH;
+                else controll_state_next = CONTROLL_STATE_WAIT_DATA;
+            end
+            CONTROLL_STATE_FINISH: begin
+                controll_state_next = CONTROLL_STATE_IDLE;
+            end
+            default: controll_state_next = CONTROLL_STATE_IDLE;
+        endcase
+    end
+
+
+    always @(posedge clk) begin : Controll_Logic_Register
+        controll_state_reg <= controll_state_next;
+
+        case (controll_state_reg)
+            CONTROLL_STATE_WRITE_ENABLE: begin
+                SPI_Controller.opcode        <= 8'h06;
+                SPI_Controller.write_address <= 0;
+                SPI_Controller.write_data    <= 0;
+                SPI_Controller.read_data     <= 0;
+            end
+            CONTROLL_STATE_WRITE: begin
+                SPI_Controller.opcode        <= 8'h02;
+                SPI_Controller.write_address <= 1;
+                SPI_Controller.write_data    <= 1;
+                SPI_Controller.read_data     <= 0;
+            end
+            CONTROLL_STATE_READ: begin
+                SPI_Controller.opcode        <= 8'h03;
+                SPI_Controller.write_address <= 1;
+                SPI_Controller.write_data    <= 0;
+                SPI_Controller.read_data     <= 1;
+            end
+        endcase
     end
 
 endmodule
