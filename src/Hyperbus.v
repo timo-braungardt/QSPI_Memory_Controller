@@ -64,12 +64,24 @@ module Hyperbus (
 
     reg     [ 7:0] buffer               [0:BUFFER_SIZE -1];
 
-    assign command_address[47]    = is_read;
-    assign command_address[46]    = is_register_space;
-    assign command_address[45]    = is_linear_burst;
-    assign command_address[44:16] = address[31:3];
-    assign command_address[15:3]  = 13'd0;
-    assign command_address[2:0]   = address[2:0];
+    // Magic Numbers
+    localparam integer CA_IS_READ_BIT = 47;
+    localparam integer CA_IS_REGISTER_BIT = 46;
+    localparam integer CA_IS_LINEAR_BURST_BIT = 45;
+    localparam integer CA_ADDRESS_UPPER_MSB = 44;
+    localparam integer CA_ADDRESS_UPPER_LSB = 16;
+    localparam integer CA_ADDRESS_UNUSED_MSB = 15;
+    localparam integer CA_ADDRESS_UNUSED_LSB = 3;
+    localparam integer CA_ADDRESS_LOWER_MSB = 2;
+    localparam integer CA_ADDRESS_LOWER_LSB = 0;
+
+
+    assign command_address[CA_IS_READ_BIT]                                = is_read;
+    assign command_address[CA_IS_REGISTER_BIT]                            = is_register_space;
+    assign command_address[CA_IS_LINEAR_BURST_BIT]                        = is_linear_burst;
+    assign command_address[CA_ADDRESS_UPPER_MSB : CA_ADDRESS_UPPER_LSB]   = address[31:3];
+    assign command_address[CA_ADDRESS_UNUSED_MSB : CA_ADDRESS_UNUSED_LSB] = 13'd0;
+    assign command_address[CA_ADDRESS_LOWER_MSB : CA_ADDRESS_LOWER_LSB]   = address[2:0];
 
 
     // states
@@ -82,7 +94,13 @@ module Hyperbus (
     // constants
     localparam integer TIMER_COUNT = 15;
     localparam integer ADDRESS_CYCLES = 6;
-    localparam integer LATENCY_CYCLES = 6 * 2;  // times two because of the two clock edges
+    // times two because of the two clock edges
+    localparam integer LATENCY_CYCLES = 6 * 2;
+    // the first latency already begins after the sample point of the upper address
+    // therefore we have to subtract one cycle (-2) from the latency
+    localparam integer NUM_SHORT_LATENCY_CYCLES = LATENCY_CYCLES - 2;
+    localparam integer NUM_LONG_LATENCY_CYCLES = LATENCY_CYCLES + NUM_SHORT_LATENCY_CYCLES;
+    localparam integer READ_LATENCY_IN_CYCLE = 1;
 
     initial begin : setup_registers
         data_out_reg        = 8'd0;
@@ -157,15 +175,13 @@ module Hyperbus (
 
                 if (count_reg == 0 && clock_tick) begin
                     buffer_count_nxt = 0;
-                    // the first latency already begins after the sample point of the upper address
-                    // therefore we have to subtract one cycle (-2) from the latency
-                    if (has_latency_reg) count_nxt = LATENCY_CYCLES * 2 - 3;
-                    else count_nxt = LATENCY_CYCLES - 3;
+                    if (has_latency_reg) count_nxt = NUM_LONG_LATENCY_CYCLES - 1;
+                    else count_nxt = NUM_SHORT_LATENCY_CYCLES - 1;
 
                     state_nxt = WAIT_LATENCY;
                 end
 
-                if (count_reg == 5 && clock_tick) begin
+                if (count_reg == (ADDRESS_CYCLES - READ_LATENCY_IN_CYCLE) && clock_tick) begin
                     has_latency_nxt <= data_strobe_in;
                 end
             end
