@@ -61,8 +61,6 @@ module Hyperbus (
     integer       count_nxt = 0;
     integer       buffer_count_reg = 0;
     integer       buffer_count_nxt = 0;
-    reg           transmission_finished_nxt = 0;
-    reg           transmission_finished_reg = 0;
 
     reg     [7:0] buffer           [0:BUFFER_SIZE -1];
 
@@ -141,13 +139,12 @@ module Hyperbus (
         state_nxt = state_reg;
         count_nxt = count_reg;
         buffer_count_nxt = buffer_count_reg;
-        transmission_finished_nxt = 0;
 
         case (state_reg)
             idle: begin
                 if (go) begin
                     state_nxt = send_command_address;
-                    count_nxt = ADDRESS_LENGTH -1;
+                    count_nxt = ADDRESS_LENGTH;
                 end
             end
 
@@ -189,8 +186,7 @@ module Hyperbus (
                     end
                 end
 
-                transmission_finished_nxt = (count_reg == 0 & clock_tick) || transmission_finished_reg;
-                if (transmission_finished_reg & clock_tick) begin
+                if (count_reg == 0 & clock_tick) begin
                     state_nxt = idle;
                 end
             end
@@ -206,7 +202,7 @@ module Hyperbus (
                 end
 
                 // This works, because clock_tick triggers at count/2 and not at 0.
-                if (count_nxt == 0 & clock_tick) begin
+                if (count_reg == 0 & clock_tick) begin
                     count_nxt = 0;  // otherwise underflow - can this be synthesised elegantly?
                     state_nxt = idle;
                 end
@@ -223,7 +219,6 @@ module Hyperbus (
         buffer_count_reg <= buffer_count_nxt;
         o_chip_select_neg <= ~(state_reg != idle);  // state_nxt possible for perfect sync with state
         data_out_reg <= data_out_nxt;
-        transmission_finished_reg <= transmission_finished_nxt;
 
         if (state_reg == receive_data && clock_tick) begin
             for (i = 0; i < BUS_WIDTH; i = i + 1) begin
