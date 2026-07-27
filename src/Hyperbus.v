@@ -73,11 +73,11 @@ module Hyperbus (
 
 
     // states
-    localparam integer idle = 0;
-    localparam integer send_command_address = 11;
-    localparam integer wait_latency = 9;
-    localparam integer send_data = 3;
-    localparam integer receive_data = 4;
+    localparam integer IDLE = 0;
+    localparam integer SEND_COMMAND_ADDRESS = 11;
+    localparam integer WAIT_LATENCY = 9;
+    localparam integer SEND_DATA = 3;
+    localparam integer RECEIVE_DATA = 4;
 
     // constants
     localparam integer TIMER_COUNT = 15;
@@ -96,12 +96,12 @@ module Hyperbus (
     end
 
 
-    assign en_data_strobe  = (state_reg == send_data);
+    assign en_data_strobe  = (state_reg == SEND_DATA);
     assign io_data_strobe  = (en_data_strobe) ? data_strobe_out_reg : 1'bZ;
     assign data_strobe_in  = io_data_strobe;
-    assign en_data_out     = (state_reg != idle && state_reg != receive_data);
+    assign en_data_out     = (state_reg != IDLE && state_reg != RECEIVE_DATA);
 
-    assign en_bus_clock    = (state_reg != idle);
+    assign en_bus_clock    = (state_reg != IDLE);
     assign clock_tick      = (clock_count_reg == TIMER_COUNT / 2);
 
     assign o_bus_clock     = (en_bus_clock) ? bus_clock_reg : 1'b0;
@@ -113,7 +113,7 @@ module Hyperbus (
         bus_clock_nxt   = bus_clock_reg;
         clock_count_nxt = clock_count_reg;
 
-        if (state_reg == idle) begin
+        if (state_reg == IDLE) begin
             bus_clock_nxt   = 1'b0;
             clock_count_nxt = TIMER_COUNT;
         end else begin
@@ -143,14 +143,14 @@ module Hyperbus (
         has_latency_nxt = has_latency_reg;
 
         case (state_reg)
-            idle: begin
+            IDLE: begin
                 if (go) begin
-                    state_nxt = send_command_address;
+                    state_nxt = SEND_COMMAND_ADDRESS;
                     count_nxt = ADDRESS_LENGTH;
                 end
             end
 
-            send_command_address: begin
+            SEND_COMMAND_ADDRESS: begin
                 for (i = 0; i < BUS_WIDTH; i = i + 1)
                 data_out_nxt[i] = command_address[{count_reg[2:0], i[2:0]}];
 
@@ -163,7 +163,7 @@ module Hyperbus (
                     if (has_latency_reg) count_nxt = LATENCY_CYCLES * 2 - 3;
                     else count_nxt = LATENCY_CYCLES - 3;
 
-                    state_nxt = wait_latency;
+                    state_nxt = WAIT_LATENCY;
                 end
 
                 if (count_reg == 5 && clock_tick) begin
@@ -171,18 +171,18 @@ module Hyperbus (
                 end
             end
 
-            wait_latency: begin
+            WAIT_LATENCY: begin
                 if (clock_tick) count_nxt = count_reg - 1;
 
                 if (count_reg == 0 && clock_tick) begin
                     count_nxt = num_bits / BUS_WIDTH - 1;
 
-                    if (is_read) state_nxt = receive_data;
-                    else state_nxt = send_data;
+                    if (is_read) state_nxt = RECEIVE_DATA;
+                    else state_nxt = SEND_DATA;
                 end
             end
 
-            receive_data: begin
+            RECEIVE_DATA: begin
                 if (clock_tick) begin
                     count_nxt = count_reg - 1;
                     buffer_count_nxt = buffer_count_reg + 1;
@@ -193,11 +193,11 @@ module Hyperbus (
                 end
 
                 if (count_reg == 0 & clock_tick) begin
-                    state_nxt = idle;
+                    state_nxt = IDLE;
                 end
             end
 
-            send_data: begin
+            SEND_DATA: begin
                 for (i = 0; i < BUS_WIDTH; i = i + 1) begin
                     data_out_nxt[i] = buffer[buffer_count_reg][i];
                 end
@@ -210,11 +210,11 @@ module Hyperbus (
                 // This works, because clock_tick triggers at count/2 and not at 0.
                 if (count_reg == 0 & clock_tick) begin
                     count_nxt = 0;  // otherwise underflow - can this be synthesised elegantly?
-                    state_nxt = idle;
+                    state_nxt = IDLE;
                 end
             end
 
-            default: state_nxt = idle;
+            default: state_nxt = IDLE;
         endcase
     end
 
@@ -223,11 +223,11 @@ module Hyperbus (
         state_reg <= state_nxt;
         count_reg <= count_nxt;
         buffer_count_reg <= buffer_count_nxt;
-        o_chip_select_neg <= ~(state_reg != idle);  // state_nxt possible for perfect sync with state
+        o_chip_select_neg <= ~(state_reg != IDLE);  // state_nxt possible for perfect sync with state
         data_out_reg <= data_out_nxt;
         has_latency_reg <= has_latency_nxt;
 
-        if (state_reg == receive_data && clock_tick) begin
+        if (state_reg == RECEIVE_DATA && clock_tick) begin
             for (i = 0; i < BUS_WIDTH; i = i + 1) begin
                 buffer[buffer_count_reg][i] <= data_in[i];
             end
