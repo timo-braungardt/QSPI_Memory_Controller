@@ -27,7 +27,7 @@ module Hyperbus (
     reg data_strobe_out_reg;
     reg data_strobe_out_nxt;
     wire data_strobe_in;
-    
+
     reg has_latency_reg;
     reg has_latency_nxt;
 
@@ -40,29 +40,29 @@ module Hyperbus (
     endgenerate
 
     // Bus Clock
-    reg           bus_clock_reg = 0;
-    reg           bus_clock_nxt = 0;
-    integer       clock_count_reg = 0;
-    integer       clock_count_nxt = 0;
+    reg            bus_clock_reg = 0;
+    reg            bus_clock_nxt = 0;
+    integer        clock_count_reg = 0;
+    integer        clock_count_nxt = 0;
 
-    wire          clock_tick;
+    wire           clock_tick;
 
     // Logic stuff
-    reg         is_read;
-    reg         is_register_space;
-    reg         is_linear_burst;
-    reg  [31:0] address;
-    wire [47:0] command_address;
-    integer       num_bits;
-    integer       state_reg;
-    integer       state_nxt;
+    reg            is_read;
+    reg            is_register_space;
+    reg            is_linear_burst;
+    reg     [31:0] address;
+    wire    [47:0] command_address;
+    integer        num_bits;
+    integer        state_reg;
+    integer        state_nxt;
 
-    integer       count_reg = 0;
-    integer       count_nxt = 0;
-    integer       buffer_count_reg = 0;
-    integer       buffer_count_nxt = 0;
+    integer        count_reg = 0;
+    integer        count_nxt = 0;
+    integer        buffer_count_reg = 0;
+    integer        buffer_count_nxt = 0;
 
-    reg     [7:0] buffer           [0:BUFFER_SIZE -1];
+    reg     [ 7:0] buffer               [0:BUFFER_SIZE -1];
 
     assign command_address[47]    = is_read;
     assign command_address[46]    = is_register_space;
@@ -86,20 +86,20 @@ module Hyperbus (
     localparam integer LATENCY_CYCLES = 6 * 2;  // times two because of the two clock edges
 
     initial begin : setup_registers
-        data_out_reg          = 8'd0;
-        data_out_nxt          = 8'd0;
-        state_reg             = 0;
-        o_chip_select_neg = 1'b1;
-        num_bits          = 32;
-        data_strobe_out_reg   = 1'b0;
-        has_latency_reg = 1'b0;
+        data_out_reg        = 8'd0;
+        data_out_nxt        = 8'd0;
+        state_reg           = 0;
+        o_chip_select_neg   = 1'b1;
+        num_bits            = 32;
+        data_strobe_out_reg = 1'b0;
+        has_latency_reg     = 1'b0;
     end
 
 
-    assign en_data_strobe = (state_reg == send_data);
-    assign io_data_strobe = (en_data_strobe) ? data_strobe_out_reg : 1'bZ;
-    assign data_strobe_in = io_data_strobe;
-    assign en_data_out  = (state_reg != idle && state_reg != receive_data);
+    assign en_data_strobe  = (state_reg == send_data);
+    assign io_data_strobe  = (en_data_strobe) ? data_strobe_out_reg : 1'bZ;
+    assign data_strobe_in  = io_data_strobe;
+    assign en_data_out     = (state_reg != idle && state_reg != receive_data);
 
     assign en_bus_clock    = (state_reg != idle);
     assign clock_tick      = (clock_count_reg == TIMER_COUNT / 2);
@@ -110,18 +110,18 @@ module Hyperbus (
 
 
     always @(*) begin : clock_handler_logic
-        bus_clock_nxt = bus_clock_reg;
+        bus_clock_nxt   = bus_clock_reg;
         clock_count_nxt = clock_count_reg;
 
         if (state_reg == idle) begin
-            bus_clock_nxt = 1'b0;
+            bus_clock_nxt   = 1'b0;
             clock_count_nxt = TIMER_COUNT;
         end else begin
             if (clock_count_reg == 0) begin
-                bus_clock_nxt = ~bus_clock_reg;
+                bus_clock_nxt   = ~bus_clock_reg;
                 clock_count_nxt = TIMER_COUNT;
             end else begin
-                bus_clock_nxt = bus_clock_reg;
+                bus_clock_nxt   = bus_clock_reg;
                 clock_count_nxt = clock_count_reg - 1;
             end
         end
@@ -129,7 +129,7 @@ module Hyperbus (
 
 
     always @(posedge clk) begin : clock_handler_register
-        bus_clock_reg <= bus_clock_nxt;
+        bus_clock_reg   <= bus_clock_nxt;
         clock_count_reg <= clock_count_nxt;
     end
 
@@ -229,7 +229,7 @@ module Hyperbus (
 
         if (state_reg == receive_data && clock_tick) begin
             for (i = 0; i < BUS_WIDTH; i = i + 1) begin
-                        buffer[buffer_count_reg][i] <= data_in[i];
+                buffer[buffer_count_reg][i] <= data_in[i];
             end
         end
     end
