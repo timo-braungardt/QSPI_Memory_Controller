@@ -92,6 +92,7 @@ module Hyperbus (
         o_chip_select_neg = 1'b1;
         num_bits          = 32;
         data_strobe_out_reg   = 1'b0;
+        has_latency_reg = 1'b0;
     end
 
 
@@ -139,6 +140,7 @@ module Hyperbus (
         state_nxt = state_reg;
         count_nxt = count_reg;
         buffer_count_nxt = buffer_count_reg;
+        has_latency_nxt = has_latency_reg;
 
         case (state_reg)
             idle: begin
@@ -162,6 +164,10 @@ module Hyperbus (
                     else count_nxt = LATENCY_CYCLES - 3;
 
                     state_nxt = wait_latency;
+                end
+
+                if (count_reg == 5 && clock_tick) begin
+                    has_latency_nxt <= data_strobe_in;
                 end
             end
 
@@ -219,6 +225,7 @@ module Hyperbus (
         buffer_count_reg <= buffer_count_nxt;
         o_chip_select_neg <= ~(state_reg != idle);  // state_nxt possible for perfect sync with state
         data_out_reg <= data_out_nxt;
+        has_latency_reg <= has_latency_nxt;
 
         if (state_reg == receive_data && clock_tick) begin
             for (i = 0; i < BUS_WIDTH; i = i + 1) begin
