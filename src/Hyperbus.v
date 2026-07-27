@@ -81,8 +81,7 @@ module Hyperbus (
 
     // constants
     localparam integer TIMER_COUNT = 15;
-    localparam integer OPCODE_LENGTH = 8;
-    localparam integer ADDRESS_LENGTH = 6;
+    localparam integer ADDRESS_CYCLES = 6;
     localparam integer LATENCY_CYCLES = 6 * 2;  // times two because of the two clock edges
 
     initial begin : setup_registers
@@ -146,7 +145,7 @@ module Hyperbus (
             IDLE: begin
                 if (go) begin
                     state_nxt = SEND_COMMAND_ADDRESS;
-                    count_nxt = ADDRESS_LENGTH;
+                    count_nxt = ADDRESS_CYCLES;
                 end
             end
 
