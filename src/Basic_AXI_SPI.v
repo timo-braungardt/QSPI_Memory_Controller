@@ -425,7 +425,7 @@ module Basic_AXI_SPI #(
                 controll_state_next = CONTROLL_STATE_WAIT_CONFIG;
             end
             CONTROLL_STATE_WAIT_CONFIG: begin
-                if (SPI_Controller.state == SPI_Controller.idle)
+                if (SPI_Controller.state_reg == SPI_Controller.IDLE)
                     controll_state_next = CONTROLL_STATE_WRITE;
                 else controll_state_next = CONTROLL_STATE_WAIT_CONFIG;
             end
@@ -436,7 +436,7 @@ module Basic_AXI_SPI #(
                 controll_state_next = CONTROLL_STATE_WAIT_DATA;
             end
             CONTROLL_STATE_WAIT_DATA: begin
-                if (SPI_Controller.state == SPI_Controller.idle)
+                if (SPI_Controller.state_reg == SPI_Controller.IDLE)
                     controll_state_next = CONTROLL_STATE_FINISH;
                 else controll_state_next = CONTROLL_STATE_WAIT_DATA;
             end
