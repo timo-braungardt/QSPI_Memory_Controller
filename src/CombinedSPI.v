@@ -17,10 +17,10 @@ module CombinedSPI (
     localparam BITS_PER_SHIFT = 4;
     localparam BUFFER_SIZE = 16;
     localparam BYTE_SEL_WIDTH = $clog2(BUFFER_SIZE);
-    localparam BYTE_SEL_LSB = $clog2(8/BITS_PER_SHIFT);
+    localparam BYTE_SEL_LSB = $clog2(8 / BITS_PER_SHIFT);
     localparam BYTE_SEL_MSB = BYTE_SEL_LSB + BYTE_SEL_WIDTH - 1;
     localparam BUS_WIDTH = 4;
-    localparam BUS_WIDTH_MSB = BUS_WIDTH -1;
+    localparam BUS_WIDTH_MSB = BUS_WIDTH - 1;
 
     // Pin tristate stuff
     wire en_bus_clock;
@@ -85,10 +85,10 @@ module CombinedSPI (
         state_reg         = 0;
         state_nxt         = 0;
         o_chip_select_neg = 1'b1;
-        data_out_reg[0]  = 0;
-        data_out_reg[1]  = 0;
-        data_out_reg[2]  = 0;
-        data_out_reg[3]  = 0;
+        data_out_reg[0]   = 0;
+        data_out_reg[1]   = 0;
+        data_out_reg[2]   = 0;
+        data_out_reg[3]   = 0;
 
         // the default case is reading from an address.
         write_address     = 1;
@@ -101,7 +101,7 @@ module CombinedSPI (
     assign en_bus_clock   = (state_reg != IDLE);
     assign clock_tick_pos = (clock_count_reg == 0 && ~clk_bus_reg);
     assign clock_tick_neg = (clock_count_reg == 0 && clk_bus_reg);
-    assign en_data_out  = (state_reg != IDLE && state_reg != RECEIVE_DATA);
+    assign en_data_out    = (state_reg != IDLE && state_reg != RECEIVE_DATA);
 
     assign o_bus_clock    = (en_bus_clock) ? clk_bus_reg : 1'b0;
     assign o_reset        = 1'b0;
@@ -211,7 +211,7 @@ module CombinedSPI (
         count_reg <= count_nxt;
         buffer_count_reg <= buffer_count_nxt;
         o_chip_select_neg <= ~(state_reg != IDLE);  // state_nxt possible for perfect sync with state
-        transmission_finished_reg <= transmission_finished_nxt;        
+        transmission_finished_reg <= transmission_finished_nxt;
     end
 
 
@@ -234,10 +234,18 @@ module CombinedSPI (
             end
 
             SEND_DATA: begin
-                data_out_nxt[0] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd0}];
-                data_out_nxt[1] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd1}];
-                data_out_nxt[2] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd2}];
-                data_out_nxt[3] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd3}];
+                data_out_nxt[0] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
+                    count_reg[0], 2'd0
+                }];
+                data_out_nxt[1] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
+                    count_reg[0], 2'd1
+                }];
+                data_out_nxt[2] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
+                    count_reg[0], 2'd2
+                }];
+                data_out_nxt[3] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
+                    count_reg[0], 2'd3
+                }];
             end
         endcase
     end
