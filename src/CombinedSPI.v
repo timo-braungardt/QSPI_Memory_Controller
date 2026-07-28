@@ -19,6 +19,8 @@ module CombinedSPI (
     localparam BYTE_SEL_WIDTH = $clog2(BUFFER_SIZE);
     localparam BYTE_SEL_LSB = $clog2(8 / BITS_PER_SHIFT);
     localparam BYTE_SEL_MSB = BYTE_SEL_LSB + BYTE_SEL_WIDTH - 1;
+    localparam BYTE_SEL_LSB_SINGLE = $clog2(8);
+    localparam BYTE_SEL_MSB_SINGLE = BYTE_SEL_LSB + BYTE_SEL_WIDTH - 1;
     localparam BUS_WIDTH = 4;
     localparam BUS_WIDTH_MSB = BUS_WIDTH - 1;
 
@@ -28,11 +30,6 @@ module CombinedSPI (
     reg  [BUS_WIDTH:0] data_out_reg;
     reg  [BUS_WIDTH:0] data_out_nxt;
     reg  [BUS_WIDTH:0] data_in;
-
-    assign io_data0_manager_serial_in = (en_data_out) ? data_out_reg[0] : 1'bZ;
-    assign io_data1_manager_serial_out  = (en_data_out)  ? data_out_reg[1] : 1'bZ;       // ToDo: this pin is not serial out for spi mode!
-    assign io_data2 = (en_data_out) ? data_out_reg[2] : 1'bZ;
-    assign io_data3 = (en_data_out) ? data_out_reg[3] : 1'bZ;
 
     // Bus Clock
     reg            clk_bus_nxt;
@@ -47,6 +44,7 @@ module CombinedSPI (
     reg            write_address;
     reg            write_data;
     reg            read_data;
+    reg            is_quad_mode = 1'b1;
     integer        num_bits;
     integer        state_reg;
     integer        state_nxt;
@@ -138,7 +136,7 @@ module CombinedSPI (
             IDLE: begin
                 if (go) begin
                     state_nxt = SEND_OPCODE;
-                    count_nxt = OPCODE_LENGTH / BITS_PER_SHIFT - 1;
+                    count_nxt = (is_quad_mode) ? OPCODE_LENGTH / BITS_PER_SHIFT - 1 : OPCODE_LENGTH - 1;
                 end
             end
 
@@ -147,13 +145,13 @@ module CombinedSPI (
                     count_nxt = count_reg - 1;
                     if (count_reg == 0) begin
                         if (write_address) begin
-                            count_nxt = ADDRESS_LENGTH / BITS_PER_SHIFT - 1;
+                            count_nxt = (is_quad_mode) ? ADDRESS_LENGTH / BITS_PER_SHIFT - 1 : ADDRESS_LENGTH - 1;
                             state_nxt = SEND_ADDRESS;
                         end else if (write_data) begin
-                            count_nxt = num_bits / BITS_PER_SHIFT - 1;
+                            count_nxt = (is_quad_mode) ? num_bits / BITS_PER_SHIFT - 1 : num_bits - 1;
                             state_nxt = SEND_DATA;
                         end else if (read_data) begin
-                            count_nxt = num_bits / BITS_PER_SHIFT - 1;
+                            count_nxt = (is_quad_mode) ? num_bits / BITS_PER_SHIFT - 1 : num_bits - 1;
                             buffer_count_nxt = 0;
                             state_nxt = RECEIVE_DATA;
                         end else state_nxt = IDLE;
@@ -165,7 +163,7 @@ module CombinedSPI (
                 if (clock_tick_neg) count_nxt = count_reg - 1;
 
                 if (count_reg == 0 && clock_tick_neg) begin
-                    count_nxt = num_bits / BITS_PER_SHIFT - 1;
+                    count_nxt = (is_quad_mode) ? num_bits / BITS_PER_SHIFT - 1 : num_bits - 1;
                     buffer_count_nxt = 0;
                     if (write_data) state_nxt = SEND_DATA;
                     else if (read_data) state_nxt = RECEIVE_DATA;
@@ -211,6 +209,15 @@ module CombinedSPI (
     end
 
 
+    assign io_data0_manager_serial_in  = (~en_data_out) ? 1'bZ :
+                                        (is_quad_mode) ? data_out_reg[0] : 1'bZ;
+
+    assign io_data1_manager_serial_out = (~en_data_out) ? 1'bZ :
+                                        (is_quad_mode) ? data_out_reg[1] : data_out_reg[0];
+
+    assign io_data2 = (~en_data_out) ? 1'bZ : (is_quad_mode) ? data_out_reg[2] : 1'bZ;
+    assign io_data3 = (~en_data_out) ? 1'bZ : (is_quad_mode) ? data_out_reg[3] : 1'bZ;
+
     always @(*) begin : data_logic
         data_out_nxt = data_out_reg;
 
@@ -221,32 +228,44 @@ module CombinedSPI (
 
         case (state_reg)
             SEND_OPCODE: begin
-                data_out_nxt[0] = opcode[{count_reg[0], 2'd0}];
-                data_out_nxt[1] = opcode[{count_reg[0], 2'd1}];
-                data_out_nxt[2] = opcode[{count_reg[0], 2'd2}];
-                data_out_nxt[3] = opcode[{count_reg[0], 2'd3}];
+                if (is_quad_mode) begin
+                    data_out_nxt[0] = opcode[{count_reg[0], 2'd0}];
+                    data_out_nxt[1] = opcode[{count_reg[0], 2'd1}];
+                    data_out_nxt[2] = opcode[{count_reg[0], 2'd2}];
+                    data_out_nxt[3] = opcode[{count_reg[0], 2'd3}];
+                end else begin
+                    data_out_nxt[0] = opcode[count_reg[3:0]];
+                end
             end
 
             SEND_ADDRESS: begin
-                data_out_nxt[0] = address[{count_reg[2:0], 2'd0}];
-                data_out_nxt[1] = address[{count_reg[2:0], 2'd1}];
-                data_out_nxt[2] = address[{count_reg[2:0], 2'd2}];
-                data_out_nxt[3] = address[{count_reg[2:0], 2'd3}];
+                if (is_quad_mode) begin
+                    data_out_nxt[0] = address[{count_reg[2:0], 2'd0}];
+                    data_out_nxt[1] = address[{count_reg[2:0], 2'd1}];
+                    data_out_nxt[2] = address[{count_reg[2:0], 2'd2}];
+                    data_out_nxt[3] = address[{count_reg[2:0], 2'd3}];
+                end else begin
+                    data_out_nxt[0] = address[count_reg[4:0]];
+                end
             end
 
             SEND_DATA: begin
-                data_out_nxt[0] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
-                    count_reg[0], 2'd0
-                }];
-                data_out_nxt[1] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
-                    count_reg[0], 2'd1
-                }];
-                data_out_nxt[2] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
-                    count_reg[0], 2'd2
-                }];
-                data_out_nxt[3] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
-                    count_reg[0], 2'd3
-                }];
+                if (is_quad_mode) begin
+                    data_out_nxt[0] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
+                        count_reg[0], 2'd0
+                    }];
+                    data_out_nxt[1] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
+                        count_reg[0], 2'd1
+                    }];
+                    data_out_nxt[2] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
+                        count_reg[0], 2'd2
+                    }];
+                    data_out_nxt[3] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
+                        count_reg[0], 2'd3
+                    }];
+                end else begin
+                    data_out_nxt[0] = buffer[buffer_count_reg[BYTE_SEL_MSB_SINGLE:BYTE_SEL_LSB_SINGLE]][count_reg[BYTE_SEL_LSB_SINGLE-1:0]];
+                end
             end
         endcase
     end
@@ -256,10 +275,22 @@ module CombinedSPI (
         data_out_reg <= data_out_nxt;
 
         if (state_reg == RECEIVE_DATA && clock_tick_pos) begin
-            buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd0}] <= data_in[0];
-            buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd1}] <= data_in[1];
-            buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd2}] <= data_in[2];
-            buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd3}] <= data_in[3];
+            if (is_quad_mode) begin
+                buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
+                    count_reg[0], 2'd0
+                }] <= data_in[0];
+                buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
+                    count_reg[0], 2'd1
+                }] <= data_in[1];
+                buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
+                    count_reg[0], 2'd2
+                }] <= data_in[2];
+                buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
+                    count_reg[0], 2'd3
+                }] <= data_in[3];
+            end else begin
+                buffer[buffer_count_reg[BYTE_SEL_MSB_SINGLE:BYTE_SEL_LSB_SINGLE]][count_reg[BYTE_SEL_LSB_SINGLE-1:0]] <= data_in[0];
+            end
         end
     end
 
