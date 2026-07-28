@@ -23,20 +23,16 @@ module CombinedSPI (
     localparam BUS_WIDTH_MSB = BUS_WIDTH - 1;
 
     // Pin tristate stuff
-    wire en_bus_clock;
-    wire en_data_out;
-    reg [BUS_WIDTH:0] data_out_reg;
-    reg [BUS_WIDTH:0] data_out_nxt;
-    wire [BUS_WIDTH:0] data_in;
+    wire               en_bus_clock;
+    wire               en_data_out;
+    reg  [BUS_WIDTH:0] data_out_reg;
+    reg  [BUS_WIDTH:0] data_out_nxt;
+    reg  [BUS_WIDTH:0] data_in;
 
     assign io_data0_manager_serial_in = (en_data_out) ? data_out_reg[0] : 1'bZ;
     assign io_data1_manager_serial_out  = (en_data_out)  ? data_out_reg[1] : 1'bZ;       // ToDo: this pin is not serial out for spi mode!
     assign io_data2 = (en_data_out) ? data_out_reg[2] : 1'bZ;
     assign io_data3 = (en_data_out) ? data_out_reg[3] : 1'bZ;
-    assign data_in[0] = io_data0_manager_serial_in;
-    assign data_in[1] = io_data1_manager_serial_out;
-    assign data_in[2] = io_data2;
-    assign data_in[3] = io_data3;
 
     // Bus Clock
     reg            clk_bus_nxt;
@@ -217,6 +213,11 @@ module CombinedSPI (
 
     always @(*) begin : data_logic
         data_out_nxt = data_out_reg;
+
+        data_in[0]   = io_data0_manager_serial_in;
+        data_in[1]   = io_data1_manager_serial_out;
+        data_in[2]   = io_data2;
+        data_in[3]   = io_data3;
 
         case (state_reg)
             SEND_OPCODE: begin
