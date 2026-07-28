@@ -78,7 +78,7 @@ async def qspi_transmission_test(dut):
             is_quad_mode=True,
         ),
     )
-    
+
     dut.is_quad_mode.value = True
 
     dut.opcode.value = 5
@@ -130,7 +130,7 @@ async def qspi_read_test(dut):
             is_quad_mode=True,
         ),
     )
-    
+
     dut.is_quad_mode.value = True
 
     dut.opcode.value = 0x03
@@ -185,7 +185,7 @@ async def qspi_write_test(dut):
             is_quad_mode=True,
         ),
     )
-    
+
     dut.is_quad_mode.value = True
 
     dut.opcode.value = 0x06
@@ -335,7 +335,7 @@ async def spi_timing_write_test(dut):
             cs_name="o_chip_select_neg",
         )
     )
-    
+
     dut.is_quad_mode.value = False
 
     dut.opcode.value = SpiFlashMemory.program
@@ -377,7 +377,7 @@ async def spi_read_test(dut):
             cs_name="o_chip_select_neg",
         )
     )
-    
+
     dut.is_quad_mode.value = False
 
     dut.opcode.value = SpiFlashMemory.read
@@ -419,7 +419,7 @@ async def spi_write_test(dut):
             cs_name="o_chip_select_neg",
         )
     )
-    
+
     dut.is_quad_mode.value = False
 
     dut.opcode.value = SpiFlashMemory.write_enable

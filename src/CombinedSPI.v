@@ -25,40 +25,40 @@ module CombinedSPI (
     localparam BUS_WIDTH_MSB = BUS_WIDTH - 1;
 
     // Pin tristate stuff
-    wire               en_bus_clock;
-    wire               en_data_out;
-    reg  [BUS_WIDTH:0] data_out_reg;
-    reg  [BUS_WIDTH:0] data_out_nxt;
-    reg  [BUS_WIDTH:0] data_in;
+    wire                  en_bus_clock;
+    wire                  en_data_out;
+    reg     [BUS_WIDTH:0] data_out_reg;
+    reg     [BUS_WIDTH:0] data_out_nxt;
+    reg     [BUS_WIDTH:0] data_in;
 
     // Bus Clock
-    reg            clk_bus_nxt;
-    integer        clock_count_nxt;
+    reg                   clk_bus_nxt;
+    integer               clock_count_nxt;
 
-    reg            clk_bus_reg = 0;
-    integer        clock_count_reg = 0;
+    reg                   clk_bus_reg = 0;
+    integer               clock_count_reg = 0;
 
     // Logic stuff
-    reg     [ 7:0] opcode;
-    reg     [23:0] address;
-    reg            write_address;
-    reg            write_data;
-    reg            read_data;
-    reg            is_quad_mode = 1'b1;
-    integer        num_bits;
-    integer        state_reg;
-    integer        state_nxt;
+    reg     [        7:0] opcode;
+    reg     [       23:0] address;
+    reg                   write_address;
+    reg                   write_data;
+    reg                   read_data;
+    reg                   is_quad_mode = 1'b1;
+    integer               num_bits;
+    integer               state_reg;
+    integer               state_nxt;
 
-    integer        count_reg = 0;
-    integer        count_nxt = 0;
-    wire           clock_tick_pos;
-    wire           clock_tick_neg;
-    integer        buffer_count_reg = 0;
-    integer        buffer_count_nxt = 0;
-    reg            transmission_finished_nxt = 0;
-    reg            transmission_finished_reg = 0;
+    integer               count_reg = 0;
+    integer               count_nxt = 0;
+    wire                  clock_tick_pos;
+    wire                  clock_tick_neg;
+    integer               buffer_count_reg = 0;
+    integer               buffer_count_nxt = 0;
+    reg                   transmission_finished_nxt = 0;
+    reg                   transmission_finished_reg = 0;
 
-    reg     [ 7:0] buffer                        [0:BUFFER_SIZE -1];
+    reg     [        7:0] buffer                        [0:BUFFER_SIZE -1];
 
     // states
     localparam integer IDLE = 0;
