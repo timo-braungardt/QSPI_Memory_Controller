@@ -20,7 +20,7 @@ module CombinedSPI (
     localparam BYTE_SEL_LSB = $clog2(8 / BITS_PER_SHIFT);
     localparam BYTE_SEL_MSB = BYTE_SEL_LSB + BYTE_SEL_WIDTH - 1;
     localparam BYTE_SEL_LSB_SINGLE = $clog2(8);
-    localparam BYTE_SEL_MSB_SINGLE = BYTE_SEL_LSB + BYTE_SEL_WIDTH - 1;
+    localparam BYTE_SEL_MSB_SINGLE = BYTE_SEL_LSB_SINGLE + BYTE_SEL_WIDTH - 1;
     localparam BUS_WIDTH = 4;
     localparam BUS_WIDTH_MSB = BUS_WIDTH - 1;
 
