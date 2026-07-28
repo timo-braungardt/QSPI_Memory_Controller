@@ -8,10 +8,10 @@ module CombinedSPI (
     output o_bus_clock,
     output reg o_chip_select_neg,
     output o_reset,
-    inout io_dq0_manager_serial_in,
-    inout io_dq1_manager_serial_out,
-    inout io_dq2,
-    inout io_dq3
+    inout io_data0_manager_serial_in,
+    inout io_data1_manager_serial_out,
+    inout io_data2,
+    inout io_data3
 );
 
     localparam BITS_PER_SHIFT = 4;
@@ -22,19 +22,19 @@ module CombinedSPI (
 
     // Pin tristate stuff
     wire en_bus_clock;
-    wire en_serial_out;
-    reg serial_out_0_reg, serial_out_1_reg, serial_out_2_reg, serial_out_3_reg;
-    reg serial_out_0_nxt, serial_out_1_nxt, serial_out_2_nxt, serial_out_3_nxt;
-    wire serial_in_0, serial_in_1, serial_in_2, serial_in_3;
+    wire en_data_out;
+    reg [7:0] data_out_reg;
+    reg [7:0] data_out_nxt;
+    wire [7:0] data_in;
 
-    assign io_dq0_manager_serial_in = (en_serial_out) ? serial_out_0_reg : 1'bZ;
-    assign io_dq1_manager_serial_out  = (en_serial_out)  ? serial_out_1_reg : 1'bZ;       // ToDo: this pin is not serial out for spi mode!
-    assign io_dq2 = (en_serial_out) ? serial_out_2_reg : 1'bZ;
-    assign io_dq3 = (en_serial_out) ? serial_out_3_reg : 1'bZ;
-    assign serial_in_0 = io_dq0_manager_serial_in;
-    assign serial_in_1 = io_dq1_manager_serial_out;
-    assign serial_in_2 = io_dq2;
-    assign serial_in_3 = io_dq3;
+    assign io_data0_manager_serial_in = (en_data_out) ? data_out_reg[0] : 1'bZ;
+    assign io_data1_manager_serial_out  = (en_data_out)  ? data_out_reg[1] : 1'bZ;       // ToDo: this pin is not serial out for spi mode!
+    assign io_data2 = (en_data_out) ? data_out_reg[2] : 1'bZ;
+    assign io_data3 = (en_data_out) ? data_out_reg[3] : 1'bZ;
+    assign data_in[0] = io_data0_manager_serial_in;
+    assign data_in[1] = io_data1_manager_serial_out;
+    assign data_in[2] = io_data2;
+    assign data_in[3] = io_data3;
 
     // Bus Clock
     reg            clk_bus_nxt;
@@ -83,10 +83,10 @@ module CombinedSPI (
         state_reg         = 0;
         state_nxt         = 0;
         o_chip_select_neg = 1'b1;
-        serial_out_0_reg  = 0;
-        serial_out_1_reg  = 0;
-        serial_out_2_reg  = 0;
-        serial_out_3_reg  = 0;
+        data_out_reg[0]  = 0;
+        data_out_reg[1]  = 0;
+        data_out_reg[2]  = 0;
+        data_out_reg[3]  = 0;
 
         // the default case is reading from an address.
         write_address     = 1;
@@ -99,7 +99,7 @@ module CombinedSPI (
     assign en_bus_clock   = (state_reg != IDLE);
     assign clock_tick_pos = (clock_count_reg == 0 && ~clk_bus_reg);
     assign clock_tick_neg = (clock_count_reg == 0 && clk_bus_reg);
-    assign en_serial_out  = (state_reg != IDLE && state_reg != RECEIVE_DATA);
+    assign en_data_out  = (state_reg != IDLE && state_reg != RECEIVE_DATA);
 
     assign o_bus_clock    = (en_bus_clock) ? clk_bus_reg : 1'b0;
     assign o_reset        = 1'b0;
@@ -131,10 +131,10 @@ module CombinedSPI (
 
 
     always @(*) begin : state_machine_logic
-        serial_out_0_nxt = serial_out_0_reg;
-        serial_out_1_nxt = serial_out_1_reg;
-        serial_out_2_nxt = serial_out_2_reg;
-        serial_out_3_nxt = serial_out_3_reg;
+        data_out_nxt[0] = data_out_reg[0];
+        data_out_nxt[1] = data_out_reg[1];
+        data_out_nxt[2] = data_out_reg[2];
+        data_out_nxt[3] = data_out_reg[3];
         state_nxt = state_reg;
         count_nxt = count_reg;
         buffer_count_nxt = buffer_count_reg;
@@ -149,10 +149,10 @@ module CombinedSPI (
             end
 
             SEND_OPCODE: begin
-                serial_out_0_nxt = opcode[{count_reg[0], 2'd0}];
-                serial_out_1_nxt = opcode[{count_reg[0], 2'd1}];
-                serial_out_2_nxt = opcode[{count_reg[0], 2'd2}];
-                serial_out_3_nxt = opcode[{count_reg[0], 2'd3}];
+                data_out_nxt[0] = opcode[{count_reg[0], 2'd0}];
+                data_out_nxt[1] = opcode[{count_reg[0], 2'd1}];
+                data_out_nxt[2] = opcode[{count_reg[0], 2'd2}];
+                data_out_nxt[3] = opcode[{count_reg[0], 2'd3}];
 
                 if (clock_tick_neg) begin
                     count_nxt = count_reg - 1;
@@ -173,10 +173,10 @@ module CombinedSPI (
             end
 
             SEND_ADDRESS: begin
-                serial_out_0_nxt = address[{count_reg[2:0], 2'd0}];
-                serial_out_1_nxt = address[{count_reg[2:0], 2'd1}];
-                serial_out_2_nxt = address[{count_reg[2:0], 2'd2}];
-                serial_out_3_nxt = address[{count_reg[2:0], 2'd3}];
+                data_out_nxt[0] = address[{count_reg[2:0], 2'd0}];
+                data_out_nxt[1] = address[{count_reg[2:0], 2'd1}];
+                data_out_nxt[2] = address[{count_reg[2:0], 2'd2}];
+                data_out_nxt[3] = address[{count_reg[2:0], 2'd3}];
 
                 if (clock_tick_neg) count_nxt = count_reg - 1;
 
@@ -202,10 +202,10 @@ module CombinedSPI (
             end
 
             SEND_DATA: begin
-                serial_out_0_nxt = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd0}];
-                serial_out_1_nxt = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd1}];
-                serial_out_2_nxt = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd2}];
-                serial_out_3_nxt = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd3}];
+                data_out_nxt[0] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd0}];
+                data_out_nxt[1] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd1}];
+                data_out_nxt[2] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd2}];
+                data_out_nxt[3] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd3}];
 
                 if (clock_tick_neg) begin
                     count_nxt = count_reg - 1;
@@ -228,17 +228,17 @@ module CombinedSPI (
         count_reg <= count_nxt;
         buffer_count_reg <= buffer_count_nxt;
         o_chip_select_neg <= ~(state_reg != IDLE);  // state_nxt possible for perfect sync with state
-        serial_out_0_reg <= serial_out_0_nxt;
-        serial_out_1_reg <= serial_out_1_nxt;
-        serial_out_2_reg <= serial_out_2_nxt;
-        serial_out_3_reg <= serial_out_3_nxt;
+        data_out_reg[0] <= data_out_nxt[0];
+        data_out_reg[1] <= data_out_nxt[1];
+        data_out_reg[2] <= data_out_nxt[2];
+        data_out_reg[3] <= data_out_nxt[3];
         transmission_finished_reg <= transmission_finished_nxt;
 
         if (state_reg == RECEIVE_DATA && clock_tick_pos) begin
-            buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd0}] <= serial_in_0;
-            buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd1}] <= serial_in_1;
-            buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd2}] <= serial_in_2;
-            buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd3}] <= serial_in_3;
+            buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd0}] <= data_in[0];
+            buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd1}] <= data_in[1];
+            buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd2}] <= data_in[2];
+            buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd3}] <= data_in[3];
         end
     end
 

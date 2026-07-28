@@ -58,10 +58,10 @@ async def transmission_test(dut):
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
-            mosi_d1_name="io_dq1_manager_serial_out",
-            miso_d0_name="io_dq0_manager_serial_in",
-            d2_name="io_dq2",
-            d3_name="io_dq3",
+            mosi_d1_name="io_data1_manager_serial_out",
+            miso_d0_name="io_data0_manager_serial_in",
+            d2_name="io_data2",
+            d3_name="io_data3",
             cs_name="o_chip_select_neg",
         ),
         QSpiConfig(
@@ -108,10 +108,10 @@ async def read_test(dut):
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
-            mosi_d1_name="io_dq1_manager_serial_out",
-            miso_d0_name="io_dq0_manager_serial_in",
-            d2_name="io_dq2",
-            d3_name="io_dq3",
+            mosi_d1_name="io_data1_manager_serial_out",
+            miso_d0_name="io_data0_manager_serial_in",
+            d2_name="io_data2",
+            d3_name="io_data3",
             cs_name="o_chip_select_neg",
         ),
         QSpiConfig(
@@ -161,10 +161,10 @@ async def write_test(dut):
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
-            mosi_d1_name="io_dq1_manager_serial_out",
-            miso_d0_name="io_dq0_manager_serial_in",
-            d2_name="io_dq2",
-            d3_name="io_dq3",
+            mosi_d1_name="io_data1_manager_serial_out",
+            miso_d0_name="io_data0_manager_serial_in",
+            d2_name="io_data2",
+            d3_name="io_data3",
             cs_name="o_chip_select_neg",
         ),
         QSpiConfig(
