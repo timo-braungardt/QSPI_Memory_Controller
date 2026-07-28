@@ -131,10 +131,6 @@ module CombinedSPI (
 
 
     always @(*) begin : state_machine_logic
-        data_out_nxt[0] = data_out_reg[0];
-        data_out_nxt[1] = data_out_reg[1];
-        data_out_nxt[2] = data_out_reg[2];
-        data_out_nxt[3] = data_out_reg[3];
         state_nxt = state_reg;
         count_nxt = count_reg;
         buffer_count_nxt = buffer_count_reg;
@@ -149,11 +145,6 @@ module CombinedSPI (
             end
 
             SEND_OPCODE: begin
-                data_out_nxt[0] = opcode[{count_reg[0], 2'd0}];
-                data_out_nxt[1] = opcode[{count_reg[0], 2'd1}];
-                data_out_nxt[2] = opcode[{count_reg[0], 2'd2}];
-                data_out_nxt[3] = opcode[{count_reg[0], 2'd3}];
-
                 if (clock_tick_neg) begin
                     count_nxt = count_reg - 1;
                     if (count_reg == 0) begin
@@ -173,11 +164,6 @@ module CombinedSPI (
             end
 
             SEND_ADDRESS: begin
-                data_out_nxt[0] = address[{count_reg[2:0], 2'd0}];
-                data_out_nxt[1] = address[{count_reg[2:0], 2'd1}];
-                data_out_nxt[2] = address[{count_reg[2:0], 2'd2}];
-                data_out_nxt[3] = address[{count_reg[2:0], 2'd3}];
-
                 if (clock_tick_neg) count_nxt = count_reg - 1;
 
                 if (count_reg == 0 && clock_tick_neg) begin
@@ -202,11 +188,6 @@ module CombinedSPI (
             end
 
             SEND_DATA: begin
-                data_out_nxt[0] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd0}];
-                data_out_nxt[1] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd1}];
-                data_out_nxt[2] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd2}];
-                data_out_nxt[3] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd3}];
-
                 if (clock_tick_neg) begin
                     count_nxt = count_reg - 1;
                     buffer_count_nxt = buffer_count_reg + 1;
@@ -228,11 +209,40 @@ module CombinedSPI (
         count_reg <= count_nxt;
         buffer_count_reg <= buffer_count_nxt;
         o_chip_select_neg <= ~(state_reg != IDLE);  // state_nxt possible for perfect sync with state
-        data_out_reg[0] <= data_out_nxt[0];
-        data_out_reg[1] <= data_out_nxt[1];
-        data_out_reg[2] <= data_out_nxt[2];
-        data_out_reg[3] <= data_out_nxt[3];
-        transmission_finished_reg <= transmission_finished_nxt;
+        transmission_finished_reg <= transmission_finished_nxt;        
+    end
+
+
+    always @(*) begin : data_logic
+        data_out_nxt = data_out_reg;
+
+        case (state_reg)
+            SEND_OPCODE: begin
+                data_out_nxt[0] = opcode[{count_reg[0], 2'd0}];
+                data_out_nxt[1] = opcode[{count_reg[0], 2'd1}];
+                data_out_nxt[2] = opcode[{count_reg[0], 2'd2}];
+                data_out_nxt[3] = opcode[{count_reg[0], 2'd3}];
+            end
+
+            SEND_ADDRESS: begin
+                data_out_nxt[0] = address[{count_reg[2:0], 2'd0}];
+                data_out_nxt[1] = address[{count_reg[2:0], 2'd1}];
+                data_out_nxt[2] = address[{count_reg[2:0], 2'd2}];
+                data_out_nxt[3] = address[{count_reg[2:0], 2'd3}];
+            end
+
+            SEND_DATA: begin
+                data_out_nxt[0] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd0}];
+                data_out_nxt[1] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd1}];
+                data_out_nxt[2] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd2}];
+                data_out_nxt[3] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd3}];
+            end
+        endcase
+    end
+
+
+    always @(posedge clk) begin : data_register
+        data_out_reg <= data_out_nxt;
 
         if (state_reg == RECEIVE_DATA && clock_tick_pos) begin
             buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{count_reg[0], 2'd0}] <= data_in[0];
