@@ -19,13 +19,15 @@ module CombinedSPI (
     localparam BYTE_SEL_WIDTH = $clog2(BUFFER_SIZE);
     localparam BYTE_SEL_LSB = $clog2(8/BITS_PER_SHIFT);
     localparam BYTE_SEL_MSB = BYTE_SEL_LSB + BYTE_SEL_WIDTH - 1;
+    localparam BUS_WIDTH = 4;
+    localparam BUS_WIDTH_MSB = BUS_WIDTH -1;
 
     // Pin tristate stuff
     wire en_bus_clock;
     wire en_data_out;
-    reg [7:0] data_out_reg;
-    reg [7:0] data_out_nxt;
-    wire [7:0] data_in;
+    reg [BUS_WIDTH:0] data_out_reg;
+    reg [BUS_WIDTH:0] data_out_nxt;
+    wire [BUS_WIDTH:0] data_in;
 
     assign io_data0_manager_serial_in = (en_data_out) ? data_out_reg[0] : 1'bZ;
     assign io_data1_manager_serial_out  = (en_data_out)  ? data_out_reg[1] : 1'bZ;       // ToDo: this pin is not serial out for spi mode!
