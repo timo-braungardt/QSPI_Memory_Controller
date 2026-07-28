@@ -8,6 +8,20 @@ from cocotbext.spi import SpiBus
 from HelperClasses import SpiFlashMemory
 
 
+async def wait_for_idle(dut):
+    if dut.o_chip_select_neg.value == False:
+        await dut.o_chip_select_neg.value_change
+
+
+async def trigger_go(dut):
+    await wait_for_idle(dut)
+    dut.go.value = 0
+    await ClockCycles(dut.clk, 5, rising=True)
+    dut.go.value = 1
+    await ClockCycles(dut.clk, 1, rising=True)
+    dut.go.value = 0
+
+
 @cocotb.test()
 async def transmission_test(dut):
     spi_subordinate = SpiFlashMemory(
@@ -30,11 +44,7 @@ async def transmission_test(dut):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
 
-    dut.go.value = 0
-    await ClockCycles(dut.clk, 5, rising=True)
-    dut.go.value = 1
-    await ClockCycles(dut.clk, 1, rising=True)
-    dut.go.value = 0
+    await trigger_go(dut)
     await ClockCycles(dut.clk, 2, rising=True)
     await dut.o_chip_select_neg.value_change
     [opcode, address] = await spi_subordinate.get_content()
@@ -71,15 +81,9 @@ async def timing_read_test(dut):
 
     num_clock_cycles = 8 + 24 + 16
 
-    dut.go.value = 0
-    await ClockCycles(dut.clk, 5, rising=True)
-    dut.go.value = 1
-    await ClockCycles(dut.clk, 1, rising=True)
-    dut.go.value = 0
+    await trigger_go(dut)
 
-    trigger = await First(
-        ClockCycles(dut.o_bus_clock, num_clock_cycles, rising=True), timeout
-    )
+    trigger = await First(ClockCycles(dut.o_bus_clock, num_clock_cycles, rising=True), timeout)
     assert trigger != timeout
     assert dut.o_chip_select_neg.value == False
 
@@ -109,6 +113,8 @@ async def timing_write_test(dut):
     dut.read_data.value = 0b0
     dut.num_bits.value = 16
     spi_subordinate.num_bytes = 16 // 8
+    # force write enable, we just want the length of the write command
+    spi_subordinate.write_enable = True
     dut.buffer[0].value = 0x80
     dut.buffer[1].value = 0x01
 
@@ -117,15 +123,9 @@ async def timing_write_test(dut):
 
     num_clock_cycles = 8 + 24 + 16
 
-    dut.go.value = 0
-    await ClockCycles(dut.clk, 5, rising=True)
-    dut.go.value = 1
-    await ClockCycles(dut.clk, 1, rising=True)
-    dut.go.value = 0
+    await trigger_go(dut)
 
-    trigger = await First(
-        ClockCycles(dut.o_bus_clock, num_clock_cycles, rising=True), timeout
-    )
+    trigger = await First(ClockCycles(dut.o_bus_clock, num_clock_cycles, rising=True), timeout)
     assert trigger != timeout
     assert dut.o_chip_select_neg.value == False
 
@@ -158,11 +158,7 @@ async def read_test(dut):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
 
-    dut.go.value = 0
-    await ClockCycles(dut.clk, 5, rising=True)
-    dut.go.value = 1
-    await ClockCycles(dut.clk, 1, rising=True)
-    dut.go.value = 0
+    await trigger_go(dut)
     await ClockCycles(dut.clk, 2, rising=True)
     await dut.o_chip_select_neg.value_change
     [opcode, address] = await spi_subordinate.get_content()
@@ -200,11 +196,7 @@ async def write_test(dut):
 
     assert not spi_subordinate.write_enable
 
-    dut.go.value = 0
-    await ClockCycles(dut.clk, 5, rising=True)
-    dut.go.value = 1
-    await ClockCycles(dut.clk, 1, rising=True)
-    dut.go.value = 0
+    await trigger_go(dut)
     await ClockCycles(dut.clk, 2, rising=True)
     await dut.o_chip_select_neg.value_change
 
@@ -223,11 +215,7 @@ async def write_test(dut):
     dut.num_bits.value = 16
     spi_subordinate.num_bytes = 16 // 8
 
-    dut.go.value = 0
-    await ClockCycles(dut.clk, 5, rising=True)
-    dut.go.value = 1
-    await ClockCycles(dut.clk, 1, rising=True)
-    dut.go.value = 0
+    await trigger_go(dut)
     await ClockCycles(dut.clk, 2, rising=True)
     await dut.o_chip_select_neg.value_change
 
