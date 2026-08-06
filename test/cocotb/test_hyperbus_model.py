@@ -3,16 +3,16 @@ import logging
 from pathlib import Path
 import cocotb
 from cocotb_tools.runner import get_runner
-from cocotb.triggers import Timer, First, FallingEdge, RisingEdge
+from cocotb.triggers import Timer, First, FallingEdge, RisingEdge, ClockCycles
 from cocotb.clock import Clock
 from cocotb.types import Logic, LogicArray
 from unittest import SkipTest
 
 
 async def reset_model(dut):
-    dut.reset.value = 0
-    await Timer(10, unit="us")
     dut.reset.value = 1
+    await Timer(10, unit="us")
+    dut.reset.value = 0
     await Timer(10, unit="us")
 
     if dut.RAM.PoweredUp.value == 0:
@@ -21,6 +21,10 @@ async def reset_model(dut):
 
 @cocotb.test()
 async def read_test(dut):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_model(dut)
+
     dut.controller.is_read.value = True
     dut.controller.is_register_space.value = False
     dut.controller.is_linear_burst.value = False
@@ -29,11 +33,6 @@ async def read_test(dut):
 
     for i in range(8):
         dut.controller.buffer[i].value = 0
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
-
-    await reset_model(dut)
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -52,6 +51,10 @@ async def read_test(dut):
 
 @cocotb.test()
 async def write_test(dut):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_model(dut)
+
     dut.controller.is_read.value = False
     dut.controller.is_register_space.value = False
     dut.controller.is_linear_burst.value = False
@@ -60,11 +63,6 @@ async def write_test(dut):
 
     for i in range(8):
         dut.controller.buffer[i].value = i + 1
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
-
-    await reset_model(dut)
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -107,6 +105,10 @@ async def read_register_test(dut):
     This is a bit weird, apparently the data should follow right after the CA bits are sent (zero latency).
     But the simulation model uses 2 latencies and only has 16 bits for the register, where there should be 6 16 Bit registers.
     """
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_model(dut)
+
     dut.controller.is_read.value = True
     dut.controller.is_register_space.value = True
     dut.controller.is_linear_burst.value = False
@@ -115,11 +117,6 @@ async def read_register_test(dut):
 
     for i in range(8):
         dut.controller.buffer[i].value = 0
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
-
-    await reset_model(dut)
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)

@@ -13,6 +13,7 @@ module HyperRAM_wrapper;
 
     Hyperbus controller (
         .clk(clk),
+        .reset(reset),
         .go(go),
         .o_bus_clock(bus_clock),
         .o_bus_clock_neg(bus_clock_neg),
@@ -36,7 +37,7 @@ module HyperRAM_wrapper;
         .RWDS(data_strobe),
         .CSNeg(chip_select_neg),
         .CK(bus_clock),
-        .RESETNeg(reset)
+        .RESETNeg(~reset)
     );
 
 endmodule

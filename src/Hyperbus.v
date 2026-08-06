@@ -2,6 +2,7 @@
 
 module Hyperbus (
     input clk,
+    input reset,
     input go,
 
     // Hyperbus Pins
@@ -25,7 +26,7 @@ module Hyperbus (
 
     wire en_data_strobe;
     reg data_strobe_out_reg;
-    reg data_strobe_out_nxt;
+    reg data_strobe_out_nxt = 0;    // ToDo: The signal has to be driven for write
     wire data_strobe_in;
 
     reg has_latency_reg;
@@ -102,33 +103,6 @@ module Hyperbus (
     localparam integer NUM_LONG_LATENCY_CYCLES = LATENCY_CYCLES + NUM_SHORT_LATENCY_CYCLES;
     localparam integer READ_LATENCY_IN_CYCLE = 1;
 
-    initial begin : setup_registers
-        data_out_reg        = 8'd0;
-        data_out_nxt        = 8'd0;
-        state_reg           = 0;
-        o_chip_select_neg   = 1'b1;
-        num_bits            = 32;
-        data_strobe_out_reg = 1'b0;
-        data_strobe_out_nxt = 1'b0;
-        has_latency_reg     = 1'b0;
-
-        bus_clock_reg       = 0;
-        bus_clock_nxt       = 0;
-        clock_count_reg     = 0;
-        clock_count_nxt     = 0;
-        count_reg           = 0;
-        count_nxt           = 0;
-        buffer_count_reg    = 0;
-        buffer_count_nxt    = 0;
-
-        // the default case is reading from an address.
-        is_read             = 1;
-        is_register_space   = 0;
-        is_linear_burst     = 0;
-        address             = 0;
-    end
-
-
     assign en_data_strobe  = (state_reg == SEND_DATA);
     assign io_data_strobe  = (en_data_strobe) ? data_strobe_out_reg : 1'bZ;
     assign data_strobe_in  = io_data_strobe;
@@ -162,8 +136,13 @@ module Hyperbus (
 
 
     always @(posedge clk) begin : clock_handler_register
-        bus_clock_reg   <= bus_clock_nxt;
-        clock_count_reg <= clock_count_nxt;
+        if (reset) begin
+            bus_clock_reg <= 0;
+            clock_count_reg <= 0;
+        end else begin
+            bus_clock_reg <= bus_clock_nxt;
+            clock_count_reg <= clock_count_nxt;
+        end
     end
 
 
@@ -251,18 +230,39 @@ module Hyperbus (
 
 
     always @(posedge clk) begin : state_machine_register
-        state_reg <= state_nxt;
-        count_reg <= count_nxt;
-        buffer_count_reg <= buffer_count_nxt;
-        o_chip_select_neg <= ~(state_reg != IDLE);  // state_nxt possible for perfect sync with state
-        data_out_reg <= data_out_nxt;
-        has_latency_reg <= has_latency_nxt;
-        data_strobe_out_reg <= data_strobe_out_nxt;
+        if (reset) begin
+            state_reg <= IDLE;
+            count_reg <= 0;
+            buffer_count_reg <= 0;
+            o_chip_select_neg <= 1'b1;
+            data_out_reg <= 8'd0;
+            has_latency_reg <= 0;
+            data_strobe_out_reg <= 0;
+        end else begin
+            state_reg <= state_nxt;
+            count_reg <= count_nxt;
+            buffer_count_reg <= buffer_count_nxt;
+            o_chip_select_neg <= ~(state_reg != IDLE);  // state_nxt possible for perfect sync with state
+            data_out_reg <= data_out_nxt;
+            has_latency_reg <= has_latency_nxt;
+            data_strobe_out_reg <= data_strobe_out_nxt;
 
-        if (state_reg == RECEIVE_DATA && clock_tick) begin
-            for (i = 0; i < BUS_WIDTH; i = i + 1) begin
-                buffer[buffer_count_reg][i] <= data_in[i];
+            if (state_reg == RECEIVE_DATA && clock_tick) begin
+                for (i = 0; i < BUS_WIDTH; i = i + 1) begin
+                    buffer[buffer_count_reg][i] <= data_in[i];
+                end
             end
+        end
+    end
+
+
+    always @(posedge clk) begin : configuration_register
+        if (reset) begin
+            is_read <= 0;
+            is_register_space <= 0;
+            is_linear_burst <= 0;
+            address <= 0;
+            num_bits <= 32;
         end
     end
 

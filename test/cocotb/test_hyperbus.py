@@ -3,9 +3,15 @@ import logging
 from pathlib import Path
 import cocotb
 from cocotb_tools.runner import get_runner
-from cocotb.triggers import Timer, First, FallingEdge, RisingEdge
+from cocotb.triggers import Timer, First, FallingEdge, RisingEdge, ClockCycles
 from cocotb.clock import Clock
 from cocotb.types import LogicArray
+
+async def reset_dut(dut):
+    dut.reset.value = 1
+    await ClockCycles(dut.clk, 1, rising=True)
+    dut.reset.value = 0
+    await ClockCycles(dut.clk, 1, rising=True)
 
 
 class HyperRamModel:
@@ -125,14 +131,15 @@ class HyperRamModel:
 async def transmission_test(dut):
     memory_model = HyperRamModel(dut)
 
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
+
     dut.is_read.value = True
     dut.is_register_space.value = False
     dut.is_linear_burst.value = False
     dut.address.value = 0x8000000D
     dut.num_bits.value = 8
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -152,6 +159,10 @@ async def transmission_test(dut):
 async def read_test(dut):
     memory_model = HyperRamModel(dut)
 
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
+
     dut.is_read.value = True
     dut.is_register_space.value = False
     dut.is_linear_burst.value = False
@@ -160,9 +171,6 @@ async def read_test(dut):
 
     for i in range(8):
         memory_model.mem[i] = i + 1
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -188,6 +196,10 @@ async def read_test(dut):
 async def write_test(dut):
     memory_model = HyperRamModel(dut)
 
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
+
     dut.is_read.value = False
     dut.is_register_space.value = False
     dut.is_linear_burst.value = False
@@ -196,9 +208,6 @@ async def write_test(dut):
 
     for i in range(8):
         dut.buffer[i].value = i + 1
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
