@@ -25,40 +25,40 @@ module CombinedSPI (
     localparam BUS_WIDTH_MSB = BUS_WIDTH - 1;
 
     // Pin tristate stuff
-    wire                  en_bus_clock;
-    wire                  en_data_out;
-    reg     [BUS_WIDTH:0] data_out_reg;
-    reg     [BUS_WIDTH:0] data_out_nxt;
-    reg     [BUS_WIDTH:0] data_in;
+    wire                      en_bus_clock;
+    wire                      en_data_out;
+    reg     [BUS_WIDTH_MSB:0] data_out_reg;
+    reg     [BUS_WIDTH_MSB:0] data_out_nxt;
+    reg     [BUS_WIDTH_MSB:0] data_in;
 
     // Bus Clock
-    reg                   clk_bus_nxt;
-    integer               clock_count_nxt;
+    reg                       clk_bus_nxt;
+    integer                   clock_count_nxt;
 
-    reg                   clk_bus_reg = 0;
-    integer               clock_count_reg = 0;
+    reg                       clk_bus_reg;
+    integer                   clock_count_reg;
 
     // Logic stuff
-    reg     [        7:0] opcode;
-    reg     [       23:0] address;
-    reg                   write_address;
-    reg                   write_data;
-    reg                   read_data;
-    reg                   is_quad_mode = 1'b1;
-    integer               num_bits;
-    integer               state_reg;
-    integer               state_nxt;
+    reg     [            7:0] opcode;
+    reg     [           23:0] address;
+    reg                       write_address;
+    reg                       write_data;
+    reg                       read_data;
+    reg                       is_quad_mode;
+    integer                   num_bits;
+    integer                   state_reg;
+    integer                   state_nxt;
 
-    integer               count_reg = 0;
-    integer               count_nxt = 0;
-    wire                  clock_tick_pos;
-    wire                  clock_tick_neg;
-    integer               buffer_count_reg = 0;
-    integer               buffer_count_nxt = 0;
-    reg                   transmission_finished_nxt = 0;
-    reg                   transmission_finished_reg = 0;
+    integer                   count_reg;
+    integer                   count_nxt;
+    wire                      clock_tick_pos;
+    wire                      clock_tick_neg;
+    integer                   buffer_count_reg;
+    integer                   buffer_count_nxt;
+    reg                       transmission_finished_nxt;
+    reg                       transmission_finished_reg;
 
-    reg     [        7:0] buffer                        [0:BUFFER_SIZE -1];
+    reg     [            7:0] buffer                    [0:BUFFER_SIZE -1];
 
     // states
     localparam integer IDLE = 0;
@@ -74,21 +74,31 @@ module CombinedSPI (
 
 
     initial begin : setup_registers
-        opcode            = 0;
-        address           = 0;
-        state_reg         = 0;
-        state_nxt         = 0;
-        o_chip_select_neg = 1'b1;
-        data_out_reg[0]   = 0;
-        data_out_reg[1]   = 0;
-        data_out_reg[2]   = 0;
-        data_out_reg[3]   = 0;
+        opcode                    = 0;
+        address                   = 0;
+        state_reg                 = 0;
+        state_nxt                 = 0;
+        o_chip_select_neg         = 1'b1;
+        data_out_reg[0]           = 0;
+        data_out_reg[1]           = 0;
+        data_out_reg[2]           = 0;
+        data_out_reg[3]           = 0;
 
         // the default case is reading from an address.
-        write_address     = 1;
-        write_data        = 0;
-        read_data         = 1;
-        num_bits          = 32;
+        write_address             = 1;
+        write_data                = 0;
+        read_data                 = 1;
+        num_bits                  = 32;
+
+        clk_bus_reg               = 0;
+        clock_count_reg           = 0;
+        count_reg                 = 0;
+        count_nxt                 = 0;
+        is_quad_mode              = 1'b1;
+        buffer_count_reg          = 0;
+        buffer_count_nxt          = 0;
+        transmission_finished_nxt = 0;
+        transmission_finished_reg = 0;
     end
 
 
@@ -234,7 +244,7 @@ module CombinedSPI (
                     data_out_nxt[2] = opcode[{count_reg[0], 2'd2}];
                     data_out_nxt[3] = opcode[{count_reg[0], 2'd3}];
                 end else begin
-                    data_out_nxt[0] = opcode[count_reg[3:0]];
+                    data_out_nxt[0] = opcode[count_reg[2:0]];
                 end
             end
 
