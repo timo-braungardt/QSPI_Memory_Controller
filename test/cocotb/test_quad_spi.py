@@ -3,10 +3,17 @@ import logging
 from pathlib import Path
 import cocotb
 from cocotb_tools.runner import get_runner
-from cocotb.triggers import Timer, First
+from cocotb.triggers import Timer, First, ClockCycles
 from cocotb.clock import Clock
 from collections import deque
 from cocotbext.qspi import QSpiSubordinateBase, QSpiBus, QSpiConfig
+
+
+async def reset_dut(dut):
+    dut.reset.value = 1
+    await ClockCycles(dut.clk, 1, rising=True)
+    dut.reset.value = 0
+    await ClockCycles(dut.clk, 1, rising=True)
 
 
 class SimpleQSpiSubordinate(QSpiSubordinateBase):
@@ -76,15 +83,15 @@ async def transmission_test(dut):
             is_quad_mode=True,
         ),
     )
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
 
     dut.opcode.value = 5
     dut.address.value = 0x800001
     dut.write_address.value = 0b1
     dut.write_data.value = 0b0
     dut.read_data.value = 0b0
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -127,6 +134,10 @@ async def read_test(dut):
         ),
     )
 
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
+
     dut.opcode.value = 0x03
     dut.address.value = 20
 
@@ -134,9 +145,6 @@ async def read_test(dut):
     dut.write_data.value = 0b0
     dut.read_data.value = 0b1
     dut.num_bits.value = 32
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -180,14 +188,15 @@ async def write_test(dut):
         ),
     )
 
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
+
     dut.opcode.value = 0x06
 
     dut.write_address.value = 0b0
     dut.write_data.value = 0b0
     dut.read_data.value = 0b0
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
 
     assert not qspi_subordinate.write_enable
 
