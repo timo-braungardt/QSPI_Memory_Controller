@@ -31,8 +31,8 @@ module BasicSPI (
     reg            clk_bus_nxt;
     integer        clock_count_nxt;
 
-    reg            clk_bus_reg = 0;
-    integer        clock_count_reg = 0;
+    reg            clk_bus_reg;
+    integer        clock_count_reg;
 
     // Logic stuff
     reg     [ 7:0] opcode;
@@ -44,16 +44,16 @@ module BasicSPI (
     integer        state_reg;
     integer        state_nxt;
 
-    integer        count_reg = 0;
-    integer        count_nxt = 0;
+    integer        count_reg;
+    integer        count_nxt;
     wire           clock_tick_pos;
     wire           clock_tick_neg;
-    integer        buffer_count_reg = 0;
-    integer        buffer_count_nxt = 0;
-    reg            transmission_finished_nxt = 0;
-    reg            transmission_finished_reg = 0;
+    integer        buffer_count_reg;
+    integer        buffer_count_nxt;
+    reg            transmission_finished_nxt;
+    reg            transmission_finished_reg;
 
-    reg     [ 7:0] buffer                        [0:BUFFER_SIZE -1];
+    reg     [ 7:0] buffer                    [0:BUFFER_SIZE -1];
 
     // states
     localparam integer IDLE = 0;
@@ -69,18 +69,27 @@ module BasicSPI (
 
 
     initial begin : setup_registers
-        opcode            = 0;
-        address           = 0;
-        state_reg         = 0;
-        state_nxt         = 0;
-        o_chip_select_neg = 1'b1;
-        serial_out_reg    = 1'b0;
+        clk_bus_reg               = 0;
+        clock_count_reg           = 0;
+        count_reg                 = 0;
+        count_nxt                 = 0;
+        buffer_count_reg          = 0;
+        buffer_count_nxt          = 0;
+        transmission_finished_nxt = 0;
+        transmission_finished_reg = 0;
+
+        opcode                    = 0;
+        address                   = 0;
+        state_reg                 = 0;
+        state_nxt                 = 0;
+        o_chip_select_neg         = 1'b1;
+        serial_out_reg            = 1'b0;
 
         // the default case is reading from an address.
-        write_address     = 1;
-        write_data        = 0;
-        read_data         = 1;
-        num_bits          = 32;
+        write_address             = 1;
+        write_data                = 0;
+        read_data                 = 1;
+        num_bits                  = 32;
     end
 
 
