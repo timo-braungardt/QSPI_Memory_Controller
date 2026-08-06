@@ -7,6 +7,12 @@ from cocotb.triggers import Timer, First, ClockCycles, RisingEdge
 from cocotbext.spi import SpiBus
 from HelperClasses import SpiFlashMemory
 
+async def reset_dut(dut):
+    dut.reset.value = 1
+    await ClockCycles(dut.clk, 1, rising=True)
+    dut.reset.value = 0
+    await ClockCycles(dut.clk, 1, rising=True)
+
 
 async def wait_for_idle(dut):
     if dut.o_chip_select_neg.value == False:
@@ -34,15 +40,16 @@ async def transmission_test(dut):
         )
     )
 
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
+    
     dut.opcode.value = 0x81
     dut.address.value = 0x800001
 
     dut.write_address.value = 0b1
     dut.write_data.value = 0b0
     dut.read_data.value = 0b0
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
 
     await trigger_go(dut)
     await ClockCycles(dut.clk, 2, rising=True)
@@ -66,6 +73,10 @@ async def timing_read_test(dut):
         )
     )
 
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
+
     dut.opcode.value = SpiFlashMemory.read
     dut.address.value = 0x000000
 
@@ -75,9 +86,6 @@ async def timing_read_test(dut):
     dut.num_bits.value = 16
     spi_subordinate.num_bytes = 16 // 8
     spi_subordinate.data = [0x80, 0x01]
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
 
     num_clock_cycles = 8 + 24 + 16
 
@@ -105,6 +113,10 @@ async def timing_write_test(dut):
         )
     )
 
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
+
     dut.opcode.value = SpiFlashMemory.program
     dut.address.value = 0x000000
 
@@ -117,9 +129,6 @@ async def timing_write_test(dut):
     spi_subordinate.write_enable = True
     dut.buffer[0].value = 0x80
     dut.buffer[1].value = 0x01
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
 
     num_clock_cycles = 8 + 24 + 16
 
@@ -145,18 +154,18 @@ async def read_test(dut):
         )
     )
 
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
+
     dut.opcode.value = SpiFlashMemory.read
     dut.address.value = 20
-
     dut.write_address.value = 0b1
     dut.write_data.value = 0b0
     dut.read_data.value = 0b1
     dut.num_bits.value = 32
     spi_subordinate.num_bytes = 32 // 8
     spi_subordinate.data = [0x12, 0x34, 0x56, 0x78]
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
 
     await trigger_go(dut)
     await ClockCycles(dut.clk, 2, rising=True)
@@ -185,14 +194,14 @@ async def write_test(dut):
         )
     )
 
-    dut.opcode.value = SpiFlashMemory.write_enable
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
 
+    dut.opcode.value = SpiFlashMemory.write_enable
     dut.write_address.value = 0b0
     dut.write_data.value = 0b0
     dut.read_data.value = 0b0
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
 
     assert not spi_subordinate.write_enable
 

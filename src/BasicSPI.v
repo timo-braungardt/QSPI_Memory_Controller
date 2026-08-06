@@ -2,6 +2,7 @@
 
 module BasicSPI (
     input clk,
+    input reset,
     input go,
 
     // SPI Pins
@@ -68,31 +69,6 @@ module BasicSPI (
     localparam integer ADDRESS_LENGTH = 24;  // can also be 32
 
 
-    initial begin : setup_registers
-        clk_bus_reg               = 0;
-        clock_count_reg           = 0;
-        count_reg                 = 0;
-        count_nxt                 = 0;
-        buffer_count_reg          = 0;
-        buffer_count_nxt          = 0;
-        transmission_finished_nxt = 0;
-        transmission_finished_reg = 0;
-
-        opcode                    = 0;
-        address                   = 0;
-        state_reg                 = 0;
-        state_nxt                 = 0;
-        o_chip_select_neg         = 1'b1;
-        serial_out_reg            = 1'b0;
-
-        // the default case is reading from an address.
-        write_address             = 1;
-        write_data                = 0;
-        read_data                 = 1;
-        num_bits                  = 32;
-    end
-
-
     assign en_bus_clock   = (state_reg != IDLE);
     assign clock_tick_pos = (clock_count_reg == 0 && ~clk_bus_reg);
     assign clock_tick_neg = (clock_count_reg == 0 && clk_bus_reg);
@@ -122,8 +98,13 @@ module BasicSPI (
 
 
     always @(posedge clk) begin : clock_handler_register
-        clk_bus_reg <= clk_bus_nxt;
-        clock_count_reg <= clock_count_nxt;
+        if (reset) begin
+            clk_bus_reg <= 0;
+            clock_count_reg <= 0;
+        end else begin
+            clk_bus_reg <= clk_bus_nxt;
+            clock_count_reg <= clock_count_nxt;
+        end
     end
 
 
@@ -208,15 +189,36 @@ module BasicSPI (
 
 
     always @(posedge clk) begin : state_machine_register
-        state_reg <= state_nxt;
-        count_reg <= count_nxt;
-        buffer_count_reg <= buffer_count_nxt;
-        o_chip_select_neg <= ~(state_reg != IDLE);  // state_nxt possible for perfect sync with state
-        serial_out_reg <= serial_out_nxt;
-        transmission_finished_reg <= transmission_finished_nxt;
+        if (reset) begin
+            state_reg <= IDLE;
+            count_reg <= 0;
+            buffer_count_reg <= 0;
+            o_chip_select_neg <= 1'b1;
+            serial_out_reg <= 0;
+            transmission_finished_reg <= 0;
+        end else begin
+            state_reg <= state_nxt;
+            count_reg <= count_nxt;
+            buffer_count_reg <= buffer_count_nxt;
+            o_chip_select_neg <= ~(state_reg != IDLE);  // state_nxt possible for perfect sync with state
+            serial_out_reg <= serial_out_nxt;
+            transmission_finished_reg <= transmission_finished_nxt;
 
-        if (state_reg == RECEIVE_DATA && clock_tick_pos) begin
-            buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][count_reg[BYTE_SEL_LSB-1:0]] <= serial_in;
+            if (state_reg == RECEIVE_DATA && clock_tick_pos) begin
+                buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][count_reg[BYTE_SEL_LSB-1:0]] <= serial_in;
+            end
+        end
+    end
+
+
+    always @(posedge clk) begin : configuration_register
+        if (reset) begin
+            opcode <= 0;
+            address <= 0;
+            write_address <= 1'b1;
+            write_data <= 1'b0;
+            read_data <= 1'b1;
+            num_bits <= 32;
         end
     end
 

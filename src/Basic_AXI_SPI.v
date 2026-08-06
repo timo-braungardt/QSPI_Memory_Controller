@@ -188,6 +188,7 @@ module Basic_AXI_SPI #(
 
     BasicSPI SPI_Controller (
         .clk(clk),
+        .reset(rst),
         .go(spi_go),
         .o_bus_clock(s_spi_clock),
         .o_chip_select_neg(s_spi_chip_select_neg),
