@@ -4,7 +4,7 @@ from pathlib import Path
 import itertools
 import cocotb
 from cocotb_tools.runner import get_runner
-from cocotb.triggers import Timer, First, FallingEdge, RisingEdge
+from cocotb.triggers import Timer, First, FallingEdge, RisingEdge, ClockCycles
 from cocotb.clock import Clock
 from cocotb.types import Logic, LogicArray
 from unittest import SkipTest
@@ -21,9 +21,9 @@ class SPI_COMMANDS:
 
 
 async def reset_model(dut):
-    dut.reset.value = 0
-    await Timer(250, unit="ns")  # t_RP
     dut.reset.value = 1
+    await Timer(250, unit="ns")  # t_RP
+    dut.reset.value = 0
     await Timer(500, unit="us")  # t_RH
 
     if dut.Memory.PoweredUp.value == 0:
@@ -32,6 +32,10 @@ async def reset_model(dut):
 
 @cocotb.test()
 async def read_test(dut):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_model(dut)
+
     # write enable
     dut.Controller.opcode.value = SPI_COMMANDS.write_enable
 
@@ -39,11 +43,6 @@ async def read_test(dut):
     dut.Controller.write_data.value = 0b0
     dut.Controller.read_data.value = 0b0
     dut.Controller.is_quad_mode.value = False
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
-
-    await reset_model(dut)
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -105,6 +104,10 @@ async def read_test(dut):
 
 @cocotb.test()
 async def get_jedec_parameter_test(dut):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_model(dut)
+
     dut.Controller.opcode.value = SPI_COMMANDS.read_JEDEC_parameter
     dut.Controller.address.value = 0x000000
     dut.Controller.is_quad_mode.value = False
@@ -113,11 +116,6 @@ async def get_jedec_parameter_test(dut):
     dut.Controller.write_data.value = 0b0
     dut.Controller.read_data.value = 0b1
     dut.Controller.num_bits.value = 72
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
-
-    await reset_model(dut)
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -207,6 +205,10 @@ async def get_jedec_parameter_test(dut):
 
 @cocotb.test()
 async def get_status_register_test(dut):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_model(dut)
+
     dut.Controller.opcode.value = SPI_COMMANDS.read_status_reg_1
     dut.Controller.address.value = 0x000000
     dut.Controller.is_quad_mode.value = False
@@ -215,11 +217,6 @@ async def get_status_register_test(dut):
     dut.Controller.write_data.value = 0b0
     dut.Controller.read_data.value = 0b1
     dut.Controller.num_bits.value = 8
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
-
-    await reset_model(dut)
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
