@@ -10,6 +10,12 @@ from cocotbext.qspi import QSpiSubordinateBase, QSpiBus, QSpiConfig
 from cocotbext.spi import SpiBus
 from HelperClasses import SpiFlashMemory
 
+async def reset_dut(dut):
+    dut.reset.value = 1
+    await ClockCycles(dut.clk, 1, rising=True)
+    dut.reset.value = 0
+    await ClockCycles(dut.clk, 1, rising=True)
+
 
 class SimpleQSpiSubordinate(QSpiSubordinateBase):
     def __init__(self, bus: QSpiBus, config: QSpiConfig):
@@ -79,6 +85,11 @@ async def qspi_transmission_test(dut):
         ),
     )
 
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await reset_dut(dut)
+
     dut.is_quad_mode.value = True
 
     dut.opcode.value = 5
@@ -86,9 +97,6 @@ async def qspi_transmission_test(dut):
     dut.write_address.value = 0b1
     dut.write_data.value = 0b0
     dut.read_data.value = 0b0
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -131,6 +139,11 @@ async def qspi_read_test(dut):
         ),
     )
 
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await reset_dut(dut)
+
     dut.is_quad_mode.value = True
 
     dut.opcode.value = 0x03
@@ -140,9 +153,6 @@ async def qspi_read_test(dut):
     dut.write_data.value = 0b0
     dut.read_data.value = 0b1
     dut.num_bits.value = 32
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -186,6 +196,11 @@ async def qspi_write_test(dut):
         ),
     )
 
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await reset_dut(dut)
+
     dut.is_quad_mode.value = True
 
     dut.opcode.value = 0x06
@@ -193,9 +208,6 @@ async def qspi_write_test(dut):
     dut.write_address.value = 0b0
     dut.write_data.value = 0b0
     dut.read_data.value = 0b0
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
 
     assert not qspi_subordinate.write_enable
 
@@ -261,6 +273,11 @@ async def spi_transmission_test(dut):
         )
     )
 
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await reset_dut(dut)
+
     dut.is_quad_mode.value = False
 
     dut.opcode.value = 0x81
@@ -269,9 +286,6 @@ async def spi_transmission_test(dut):
     dut.write_address.value = 0b1
     dut.write_data.value = 0b0
     dut.read_data.value = 0b0
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
 
     await trigger_go(dut)
     await ClockCycles(dut.clk, 2, rising=True)
@@ -295,6 +309,11 @@ async def spi_timing_read_test(dut):
         )
     )
 
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await reset_dut(dut)
+
     dut.is_quad_mode.value = False
 
     dut.opcode.value = SpiFlashMemory.read
@@ -306,9 +325,6 @@ async def spi_timing_read_test(dut):
     dut.num_bits.value = 16
     spi_subordinate.num_bytes = 16 // 8
     spi_subordinate.data = [0x80, 0x01]
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
 
     num_clock_cycles = 8 + 24 + 16
 
@@ -336,6 +352,11 @@ async def spi_timing_write_test(dut):
         )
     )
 
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await reset_dut(dut)
+
     dut.is_quad_mode.value = False
 
     dut.opcode.value = SpiFlashMemory.program
@@ -350,9 +371,6 @@ async def spi_timing_write_test(dut):
     spi_subordinate.write_enable = True
     dut.buffer[0].value = 0x80
     dut.buffer[1].value = 0x01
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
 
     num_clock_cycles = 8 + 24 + 16
 
@@ -378,6 +396,11 @@ async def spi_read_test(dut):
         )
     )
 
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await reset_dut(dut)
+
     dut.is_quad_mode.value = False
 
     dut.opcode.value = SpiFlashMemory.read
@@ -389,9 +412,6 @@ async def spi_read_test(dut):
     dut.num_bits.value = 32
     spi_subordinate.num_bytes = 32 // 8
     spi_subordinate.data = [0x12, 0x34, 0x56, 0x78]
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
 
     await trigger_go(dut)
     await ClockCycles(dut.clk, 2, rising=True)
@@ -420,6 +440,11 @@ async def spi_write_test(dut):
         )
     )
 
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await reset_dut(dut)
+
     dut.is_quad_mode.value = False
 
     dut.opcode.value = SpiFlashMemory.write_enable
@@ -427,9 +452,6 @@ async def spi_write_test(dut):
     dut.write_address.value = 0b0
     dut.write_data.value = 0b0
     dut.read_data.value = 0b0
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
 
     assert not spi_subordinate.write_enable
 
