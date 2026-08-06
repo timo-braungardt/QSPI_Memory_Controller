@@ -40,10 +40,10 @@ module Hyperbus (
     endgenerate
 
     // Bus Clock
-    reg            bus_clock_reg = 0;
-    reg            bus_clock_nxt = 0;
-    integer        clock_count_reg = 0;
-    integer        clock_count_nxt = 0;
+    reg            bus_clock_reg;
+    reg            bus_clock_nxt;
+    integer        clock_count_reg;
+    integer        clock_count_nxt;
 
     wire           clock_tick;
 
@@ -57,12 +57,12 @@ module Hyperbus (
     integer        state_reg;
     integer        state_nxt;
 
-    integer        count_reg = 0;
-    integer        count_nxt = 0;
-    integer        buffer_count_reg = 0;
-    integer        buffer_count_nxt = 0;
+    integer        count_reg;
+    integer        count_nxt;
+    integer        buffer_count_reg;
+    integer        buffer_count_nxt;
 
-    reg     [ 7:0] buffer               [0:BUFFER_SIZE -1];
+    reg     [ 7:0] buffer            [0:BUFFER_SIZE -1];
 
     // Magic Numbers
     localparam integer CA_IS_READ_BIT = 47;
@@ -109,7 +109,23 @@ module Hyperbus (
         o_chip_select_neg   = 1'b1;
         num_bits            = 32;
         data_strobe_out_reg = 1'b0;
+        data_strobe_out_nxt = 1'b0;
         has_latency_reg     = 1'b0;
+
+        bus_clock_reg       = 0;
+        bus_clock_nxt       = 0;
+        clock_count_reg     = 0;
+        clock_count_nxt     = 0;
+        count_reg           = 0;
+        count_nxt           = 0;
+        buffer_count_reg    = 0;
+        buffer_count_nxt    = 0;
+
+        // the default case is reading from an address.
+        is_read             = 1;
+        is_register_space   = 0;
+        is_linear_burst     = 0;
+        address             = 0;
     end
 
 
@@ -182,7 +198,7 @@ module Hyperbus (
                 end
 
                 if (count_reg == (ADDRESS_CYCLES - READ_LATENCY_IN_CYCLE) && clock_tick) begin
-                    has_latency_nxt <= data_strobe_in;
+                    has_latency_nxt = data_strobe_in;
                 end
             end
 
@@ -241,6 +257,7 @@ module Hyperbus (
         o_chip_select_neg <= ~(state_reg != IDLE);  // state_nxt possible for perfect sync with state
         data_out_reg <= data_out_nxt;
         has_latency_reg <= has_latency_nxt;
+        data_strobe_out_reg <= data_strobe_out_nxt;
 
         if (state_reg == RECEIVE_DATA && clock_tick) begin
             for (i = 0; i < BUS_WIDTH; i = i + 1) begin
