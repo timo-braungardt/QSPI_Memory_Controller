@@ -28,9 +28,9 @@ async def reset_model(dut):
 async def transmission_test(dut):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
+    await reset_model(dut)
 
     axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.rst)
-    await reset_model(dut)
 
     addr = 0x1000
     length = 4
