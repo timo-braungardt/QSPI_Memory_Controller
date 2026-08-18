@@ -15,7 +15,12 @@ jobs:
         run: |
           verilator --version
           status=0
+          ignored=$(yq -r '.files[]' lint_ignore_files.yml)
           for f in $(git ls-files '*.v' '*.sv'); do
+            if echo "$ignored" | grep -qxF "$f"; then
+              echo "Skipping (ignored): $f"
+              continue
+            fi
             echo "Linting: $f"
             verilator --lint-only -Wall -Wno-MODMISSING "$f" || status=1
           done

@@ -1,0 +1,7 @@
+# Files which should be ignored due to dependencies etc.
+files:
+  - src/Basic_AXI_SPI.v
+  - test/cocotb_wrapper/AXI_SPI_wrapper.v
+  - test/cocotb_wrapper/HyperRAM_wrapper.v
+  - test/cocotb_wrapper/SPI_wrapper.v
+  - test/cocotb_wrapper/Combined_SPI_wrapper.v
