@@ -82,6 +82,7 @@ module AXI #(
 );
 
     parameter VALID_ADDR_WIDTH = ADDR_WIDTH - $clog2(STRB_WIDTH);
+    parameter SHIFT_ADDR_BY = ADDR_WIDTH - VALID_ADDR_WIDTH;
     parameter WORD_WIDTH = STRB_WIDTH;
     parameter WORD_SIZE = DATA_WIDTH / WORD_WIDTH;
 
@@ -100,47 +101,47 @@ module AXI #(
 
     localparam [0:0] READ_STATE_IDLE = 1'd0, READ_STATE_BURST = 1'd1;
 
-    reg [0:0] read_state_reg = READ_STATE_IDLE, read_state_next;
+    reg [0:0] read_state_reg, read_state_next;
 
     localparam [1:0] WRITE_STATE_IDLE = 2'd0, WRITE_STATE_BURST = 2'd1, WRITE_STATE_RESP = 2'd2;
 
-    reg [1:0] write_state_reg = WRITE_STATE_IDLE, write_state_next;
+    reg [1:0] write_state_reg, write_state_next;
 
     reg mem_wr_en;
     reg mem_rd_en;
 
-    reg [ID_WIDTH-1:0] read_id_reg = {ID_WIDTH{1'b0}}, read_id_next;
-    reg [ADDR_WIDTH-1:0] read_addr_reg = {ADDR_WIDTH{1'b0}}, read_addr_next;
-    reg [7:0] read_count_reg = 8'd0, read_count_next;
-    reg [2:0] read_size_reg = 3'd0, read_size_next;
-    reg [1:0] read_burst_reg = 2'd0, read_burst_next;
-    reg [ID_WIDTH-1:0] write_id_reg = {ID_WIDTH{1'b0}}, write_id_next;
-    reg [ADDR_WIDTH-1:0] write_addr_reg = {ADDR_WIDTH{1'b0}}, write_addr_next;
-    reg [7:0] write_count_reg = 8'd0, write_count_next;
-    reg [2:0] write_size_reg = 3'd0, write_size_next;
-    reg [1:0] write_burst_reg = 2'd0, write_burst_next;
+    reg [ID_WIDTH-1:0] read_id_reg, read_id_next;
+    reg [ADDR_WIDTH-1:0] read_addr_reg, read_addr_next;
+    reg [7:0] read_count_reg, read_count_next;
+    reg [2:0] read_size_reg, read_size_next;
+    reg [1:0] read_burst_reg, read_burst_next;
+    reg [ID_WIDTH-1:0] write_id_reg, write_id_next;
+    reg [ADDR_WIDTH-1:0] write_addr_reg, write_addr_next;
+    reg [7:0] write_count_reg, write_count_next;
+    reg [2:0] write_size_reg, write_size_next;
+    reg [1:0] write_burst_reg, write_burst_next;
 
-    reg s_axi_awready_reg = 1'b0, s_axi_awready_next;
-    reg s_axi_wready_reg = 1'b0, s_axi_wready_next;
-    reg [ID_WIDTH-1:0] s_axi_bid_reg = {ID_WIDTH{1'b0}}, s_axi_bid_next;
-    reg s_axi_bvalid_reg = 1'b0, s_axi_bvalid_next;
-    reg s_axi_arready_reg = 1'b0, s_axi_arready_next;
-    reg [ID_WIDTH-1:0] s_axi_rid_reg = {ID_WIDTH{1'b0}}, s_axi_rid_next;
-    reg [DATA_WIDTH-1:0] s_axi_rdata_reg = {DATA_WIDTH{1'b0}}, s_axi_rdata_next;
-    reg s_axi_rlast_reg = 1'b0, s_axi_rlast_next;
-    reg s_axi_rvalid_reg = 1'b0, s_axi_rvalid_next;
-    reg [ID_WIDTH-1:0] s_axi_rid_pipe_reg = {ID_WIDTH{1'b0}};
-    reg [DATA_WIDTH-1:0] s_axi_rdata_pipe_reg = {DATA_WIDTH{1'b0}};
-    reg s_axi_rlast_pipe_reg = 1'b0;
-    reg s_axi_rvalid_pipe_reg = 1'b0;
+    reg s_axi_awready_reg, s_axi_awready_next;
+    reg s_axi_wready_reg, s_axi_wready_next;
+    reg [ID_WIDTH-1:0] s_axi_bid_reg, s_axi_bid_next;
+    reg s_axi_bvalid_reg, s_axi_bvalid_next;
+    reg s_axi_arready_reg, s_axi_arready_next;
+    reg [ID_WIDTH-1:0] s_axi_rid_reg, s_axi_rid_next;
+    reg [DATA_WIDTH-1:0] s_axi_rdata_reg;
+    reg s_axi_rlast_reg, s_axi_rlast_next;
+    reg s_axi_rvalid_reg, s_axi_rvalid_next;
+    reg [ID_WIDTH-1:0] s_axi_rid_pipe_reg;
+    reg [DATA_WIDTH-1:0] s_axi_rdata_pipe_reg;
+    reg s_axi_rlast_pipe_reg;
+    reg s_axi_rvalid_pipe_reg;
 
     // (* RAM_STYLE="BLOCK" *)
     reg [DATA_WIDTH-1:0] mem[(2**VALID_ADDR_WIDTH)-1:0];
 
-    wire [VALID_ADDR_WIDTH-1:0] s_axi_awaddr_valid = s_axi_awaddr >> (ADDR_WIDTH - VALID_ADDR_WIDTH);
-    wire [VALID_ADDR_WIDTH-1:0] s_axi_araddr_valid = s_axi_araddr >> (ADDR_WIDTH - VALID_ADDR_WIDTH);
-    wire [VALID_ADDR_WIDTH-1:0] read_addr_valid = read_addr_reg >> (ADDR_WIDTH - VALID_ADDR_WIDTH);
-    wire [VALID_ADDR_WIDTH-1:0] write_addr_valid = write_addr_reg >> (ADDR_WIDTH - VALID_ADDR_WIDTH);
+    //wire [VALID_ADDR_WIDTH-1:0] s_axi_awaddr_valid = VALID_ADDR_WIDTH'(s_axi_awaddr >> SHIFT_ADDR_BY);    // unused, maybe needed later?
+    //wire [VALID_ADDR_WIDTH-1:0] s_axi_araddr_valid = VALID_ADDR_WIDTH'(s_axi_araddr >> SHIFT_ADDR_BY);
+    wire [VALID_ADDR_WIDTH-1:0] read_addr_valid = VALID_ADDR_WIDTH'(read_addr_reg >> SHIFT_ADDR_BY);
+    wire [VALID_ADDR_WIDTH-1:0] write_addr_valid = VALID_ADDR_WIDTH'(write_addr_reg >> SHIFT_ADDR_BY);
 
     assign s_axi_awready = s_axi_awready_reg;
     assign s_axi_wready = s_axi_wready_reg;
@@ -190,8 +191,8 @@ module AXI #(
                     write_id_next = s_axi_awid;
                     write_addr_next = s_axi_awaddr;
                     write_count_next = s_axi_awlen;
-                    write_size_next = s_axi_awsize < $clog2(STRB_WIDTH) ? s_axi_awsize :
-                        $clog2(STRB_WIDTH);
+                    write_size_next = s_axi_awsize < 3'($clog2(STRB_WIDTH)) ? s_axi_awsize :
+                        3'($clog2(STRB_WIDTH));
                     write_burst_next = s_axi_awburst;
 
                     s_axi_awready_next = 1'b0;
@@ -265,10 +266,16 @@ module AXI #(
 
         if (rst) begin
             write_state_reg   <= WRITE_STATE_IDLE;
+            write_id_reg      <= {ID_WIDTH{1'b0}};
+            write_addr_reg    <= {ADDR_WIDTH{1'b0}};
+            write_count_reg   <= 8'd0;
+            write_size_reg    <= 3'd0;
+            write_burst_reg   <= 2'd0;
 
             s_axi_awready_reg <= 1'b0;
             s_axi_wready_reg  <= 1'b0;
             s_axi_bvalid_reg  <= 1'b0;
+            s_axi_bid_reg     <= {ID_WIDTH{1'b0}};
         end
     end
 
@@ -297,8 +304,8 @@ module AXI #(
                     read_id_next = s_axi_arid;
                     read_addr_next = s_axi_araddr;
                     read_count_next = s_axi_arlen;
-                    read_size_next = s_axi_arsize < $clog2(STRB_WIDTH) ? s_axi_arsize :
-                        $clog2(STRB_WIDTH);
+                    read_size_next = s_axi_arsize < 3'($clog2(STRB_WIDTH)) ? s_axi_arsize :
+                        3'($clog2(STRB_WIDTH));
                     read_burst_next = s_axi_arburst;
 
                     s_axi_arready_next = 1'b0;
@@ -356,13 +363,37 @@ module AXI #(
         end
 
         if (rst) begin
-            read_state_reg <= READ_STATE_IDLE;
+            read_state_reg        <= READ_STATE_IDLE;
+            read_id_reg           <= {ID_WIDTH{1'b0}};
+            read_addr_reg         <= {ADDR_WIDTH{1'b0}};
+            read_count_reg        <= 8'd0;
+            read_size_reg         <= 3'd0;
+            read_burst_reg        <= 2'd0;
 
-            s_axi_arready_reg <= 1'b0;
-            s_axi_rvalid_reg <= 1'b0;
+            s_axi_arready_reg     <= 1'b0;
+            s_axi_rvalid_reg      <= 1'b0;
             s_axi_rvalid_pipe_reg <= 1'b0;
+            s_axi_rlast_reg       <= 1'b0;
+            s_axi_rid_reg         <= {ID_WIDTH{1'b0}};
+            s_axi_rid_pipe_reg    <= {ID_WIDTH{1'b0}};
+            s_axi_rdata_reg       <= {DATA_WIDTH{1'b0}};
+            s_axi_rdata_pipe_reg  <= {DATA_WIDTH{1'b0}};
+            s_axi_rlast_pipe_reg  <= 1'b0;
         end
     end
+
+    // ToDo: use wires - these wires are needed by the cocotb module.
+    //                   in the HDL they are not used
+    //                   linter marks them as error
+    wire _unused_ok = 1'b0 && &{1'b0,
+                    s_axi_awlock,
+                    s_axi_awcache,
+                    s_axi_awprot,
+                    s_axi_wlast,
+                    s_axi_arlock,
+                    s_axi_arcache,
+                    s_axi_arprot,
+                    1'b0};
 
 endmodule
 

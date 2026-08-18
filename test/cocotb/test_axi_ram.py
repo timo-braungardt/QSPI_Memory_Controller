@@ -34,11 +34,13 @@ from cocotb_tools.runner import get_runner
 from cocotb.clock import Clock
 from cocotb.triggers import RisingEdge, Timer
 from cocotbext.axi import AxiBus, AxiMaster
+from cocotb.handle import Immediate
 
 
 class TB(object):
     def __init__(self, dut):
         self.dut = dut
+        self.dut.rst.value = 1      # for the master to connect, the values shall not be X - therefore the reset
 
         self.log = logging.getLogger("cocotb.tb")
         self.log.setLevel(logging.DEBUG)
@@ -59,7 +61,7 @@ class TB(object):
             self.axi_master.read_if.r_channel.set_pause_generator(generator())
 
     async def cycle_reset(self):
-        self.dut.rst.setimmediatevalue(0)
+        self.dut.rst.value = Immediate(0)
         await RisingEdge(self.dut.clk)
         await RisingEdge(self.dut.clk)
         self.dut.rst.value = 1
@@ -74,6 +76,7 @@ class TB(object):
 async def run_test_write(
     dut, data_in=None, idle_inserter=None, backpressure_inserter=None, size=None
 ):
+
 
     tb = TB(dut)
 
