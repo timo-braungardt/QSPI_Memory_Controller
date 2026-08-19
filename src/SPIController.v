@@ -2,7 +2,7 @@
 
 module SPIController (
     input clk,
-    input reset,
+    input reset_neg,
     input go,
 
     // SPI Pins
@@ -102,7 +102,7 @@ module SPIController (
 
 
     always @(posedge clk) begin : clock_handler_register
-        if (reset) begin
+        if (!reset_neg) begin
             clk_bus_reg <= 0;
             clock_count_reg <= 0;
         end else begin
@@ -187,7 +187,7 @@ module SPIController (
 
 
     always @(posedge clk) begin : state_machine_register
-        if (reset) begin
+        if (!reset_neg) begin
             state_reg <= IDLE;
             count_reg <= 0;
             buffer_count_reg <= 0;
@@ -266,7 +266,7 @@ module SPIController (
 
 
     always @(posedge clk) begin : data_register
-        if (reset) begin
+        if (!reset_neg) begin
             data_out_reg <= 0;
         end else begin
             data_out_reg <= data_out_nxt;
@@ -294,7 +294,7 @@ module SPIController (
 
 
     always @(posedge clk) begin : configuration_register
-        if (reset) begin
+        if (!reset_neg) begin
             opcode <= 0;
             address <= 0;
             write_address <= 1'b1;

@@ -11,9 +11,9 @@ from cocotbext.spi import SpiBus
 from HelperClasses import SpiFlashMemory
 
 async def reset_dut(dut):
-    dut.reset.value = 1
+    dut.reset_neg.value = 0
     await ClockCycles(dut.clk, 1, rising=True)
-    dut.reset.value = 0
+    dut.reset_neg.value = 1
     await ClockCycles(dut.clk, 1, rising=True)
 
 

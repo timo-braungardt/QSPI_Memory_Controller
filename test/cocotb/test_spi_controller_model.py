@@ -21,9 +21,9 @@ class SPI_COMMANDS:
 
 
 async def reset_model(dut):
-    dut.reset.value = 1
+    dut.reset_neg.value = 0
     await Timer(250, unit="ns")  # t_RP
-    dut.reset.value = 0
+    dut.reset_neg.value = 1
     await Timer(500, unit="us")  # t_RH
 
     if dut.Memory.PoweredUp.value == 0:
