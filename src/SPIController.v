@@ -15,6 +15,10 @@ module SPIController (
     inout io_data3
 );
 
+    // constants
+    localparam integer TIMER_COUNT = 2;
+    localparam integer OPCODE_LENGTH = 8;
+    localparam integer ADDRESS_LENGTH = 24;  // can also be 32
     localparam BITS_PER_SHIFT = 4;
     localparam BUFFER_SIZE = 16;
     localparam BYTE_SEL_WIDTH = $clog2(BUFFER_SIZE);
@@ -61,7 +65,7 @@ module SPIController (
 
     reg     [            7:0] buffer                    [0:BUFFER_SIZE -1];
 
-    // states
+    // states transmission FSM
     localparam integer IDLE = 0;
     localparam integer SEND_OPCODE = 1;
     localparam integer SEND_ADDRESS = 2;
@@ -112,7 +116,7 @@ module SPIController (
     end
 
 
-    always @(*) begin : state_machine_logic
+    always @(*) begin : transmission_logic
         state_nxt = state_reg;
         count_nxt = count_reg;
         buffer_count_nxt = buffer_count_reg;
@@ -186,7 +190,7 @@ module SPIController (
     end
 
 
-    always @(posedge clk) begin : state_machine_register
+    always @(posedge clk) begin : transmission_register
         if (!reset_neg) begin
             state_reg <= IDLE;
             count_reg <= 0;
