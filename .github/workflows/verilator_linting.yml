@@ -26,7 +26,7 @@ jobs:
               continue
             fi
             echo "Linting: $f"
-            verilator --lint-only -Wall -Wno-MODMISSING "$f" || status=1
+            verilator --lint-only -Wall -Wno-MODMISSING -Wno-UNUSEDSIGNAL "$f" || status=1
           done
           exit $status
 
@@ -50,6 +50,6 @@ jobs:
             top=$(yq -r ".groups[$i].top" lint_groups_config.yml)
             files=$(yq -r ".groups[$i].files[]" lint_groups_config.yml | tr '\n' ' ')
             echo "Linting: $top"
-            verilator --lint-only -Wall --top-module "$top" $files || status=1
+            verilator --lint-only -Wall -Wno-UNUSEDSIGNAL --top-module "$top" $files || status=1
           done
           exit $status

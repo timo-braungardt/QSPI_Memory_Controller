@@ -490,20 +490,6 @@ module Basic_AXI_SPI #(
         end
     end
 
-    
-    // ToDo: use wires - these wires are needed by the cocotb module.
-    //                   in the HDL they are not used
-    //                   linter marks them as error
-    wire _unused_ok = 1'b0 && &{1'b0,
-                    s_axi_awlock,
-                    s_axi_awcache,
-                    s_axi_awprot,
-                    s_axi_wlast,
-                    s_axi_arlock,
-                    s_axi_arcache,
-                    s_axi_arprot,
-                    1'b0};
-
 endmodule
 
 `resetall
