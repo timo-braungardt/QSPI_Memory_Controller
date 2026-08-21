@@ -3,14 +3,20 @@ import logging
 from pathlib import Path
 import cocotb
 from cocotb_tools.runner import get_runner
-from cocotb.triggers import Timer, First, FallingEdge, RisingEdge
+from cocotb.triggers import Timer, First, FallingEdge, RisingEdge, ClockCycles
 from cocotb.clock import Clock
 from cocotb.types import LogicArray
 
+async def reset_dut(dut):
+    dut.reset.value = 1
+    await ClockCycles(dut.clk, 1, rising=True)
+    dut.reset.value = 0
+    await ClockCycles(dut.clk, 1, rising=True)
+
 
 class HyperRamModel:
-    def __init__(self, dut, size=8*1024*1024):
-        self.LATENCY = 6 *2
+    def __init__(self, dut, size=8 * 1024 * 1024):
+        self.LATENCY = 6 * 2
         self._CA_LENGTH = 6
 
         self.log = logging.getLogger("MemoryModel")
@@ -29,12 +35,10 @@ class HyperRamModel:
         self._run_coroutine_obj = None
         self._restart()
 
-
     def _restart(self):
         if self._run_coroutine_obj is not None:
             self._run_coroutine_obj.cancel()
         self._run_coroutine_obj = cocotb.start_soon(self._run())
-
 
     async def _run(self):
         while True:
@@ -44,7 +48,7 @@ class HyperRamModel:
             self.is_read = (ca >> 47) & 1
             self.is_register_space = (ca >> 46) & 1
             self.is_linear_burst = (ca >> 45) & 1
-            
+
             self.addr = (ca >> 16) & 0x1FFFFFFF
 
             self.log.debug("test 0x%06x", (ca >> 16))
@@ -63,7 +67,6 @@ class HyperRamModel:
             else:
                 await self._write_transaction(self.addr)
 
-
     async def _read_ca(self):
         clk_edge = RisingEdge(self.dut.o_bus_clock)
         clk_neg_edge = RisingEdge(self.dut.o_bus_clock_neg)
@@ -73,24 +76,21 @@ class HyperRamModel:
             word = int(self.dut.io_data.value)
             ca <<= 8
             ca |= word
-        
+
         self.log.debug("Recieved 0x%06x", ca)
         return ca
-
 
     async def _latency(self, is_long):
         clk_edge = RisingEdge(self.dut.o_bus_clock)
         clk_neg_edge = RisingEdge(self.dut.o_bus_clock_neg)
-        
+
         if is_long:
-            latency = self.LATENCY *2 -2
+            latency = self.LATENCY * 2 - 2
         else:
-            latency = self.LATENCY -2
+            latency = self.LATENCY - 2
 
         for _ in range(latency):
-                await First(clk_edge, clk_neg_edge)
-            
-
+            await First(clk_edge, clk_neg_edge)
 
     async def _write_transaction(self, addr):
         clk_edge = RisingEdge(self.dut.o_bus_clock)
@@ -115,7 +115,6 @@ class HyperRamModel:
                 self.log.debug("Masked address")
             addr += 1
 
-
     async def _read_transaction(self, addr):
         clk_edge = RisingEdge(self.dut.o_bus_clock)
         clk_neg_edge = RisingEdge(self.dut.o_bus_clock_neg)
@@ -132,14 +131,15 @@ class HyperRamModel:
 async def transmission_test(dut):
     memory_model = HyperRamModel(dut)
 
-    dut.is_read.value           = True
-    dut.is_register_space.value = False
-    dut.is_linear_burst.value   = False
-    dut.address.value           = 0x8000000d
-    dut.num_bits.value          = 8
-
-    c = Clock(dut.clk  , 20, 'ns')
+    c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
+    await reset_dut(dut)
+
+    dut.is_read.value = True
+    dut.is_register_space.value = False
+    dut.is_linear_burst.value = False
+    dut.address.value = 0x8000000D
+    dut.num_bits.value = 8
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -149,7 +149,7 @@ async def transmission_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
     await dut.o_chip_select_neg.value_change
 
-    assert memory_model.addr == 0x8000000d
+    assert memory_model.addr == 0x8000000D
     assert memory_model.is_read == True
     assert memory_model.is_register_space == False
     assert memory_model.is_linear_burst == False
@@ -159,17 +159,18 @@ async def transmission_test(dut):
 async def read_test(dut):
     memory_model = HyperRamModel(dut)
 
-    dut.is_read.value           = True
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
+
+    dut.is_read.value = True
     dut.is_register_space.value = False
-    dut.is_linear_burst.value   = False
-    dut.address.value           = 0x00000000
-    dut.num_bits.value          = 32
+    dut.is_linear_burst.value = False
+    dut.address.value = 0x00000000
+    dut.num_bits.value = 32
 
     for i in range(8):
-        memory_model.mem[i] = i+1
-
-    c = Clock(dut.clk  , 20, 'ns')
-    cocotb.start_soon(c.start())
+        memory_model.mem[i] = i + 1
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -195,17 +196,18 @@ async def read_test(dut):
 async def write_test(dut):
     memory_model = HyperRamModel(dut)
 
-    dut.is_read.value           = False
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
+
+    dut.is_read.value = False
     dut.is_register_space.value = False
-    dut.is_linear_burst.value   = False
-    dut.address.value           = 0x00000000
-    dut.num_bits.value          = 32
+    dut.is_linear_burst.value = False
+    dut.address.value = 0x00000000
+    dut.num_bits.value = 32
 
     for i in range(8):
-        dut.buffer[i].value = i+1
-
-    c = Clock(dut.clk  , 20, 'ns')
-    cocotb.start_soon(c.start())
+        dut.buffer[i].value = i + 1
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -236,15 +238,8 @@ def test_hyperbus():
     sources = [proj_path / "../../src/Hyperbus.v"]
 
     runner = get_runner(sim)
-    runner.build(
-        sources=sources,
-        hdl_toplevel="Hyperbus",
-        always=True,
-        waves=True
-    )
-    runner.test(hdl_toplevel="Hyperbus", 
-                test_module="test_hyperbus",
-                waves=True)
+    runner.build(sources=sources, hdl_toplevel="Hyperbus", always=True, waves=True)
+    runner.test(hdl_toplevel="Hyperbus", test_module="test_hyperbus", waves=True)
 
 
 if __name__ == "__main__":

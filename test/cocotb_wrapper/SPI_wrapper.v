@@ -9,6 +9,7 @@ module SPI_wrapper;
 
     BasicSPI Controller (
         .clk(clk),
+        .reset(reset),
         .go(go),
         .o_bus_clock(bus_clock),
         .o_chip_select_neg(chip_select_neg),
@@ -22,7 +23,7 @@ module SPI_wrapper;
         .SO(manager_serial_in),
         .SCK(bus_clock),
         .CSNeg(chip_select_neg),
-        .RESETNeg(reset)
+        .RESETNeg(~reset)
     );
 
 

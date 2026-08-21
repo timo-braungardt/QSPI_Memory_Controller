@@ -5,7 +5,7 @@ module HyperRAM_wrapper;
     reg go    = 1'b0;
     reg reset = 1'b1;
 
-    wire bus_clock;
+    wire bus_clock, bus_clock_neg;
     wire chip_select_neg;
     wire [7:0] data;
     wire data_strobe;
@@ -13,9 +13,10 @@ module HyperRAM_wrapper;
 
     Hyperbus controller (
         .clk(clk),
+        .reset(reset),
         .go(go),
         .o_bus_clock(bus_clock),
-        .o_bus_clock_neg(SerialClk_neg),
+        .o_bus_clock_neg(bus_clock_neg),
         .o_chip_select_neg(chip_select_neg),
         .io_data(data),
         .io_data_strobe(data_strobe)
@@ -36,7 +37,7 @@ module HyperRAM_wrapper;
         .RWDS(data_strobe),
         .CSNeg(chip_select_neg),
         .CK(bus_clock),
-        .RESETNeg(reset)
+        .RESETNeg(~reset)
     );
 
 endmodule

@@ -1,0 +1,55 @@
+name: Verilator Lint
+
+on: [push]
+
+jobs:
+  lint-files:
+    runs-on: ubuntu-latest
+    container:
+      image: verilator/verilator:latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Mark all directories safe
+        run: git config --global --add safe.directory '*'
+      - name: Install yq
+        run: |
+          apt-get update
+          apt-get install -y yq
+      - name: Lint files
+        run: |
+          verilator --version
+          status=0
+          ignored=$(yq -r '.files[]' lint_ignore_files.yml)
+          for f in $(git ls-files '*.v' '*.sv'); do
+            if echo "$ignored" | grep -qxF "$f"; then
+              echo "Skipping (ignored): $f"
+              continue
+            fi
+            echo "Linting: $f"
+            verilator --lint-only -Wall -Wno-MODMISSING "$f" || status=1
+          done
+          exit $status
+
+  lint-groups:
+    runs-on: ubuntu-latest
+    container:
+      image: verilator/verilator:latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Mark all directories safe
+        run: git config --global --add safe.directory '*'
+      - name: Install yq
+        run: |
+          apt-get update
+          apt-get install -y yq
+      - name: Lint groups
+        run: |
+          status=0
+          count=$(yq -r '.groups | length' lint_groups_config.yml)
+          for i in $(seq 0 $((count - 1))); do
+            top=$(yq -r ".groups[$i].top" lint_groups_config.yml)
+            files=$(yq -r ".groups[$i].files[]" lint_groups_config.yml | tr '\n' ' ')
+            echo "Linting: $top"
+            verilator --lint-only -Wall --top-module "$top" $files || status=1
+          done
+          exit $status

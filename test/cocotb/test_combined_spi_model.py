@@ -4,7 +4,7 @@ from pathlib import Path
 import itertools
 import cocotb
 from cocotb_tools.runner import get_runner
-from cocotb.triggers import Timer, First, FallingEdge, RisingEdge
+from cocotb.triggers import Timer, First, FallingEdge, RisingEdge, ClockCycles
 from cocotb.clock import Clock
 from cocotb.types import Logic, LogicArray
 from unittest import SkipTest
@@ -42,6 +42,7 @@ async def read_test(dut):
     dut.Controller.write_address.value = 0b0
     dut.Controller.write_data.value = 0b0
     dut.Controller.read_data.value = 0b0
+    dut.Controller.is_quad_mode.value = False
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -109,6 +110,7 @@ async def get_jedec_parameter_test(dut):
 
     dut.Controller.opcode.value = SPI_COMMANDS.read_JEDEC_parameter
     dut.Controller.address.value = 0x000000
+    dut.Controller.is_quad_mode.value = False
 
     dut.Controller.write_address.value = 0b1
     dut.Controller.write_data.value = 0b0
@@ -209,6 +211,7 @@ async def get_status_register_test(dut):
 
     dut.Controller.opcode.value = SPI_COMMANDS.read_status_reg_1
     dut.Controller.address.value = 0x000000
+    dut.Controller.is_quad_mode.value = False
 
     dut.Controller.write_address.value = 0b0
     dut.Controller.write_data.value = 0b0
@@ -301,7 +304,7 @@ async def get_status_register_test(dut):
     assert dut.Controller.buffer[0].value[1] == True  # Write/Program Enable Status Flag
 
 
-def test_spi_model(wave=False):
+def test_combined_spi_model(wave=False):
     required_file = Path(
         "../../test/memory_models/infineon-s25hl512t-qspi-verilog-model-simulationmodels-en/s25hl512tRel/src/s25hl512t.sv"
     )
@@ -310,8 +313,8 @@ def test_spi_model(wave=False):
 
     proj_path = Path(__file__).resolve().parent
     sources = [
-        proj_path / "../../src/BasicSPI.v",
-        proj_path / "../../test/cocotb_wrapper/SPI_wrapper.v",
+        proj_path / "../../src/CombinedSPI.v",
+        proj_path / "../../test/cocotb_wrapper/Combined_SPI_wrapper.v",
         proj_path / required_file,
     ]
 
@@ -323,17 +326,17 @@ def test_spi_model(wave=False):
 
     runner.build(
         sources=sources,
-        hdl_toplevel="SPI_wrapper",
+        hdl_toplevel="Combined_SPI_wrapper",
         always=True,
     )
 
     runner.test(
-        hdl_toplevel="SPI_wrapper",
-        test_module="test_spi_model",
+        hdl_toplevel="Combined_SPI_wrapper",
+        test_module="test_combined_spi_model",
         gui=wave,
-        pre_cmd=["source ../parameter_spi_model.tcl"],
+        pre_cmd=["source ../parameter_combined_spi_model.tcl"],
     )
 
 
 if __name__ == "__main__":
-    test_spi_model(True)
+    test_combined_spi_model(True)
