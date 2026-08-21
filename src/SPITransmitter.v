@@ -5,7 +5,7 @@ module SPITransmitter (
     input reset_neg,
     input start_transmission,
 
-    input  [31:0] i_address,
+    input  [23:0] i_address,
     input  [ 7:0] i_opcode,
     input         i_config_read_data,
     input         i_config_write_data,
