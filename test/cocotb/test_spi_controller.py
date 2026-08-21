@@ -91,7 +91,7 @@ async def spi_transmission_test(dut):
 
     await reset_dut(dut)
 
-    dut.is_quad_mode.value = False
+    dut.SPI_Transmitter.is_quad_mode.value = False
 
     dut.i_address.value = 0x800001
     dut.i_data_write.value = 0x8001
@@ -124,12 +124,12 @@ async def spi_read_test(dut):
 
     await reset_dut(dut)
 
-    dut.is_quad_mode.value = False
+    dut.SPI_Transmitter.is_quad_mode.value = False
 
     dut.i_address.value = 20
     dut.i_write_enable.value  = False
 
-    dut.num_bits.value = 32
+    dut.SPI_Transmitter.num_bits.value = 32
     spi_subordinate.num_bytes = 32 // 8
     spi_subordinate.data = [0x12, 0x34, 0x56, 0x78]
 
@@ -162,13 +162,13 @@ async def spi_write_test(dut):
 
     await reset_dut(dut)
 
-    dut.is_quad_mode.value = False
+    dut.SPI_Transmitter.is_quad_mode.value = False
 
     dut.i_address.value = 21
     dut.i_data_write.value = 0x8001
     dut.i_write_enable.value  = True
 
-    dut.num_bits.value = 16
+    dut.SPI_Transmitter.num_bits.value = 16
     spi_subordinate.num_bytes = 16 // 8
 
     assert not spi_subordinate.write_enable
@@ -191,7 +191,10 @@ def test_spi_controller():
     """
     sim = os.getenv("SIM", "icarus")
     proj_path = Path(__file__).resolve().parent
-    sources = [proj_path / "../../src/SPIController.v"]
+    sources = [
+        proj_path / "../../src/SPIController.v",
+        proj_path / "../../src/SPITransmitter.v"
+    ]
 
     runner = get_runner(sim)
     runner.build(sources=sources, hdl_toplevel="SPIController", always=True, waves=True)

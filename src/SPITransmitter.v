@@ -3,18 +3,20 @@
 module SPITransmitter (
     input clk,
     input reset_neg,
-    input go,
+    input start_transmission,
 
     input [31:0]    i_address,
-    input           i_write_enable,
+    input  [7:0]    i_opcode,
+    input           i_config_read_data,
+    input           i_config_write_data,
+    input           i_config_write_address,
     input [15:0]    i_data_write,
     output[15:0]    o_data_read,
-    output          o_busy,
+    output          o_finish,
 
     // SPI Pins
     output o_bus_clock,
     output reg o_chip_select_neg,
-    output o_reset,
     inout io_data0_manager_serial_in,
     inout io_data1_manager_serial_out,
     inout io_data2,
@@ -50,13 +52,6 @@ module SPITransmitter (
     integer                   clock_count_reg;
 
     // Logic stuff
-    reg     [               7:0] opcode_nxt;
-    reg     [               7:0] opcode_reg;
-    reg     [ADDRESS_LENGTH-1:0] address_nxt;
-    reg     [ADDRESS_LENGTH-1:0] address_reg;
-    wire                       config_write_address;
-    wire                       config_write_data;
-    wire                       config_read_data;
     reg                       is_quad_mode;
     integer                   num_bits;
     integer                   state_reg;
@@ -70,7 +65,6 @@ module SPITransmitter (
     integer                   buffer_count_nxt;
     reg                       transmission_finished_nxt;
     reg                       transmission_finished_reg;
-    wire                      start_transmission;
 
     reg     [            7:0] buffer                    [0:BUFFER_SIZE -1];
     assign o_data_read = {buffer[0], buffer[1]};
@@ -83,27 +77,12 @@ module SPITransmitter (
     localparam integer RECEIVE_DATA = 4;
     localparam integer FINISH = 5;
 
-    // states control FSM
-    localparam integer C_IDLE = 0;
-    localparam integer C_READ = 1;
-    localparam integer C_WRITE_ENABLE = 2;
-    localparam integer C_WAIT = 4;
-    localparam integer C_WRITE = 3;
-
-    integer control_state_reg;
-    integer control_state_nxt;
-
-    localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ           = 8'h03;
-    localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE_ENABLE   = 8'h06;
-    localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE          = 8'h02;
-
     assign en_bus_clock   = (state_reg != IDLE);
     assign clock_tick_pos = (clock_count_reg == 0 && ~clk_bus_reg);
     assign clock_tick_neg = (clock_count_reg == 0 && clk_bus_reg);
     assign en_data_out    = (state_reg != IDLE && state_reg != RECEIVE_DATA);
 
     assign o_bus_clock    = (en_bus_clock) ? clk_bus_reg : 1'b0;
-    assign o_reset        = 1'b0;
 
 
     always @(*) begin : clock_handler_logic
@@ -135,73 +114,7 @@ module SPITransmitter (
         end
     end
 
-
-    assign start_transmission = (control_state_reg != C_IDLE && control_state_reg != C_WAIT);
-    assign config_read_data = (control_state_reg == C_READ);
-    assign config_write_data = (control_state_reg == C_WRITE);
-    assign config_write_address = (control_state_reg == C_READ || control_state_reg == C_WRITE);
-    assign o_busy = (control_state_reg != IDLE);
-
-    integer delay_fsm;  // ToDo: make this more beautifull - the state machine probably needs multiple delays.
-    always @(*) begin : control_logic
-        address_nxt = address_reg;
-        opcode_nxt = opcode_reg;
-        control_state_nxt = control_state_reg;
-        
-        case (control_state_reg)
-            C_IDLE: begin
-                if (go) begin
-                    address_nxt = ADDRESS_LENGTH'(i_address);   // ToDo: the code should run with the address width of the project.
-                    opcode_nxt = (i_write_enable) ? OPCODE_WRITE_ENABLE : OPCODE_READ;
-                    control_state_nxt = (i_write_enable) ? C_WRITE_ENABLE : C_READ;
-                end
-            end
-
-            C_READ: begin
-                if (state_reg == FINISH)
-                control_state_nxt = C_IDLE;
-            end
-
-            C_WRITE_ENABLE: begin
-                if (state_reg == FINISH) begin
-                    control_state_nxt = C_WAIT;
-                end
-            end
-
-            C_WAIT: begin
-                if (delay_fsm == 10) begin
-                control_state_nxt = C_WRITE;
-                opcode_nxt = OPCODE_WRITE;
-                end
-            end
-
-            C_WRITE: begin
-                if (state_reg == FINISH)
-                control_state_nxt = C_IDLE;
-            end
-
-            default: control_state_nxt = C_IDLE;
-        endcase
-        
-    end
-
-
-    always @(posedge clk) begin : control_register
-        address_reg <= address_nxt;
-        opcode_reg <= opcode_nxt;
-        control_state_reg <= control_state_nxt;
-        delay_fsm <= 0;
-
-        if (control_state_reg == C_WAIT) begin
-            delay_fsm <= delay_fsm +1;
-        end
-
-        if (!reset_neg) begin
-            address_reg <= 0;
-            opcode_reg <= 0;
-        end
-    end
-
+    assign o_finish = (state_reg == FINISH);
 
     always @(*) begin : transmission_logic
         state_nxt = state_reg;
@@ -221,13 +134,13 @@ module SPITransmitter (
                 if (clock_tick_neg) begin
                     count_nxt = count_reg - 1;
                     if (count_reg == 0) begin
-                        if (config_write_address) begin
+                        if (i_config_write_address) begin
                             count_nxt = (is_quad_mode) ? ADDRESS_LENGTH / BITS_PER_SHIFT - 1 : ADDRESS_LENGTH - 1;
                             state_nxt = SEND_ADDRESS;
-                        end else if (config_write_data) begin
+                        end else if (i_config_write_data) begin
                             count_nxt = (is_quad_mode) ? num_bits / BITS_PER_SHIFT - 1 : num_bits - 1;
                             state_nxt = SEND_DATA;
-                        end else if (config_read_data) begin
+                        end else if (i_config_read_data) begin
                             count_nxt = (is_quad_mode) ? num_bits / BITS_PER_SHIFT - 1 : num_bits - 1;
                             buffer_count_nxt = 0;
                             state_nxt = RECEIVE_DATA;
@@ -242,8 +155,8 @@ module SPITransmitter (
                 if (count_reg == 0 && clock_tick_neg) begin
                     count_nxt = (is_quad_mode) ? num_bits / BITS_PER_SHIFT - 1 : num_bits - 1;
                     buffer_count_nxt = 0;
-                    if (config_write_data) state_nxt = SEND_DATA;
-                    else if (config_read_data) state_nxt = RECEIVE_DATA;
+                    if (i_config_write_data) state_nxt = SEND_DATA;
+                    else if (i_config_read_data) state_nxt = RECEIVE_DATA;
                     else state_nxt = FINISH;
                 end
             end
@@ -316,23 +229,23 @@ module SPITransmitter (
         case (state_reg)
             SEND_OPCODE: begin
                 if (is_quad_mode) begin
-                    data_out_nxt[0] = opcode_reg[{count_reg[0], 2'd0}];
-                    data_out_nxt[1] = opcode_reg[{count_reg[0], 2'd1}];
-                    data_out_nxt[2] = opcode_reg[{count_reg[0], 2'd2}];
-                    data_out_nxt[3] = opcode_reg[{count_reg[0], 2'd3}];
+                    data_out_nxt[0] = i_opcode[{count_reg[0], 2'd0}];
+                    data_out_nxt[1] = i_opcode[{count_reg[0], 2'd1}];
+                    data_out_nxt[2] = i_opcode[{count_reg[0], 2'd2}];
+                    data_out_nxt[3] = i_opcode[{count_reg[0], 2'd3}];
                 end else begin
-                    data_out_nxt[0] = opcode_reg[count_reg[2:0]];
+                    data_out_nxt[0] = i_opcode[count_reg[2:0]];
                 end
             end
 
             SEND_ADDRESS: begin
                 if (is_quad_mode) begin
-                    data_out_nxt[0] = address_reg[{count_reg[2:0], 2'd0}];
-                    data_out_nxt[1] = address_reg[{count_reg[2:0], 2'd1}];
-                    data_out_nxt[2] = address_reg[{count_reg[2:0], 2'd2}];
-                    data_out_nxt[3] = address_reg[{count_reg[2:0], 2'd3}];
+                    data_out_nxt[0] = i_address[{count_reg[2:0], 2'd0}];
+                    data_out_nxt[1] = i_address[{count_reg[2:0], 2'd1}];
+                    data_out_nxt[2] = i_address[{count_reg[2:0], 2'd2}];
+                    data_out_nxt[3] = i_address[{count_reg[2:0], 2'd3}];
                 end else begin
-                    data_out_nxt[0] = address_reg[count_reg[4:0]];
+                    data_out_nxt[0] = i_address[count_reg[4:0]];
                 end
             end
 
@@ -389,7 +302,7 @@ module SPITransmitter (
     always @(posedge clk) begin : configuration_register
         if (!reset_neg) begin
             num_bits <= 32;
-            is_quad_mode <= 1'b1;
+            is_quad_mode <= 1'b0;
         end
     end
 

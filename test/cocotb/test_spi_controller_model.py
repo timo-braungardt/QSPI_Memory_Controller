@@ -36,8 +36,8 @@ async def read_test(dut):
     cocotb.start_soon(c.start())
     await reset_model(dut)
 
-    dut.Controller.is_quad_mode.value = False
-    dut.Controller.num_bits.value = 16
+    dut.Controller.SPI_Transmitter.is_quad_mode.value = False
+    dut.Controller.SPI_Transmitter.num_bits.value = 16
 
     # step: write
     dut.i_address.value = 0x20
@@ -64,7 +64,7 @@ async def read_test(dut):
     dut.i_write_enable.value  = False
 
     for i in range(8):
-        dut.Controller.buffer[i].value = 0
+        dut.Controller.SPI_Transmitter.buffer[i].value = 0
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -88,6 +88,7 @@ def test_spi_controller_model(wave=False):
     proj_path = Path(__file__).resolve().parent
     sources = [
         proj_path / "../../src/SPIController.v",
+        proj_path / "../../src/SPITransmitter.v",
         proj_path / "../../test/cocotb_wrapper/SPIController_wrapper.v",
         proj_path / required_file,
     ]
