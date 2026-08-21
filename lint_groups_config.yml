@@ -4,3 +4,7 @@ groups:
     files: 
       - src/Basic_AXI_SPI.v
       - src/BasicSPI.v
+  - top: SPIController
+    files: 
+      - src/SPIController.v
+      - src/SPITransmitter.v
