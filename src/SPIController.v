@@ -24,15 +24,17 @@ module SPIController (
     // constants
     localparam integer OPCODE_LENGTH = 8;
     localparam integer ADDRESS_LENGTH = 24;  // can also be 32
+    localparam DELAY_CYCLES = 10;
 
     // Logic stuff
-    reg  [               7:0] opcode_nxt;
-    reg  [               7:0] opcode_reg;
+    reg  [ OPCODE_LENGTH-1:0] opcode_nxt;
+    reg  [ OPCODE_LENGTH-1:0] opcode_reg;
     reg  [ADDRESS_LENGTH-1:0] address_nxt;
     reg  [ADDRESS_LENGTH-1:0] address_reg;
     wire                      config_write_address;
     wire                      config_write_data;
     wire                      config_read_data;
+    reg                       config_quad_mode;
     wire                      start_transmission;
     wire                      transmitter_finish;
 
@@ -63,6 +65,7 @@ module SPIController (
         .i_config_read_data(config_read_data),
         .i_config_write_data(config_write_data),
         .i_config_write_address(config_write_address),
+        .i_config_quad_mode(config_quad_mode),
         .i_data_write(i_data_write),
         .o_data_read(o_data_read),
         .o_finish(transmitter_finish),
@@ -110,7 +113,7 @@ module SPIController (
             end
 
             WAIT: begin
-                if (delay_fsm == 10) begin
+                if (delay_fsm == DELAY_CYCLES) begin
                     control_state_nxt = WRITE;
                     opcode_nxt = OPCODE_WRITE;
                 end
@@ -139,6 +142,7 @@ module SPIController (
         if (!reset_neg) begin
             address_reg <= 0;
             opcode_reg  <= 0;
+            config_quad_mode <= 1'b0;
         end
     end
 

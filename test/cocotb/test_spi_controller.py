@@ -92,7 +92,7 @@ async def spi_transmission_test(dut):
 
     await reset_dut(dut)
 
-    dut.SPI_Transmitter.is_quad_mode.value = False
+    dut.config_quad_mode.value = False
 
     dut.i_address.value = 0x800001
     dut.i_data_write.value = 0x8001
@@ -125,13 +125,13 @@ async def spi_read_test(dut):
 
     await reset_dut(dut)
 
-    dut.SPI_Transmitter.is_quad_mode.value = False
+    dut.config_quad_mode.value = False
 
     dut.i_address.value = 20
     dut.i_write_enable.value = False
 
-    dut.SPI_Transmitter.num_bits.value = 32
-    spi_subordinate.num_bytes = 32 // 8
+    dut.SPI_Transmitter.num_bits.value = 16
+    spi_subordinate.num_bytes = 16 // 8
     spi_subordinate.data = [0x12, 0x34, 0x56, 0x78]
 
     await trigger_go(dut)
@@ -163,7 +163,7 @@ async def spi_write_test(dut):
 
     await reset_dut(dut)
 
-    dut.SPI_Transmitter.is_quad_mode.value = False
+    dut.config_quad_mode.value = False
 
     dut.i_address.value = 21
     dut.i_data_write.value = 0x8001

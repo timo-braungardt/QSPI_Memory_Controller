@@ -36,7 +36,7 @@ async def read_test(dut):
     cocotb.start_soon(c.start())
     await reset_model(dut)
 
-    dut.Controller.SPI_Transmitter.is_quad_mode.value = False
+    dut.Controller.config_quad_mode.value = False
     dut.Controller.SPI_Transmitter.num_bits.value = 16
 
     # step: write
