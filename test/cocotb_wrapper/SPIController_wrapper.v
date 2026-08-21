@@ -4,6 +4,12 @@ module SPIController_wrapper;
     reg clk;
     reg go;
     reg reset_neg = 1'b0;
+    wire busy;
+
+    reg [31:0] i_address;
+    reg [15:0] i_data_write;
+    reg [15:0] o_data_read;
+    reg i_write_enable;
 
     wire [3:0] data;
     wire bus_clock, chip_select_neg;
@@ -12,6 +18,13 @@ module SPIController_wrapper;
         .clk(clk),
         .reset_neg(reset_neg),
         .go(go),
+
+        .i_address(i_address),
+        .i_write_enable(i_write_enable),
+        .i_data_write(i_data_write),
+        .o_data_read(o_data_read),
+        .o_busy(busy),
+
         .o_bus_clock(bus_clock),
         .o_chip_select_neg(chip_select_neg),
         .io_data0_manager_serial_in(data[0]),
