@@ -42,7 +42,7 @@ async def read_test(dut):
     # step: write
     dut.i_address.value = 0x20
     dut.i_data_write.value = 0x1234
-    dut.i_write_enable.value  = True
+    dut.i_write_enable.value = True
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -61,7 +61,7 @@ async def read_test(dut):
     await Timer(480, unit="us")  # T_PP typ in the datasheet
 
     dut.i_address.value = 0x20
-    dut.i_write_enable.value  = False
+    dut.i_write_enable.value = False
 
     for i in range(8):
         dut.Controller.SPI_Transmitter.buffer[i].value = 0

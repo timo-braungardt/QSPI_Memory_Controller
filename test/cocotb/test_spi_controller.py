@@ -10,6 +10,7 @@ from cocotbext.qspi import QSpiSubordinateBase, QSpiBus, QSpiConfig
 from cocotbext.spi import SpiBus
 from HelperClasses import SpiFlashMemory
 
+
 async def reset_dut(dut):
     dut.reset_neg.value = 0
     await ClockCycles(dut.clk, 2, rising=True)
@@ -127,7 +128,7 @@ async def spi_read_test(dut):
     dut.SPI_Transmitter.is_quad_mode.value = False
 
     dut.i_address.value = 20
-    dut.i_write_enable.value  = False
+    dut.i_write_enable.value = False
 
     dut.SPI_Transmitter.num_bits.value = 32
     spi_subordinate.num_bytes = 32 // 8
@@ -166,7 +167,7 @@ async def spi_write_test(dut):
 
     dut.i_address.value = 21
     dut.i_data_write.value = 0x8001
-    dut.i_write_enable.value  = True
+    dut.i_write_enable.value = True
 
     dut.SPI_Transmitter.num_bits.value = 16
     spi_subordinate.num_bytes = 16 // 8
@@ -191,10 +192,7 @@ def test_spi_controller():
     """
     sim = os.getenv("SIM", "icarus")
     proj_path = Path(__file__).resolve().parent
-    sources = [
-        proj_path / "../../src/SPIController.v",
-        proj_path / "../../src/SPITransmitter.v"
-    ]
+    sources = [proj_path / "../../src/SPIController.v", proj_path / "../../src/SPITransmitter.v"]
 
     runner = get_runner(sim)
     runner.build(sources=sources, hdl_toplevel="SPIController", always=True, waves=True)
