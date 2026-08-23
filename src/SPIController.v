@@ -23,7 +23,7 @@ module SPIController (
 
     // constants
     localparam integer OPCODE_LENGTH = 8;
-    localparam integer ADDRESS_LENGTH = 24;  // can also be 32
+    localparam integer ADDRESS_LENGTH = 24;  // ToDo: can also be 32
     localparam integer DATA_WIDTH = 16;
     localparam DELAY_CYCLES = 10;
 
