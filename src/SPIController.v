@@ -24,6 +24,7 @@ module SPIController (
     // constants
     localparam integer OPCODE_LENGTH = 8;
     localparam integer ADDRESS_LENGTH = 24;  // can also be 32
+    localparam integer DATA_WIDTH = 16;
     localparam DELAY_CYCLES = 10;
 
     // Logic stuff
@@ -31,6 +32,8 @@ module SPIController (
     reg  [ OPCODE_LENGTH-1:0] opcode_reg;
     reg  [ADDRESS_LENGTH-1:0] address_nxt;
     reg  [ADDRESS_LENGTH-1:0] address_reg;
+    reg  [DATA_WIDTH-1:0]     data_in_nxt;
+    reg  [DATA_WIDTH-1:0]     data_in_reg;
     wire                      config_write_address;
     wire                      config_write_data;
     wire                      config_read_data;
@@ -66,7 +69,7 @@ module SPIController (
         .i_config_write_data(config_write_data),
         .i_config_write_address(config_write_address),
         .i_config_quad_mode(config_quad_mode),
-        .i_data_write(i_data_write),
+        .i_data_write(data_in_reg),
         .o_data_read(o_data_read),
         .o_finish(transmitter_finish),
 
@@ -91,12 +94,14 @@ module SPIController (
     always @(*) begin : control_logic
         address_nxt = address_reg;
         opcode_nxt = opcode_reg;
+        data_in_nxt = data_in_reg;
         control_state_nxt = control_state_reg;
 
         case (control_state_reg)
             IDLE: begin
                 if (go) begin
                     address_nxt = ADDRESS_LENGTH'(i_address);   // ToDo: the code should run with the address width of the project.
+                    data_in_nxt = i_data_write;
                     opcode_nxt = (i_write_enable) ? OPCODE_WRITE_ENABLE : OPCODE_READ;
                     control_state_nxt = (i_write_enable) ? WRITE_ENABLE : READ;
                 end
@@ -132,6 +137,7 @@ module SPIController (
     always @(posedge clk) begin : control_register
         address_reg <= address_nxt;
         opcode_reg <= opcode_nxt;
+        data_in_reg <= data_in_nxt;
         control_state_reg <= control_state_nxt;
         delay_fsm <= 0;
 
