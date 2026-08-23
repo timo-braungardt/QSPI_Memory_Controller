@@ -30,12 +30,8 @@ module SPITransmitter (
     localparam integer ADDRESS_LENGTH = 24;  // can also be 32
     localparam integer DATA_WIDTH = 16;
     localparam BITS_PER_SHIFT = 4;
-    localparam BUFFER_SIZE = 16;
-    localparam BYTE_SEL_WIDTH = $clog2(BUFFER_SIZE);
-    localparam BYTE_SEL_LSB = $clog2(8 / BITS_PER_SHIFT);
-    localparam BYTE_SEL_MSB = BYTE_SEL_LSB + BYTE_SEL_WIDTH - 1;
-    localparam BYTE_SEL_LSB_SINGLE = $clog2(8);
-    localparam BYTE_SEL_MSB_SINGLE = BYTE_SEL_LSB_SINGLE + BYTE_SEL_WIDTH - 1;
+    localparam BYTE_SEL_LSB = $clog2(DATA_WIDTH / BITS_PER_SHIFT)-1;
+    localparam BYTE_SEL_LSB_SINGLE = $clog2(DATA_WIDTH)-1;
     localparam BUS_WIDTH = 4;
     localparam BUS_WIDTH_MSB = BUS_WIDTH - 1;
 
@@ -67,8 +63,8 @@ module SPITransmitter (
     reg                       transmission_finished_nxt;
     reg                       transmission_finished_reg;
 
-    reg     [            7:0] buffer                    [0:BUFFER_SIZE -1];
-    assign o_data_read = {buffer[0], buffer[1]};
+    reg [DATA_WIDTH-1:0] data_read_reg;
+    assign o_data_read = data_read_reg;
 
     // states transmission FSM
     localparam integer IDLE = 0;
@@ -252,20 +248,20 @@ module SPITransmitter (
 
             SEND_DATA: begin
                 if (i_config_quad_mode) begin
-                    data_out_nxt[0] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
-                        count_reg[0], 2'd0
+                    data_out_nxt[0] = i_data_write[{
+                        count_reg[BYTE_SEL_LSB:0], 2'd0
                     }];
-                    data_out_nxt[1] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
-                        count_reg[0], 2'd1
+                    data_out_nxt[1] = i_data_write[{
+                        count_reg[BYTE_SEL_LSB:0], 2'd1
                     }];
-                    data_out_nxt[2] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
-                        count_reg[0], 2'd2
+                    data_out_nxt[2] = i_data_write[{
+                        count_reg[BYTE_SEL_LSB:0], 2'd2
                     }];
-                    data_out_nxt[3] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
-                        count_reg[0], 2'd3
+                    data_out_nxt[3] = i_data_write[{
+                        count_reg[BYTE_SEL_LSB:0], 2'd3
                     }];
                 end else begin
-                    data_out_nxt[0] = i_data_write[count_reg[3:0]];
+                    data_out_nxt[0] = i_data_write[count_reg[BYTE_SEL_LSB_SINGLE:0]];
                 end
             end
         endcase
@@ -280,20 +276,20 @@ module SPITransmitter (
 
             if (state_reg == RECEIVE_DATA && clock_tick_pos) begin
                 if (i_config_quad_mode) begin
-                    buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
-                        count_reg[0], 2'd0
+                    data_read_reg[{
+                        count_reg[BYTE_SEL_LSB:0], 2'd0
                     }] <= data_in[0];
-                    buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
-                        count_reg[0], 2'd1
+                    data_read_reg[{
+                        count_reg[BYTE_SEL_LSB:0], 2'd1
                     }] <= data_in[1];
-                    buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
-                        count_reg[0], 2'd2
+                    data_read_reg[{
+                        count_reg[BYTE_SEL_LSB:0], 2'd2
                     }] <= data_in[2];
-                    buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
-                        count_reg[0], 2'd3
+                    data_read_reg[{
+                        count_reg[BYTE_SEL_LSB:0], 2'd3
                     }] <= data_in[3];
                 end else begin
-                    buffer[buffer_count_reg[BYTE_SEL_MSB_SINGLE:BYTE_SEL_LSB_SINGLE]][count_reg[BYTE_SEL_LSB_SINGLE-1:0]] <= data_in[0];
+                    data_read_reg[count_reg[BYTE_SEL_LSB_SINGLE:0]] <= data_in[0];
                 end
             end
         end

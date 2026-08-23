@@ -63,9 +63,6 @@ async def read_test(dut):
     dut.i_address.value = 0x20
     dut.i_write_enable.value = False
 
-    for i in range(8):
-        dut.Controller.SPI_Transmitter.buffer[i].value = 0
-
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
     dut.go.value = 1
