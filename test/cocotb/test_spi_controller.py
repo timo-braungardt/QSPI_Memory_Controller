@@ -93,6 +93,7 @@ async def spi_transmission_test(dut):
     await reset_dut(dut)
 
     dut.config_quad_mode.value = False
+    spi_subordinate.num_bytes = 16 // 8
 
     dut.i_address.value = 0x800001
     dut.i_data_write.value = 0x8001

@@ -28,6 +28,7 @@ module SPITransmitter (
     localparam integer TIMER_COUNT = 2;
     localparam integer OPCODE_LENGTH = 8;
     localparam integer ADDRESS_LENGTH = 24;  // can also be 32
+    localparam integer DATA_WIDTH = 16;
     localparam BITS_PER_SHIFT = 4;
     localparam BUFFER_SIZE = 16;
     localparam BYTE_SEL_WIDTH = $clog2(BUFFER_SIZE);
@@ -301,7 +302,7 @@ module SPITransmitter (
 
     always @(posedge clk) begin : configuration_register
         if (!reset_neg) begin
-            num_bits <= 32;
+            num_bits <= DATA_WIDTH;
         end
     end
 
