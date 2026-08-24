@@ -79,7 +79,7 @@ module SPITransmitter #(
     assign en_bus_clock   = (state_reg != IDLE);
     assign clock_tick_pos = (clock_count_reg == 0 && ~clk_bus_reg);
     assign clock_tick_neg = (clock_count_reg == 0 && clk_bus_reg);
-    assign en_data_out    = (state_reg != IDLE && state_reg != RECEIVE_DATA);
+    assign en_data_out    = (state_reg != IDLE && state_reg != RECEIVE_DATA && state_reg != FINISH);
 
     assign o_bus_clock    = (en_bus_clock) ? clk_bus_reg : 1'b0;
 
