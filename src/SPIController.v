@@ -1,6 +1,8 @@
 `timescale 1ns / 100ps
 
-module SPIController (
+module SPIController #(
+    parameter ADDRESS_LENGTH = 24
+) (
     input clk,
     input reset_neg,
     input go,
@@ -23,7 +25,6 @@ module SPIController (
 
     // constants
     localparam integer OPCODE_LENGTH = 8;
-    localparam integer ADDRESS_LENGTH = 24;  // ToDo: can also be 32
     localparam integer DATA_WIDTH = 16;
     localparam DELAY_CYCLES = 10;
 
@@ -58,7 +59,7 @@ module SPIController (
     assign o_reset = 1'b0;
 
 
-    SPITransmitter SPI_Transmitter (
+    SPITransmitter #(.ADDRESS_LENGTH(ADDRESS_LENGTH)) SPI_Transmitter (
         .clk(clk),
         .reset_neg(reset_neg),
         .start_transmission(start_transmission),

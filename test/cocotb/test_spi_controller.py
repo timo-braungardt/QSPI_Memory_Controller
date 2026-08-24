@@ -42,6 +42,7 @@ async def spi_transmission_test(dut):
             cs_name="o_chip_select_neg",
         )
     )
+    spi_subordinate.address_width = dut.ADDRESS_LENGTH.value.to_unsigned()
 
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
@@ -52,7 +53,6 @@ async def spi_transmission_test(dut):
     spi_subordinate.num_bytes = 16 // 8
 
     dut.i_address.value = 0x800001
-    dut.i_data_write.value = 0x8001
     dut.i_write_enable.value = 0b0
 
     await trigger_go(dut)
@@ -76,6 +76,7 @@ async def spi_read_test(dut):
             cs_name="o_chip_select_neg",
         )
     )
+    spi_subordinate.address_width = dut.ADDRESS_LENGTH.value.to_unsigned()
 
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
@@ -113,6 +114,7 @@ async def spi_write_test(dut):
             cs_name="o_chip_select_neg",
         )
     )
+    spi_subordinate.address_width = dut.ADDRESS_LENGTH.value.to_unsigned()
 
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
@@ -150,7 +152,7 @@ def test_spi_controller():
     sources = [proj_path / "../../src/SPIController.v", proj_path / "../../src/SPITransmitter.v"]
 
     runner = get_runner(sim)
-    runner.build(sources=sources, hdl_toplevel="SPIController", always=True, waves=True)
+    runner.build(sources=sources, hdl_toplevel="SPIController", always=True, waves=True, parameters={"ADDRESS_LENGTH": 24})
     runner.test(hdl_toplevel="SPIController", test_module="test_spi_controller", waves=True)
 
 

@@ -16,6 +16,7 @@ class QSpiFlashMemory(QSpiSubordinateBase):
         self.write_enable = False
         self.data = []
         self.num_bytes = 4
+        self.address_width = 24
         super().__init__(bus)
 
     async def get_contents(self):
@@ -32,7 +33,7 @@ class QSpiFlashMemory(QSpiSubordinateBase):
             self.write_enable = True
             self.log.info("   writing enabled")
         else:
-            self.address = int(await self._quad_recieve(24))
+            self.address = int(await self._quad_recieve(self.address_width))
             self.log.info("   address: %d", self.address)
 
         # Manager ordered a read

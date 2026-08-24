@@ -1,11 +1,13 @@
 `timescale 1ns / 100ps
 
-module SPITransmitter (
+module SPITransmitter #(
+    parameter ADDRESS_LENGTH = 24
+) (
     input clk,
     input reset_neg,
     input start_transmission,
 
-    input  [23:0] i_address,
+    input  [ADDRESS_LENGTH-1:0] i_address,
     input  [ 7:0] i_opcode,
     input         i_config_read_data,
     input         i_config_write_data,
@@ -27,11 +29,12 @@ module SPITransmitter (
     // constants
     localparam integer TIMER_COUNT = 2;
     localparam integer OPCODE_LENGTH = 8;
-    localparam integer ADDRESS_LENGTH = 24;  // ToDo: can also be 32, get from parent module
     localparam integer DATA_WIDTH = 16;
     localparam BITS_PER_SHIFT = 4;
     localparam BYTE_SEL_LSB = $clog2(DATA_WIDTH / BITS_PER_SHIFT)-1;
     localparam BYTE_SEL_LSB_SINGLE = $clog2(DATA_WIDTH)-1;
+    localparam ADDRESS_SEL_MSB = $clog2(ADDRESS_LENGTH / BITS_PER_SHIFT)-1;
+    localparam ADDRESS_SEL_MSB_SINGLE = $clog2(ADDRESS_LENGTH)-1;
     localparam BUS_WIDTH = 4;
     localparam BUS_WIDTH_MSB = BUS_WIDTH - 1;
 
@@ -236,12 +239,12 @@ module SPITransmitter (
 
             SEND_ADDRESS: begin
                 if (i_config_quad_mode) begin
-                    data_out_nxt[0] = i_address[{count_reg[2:0], 2'd0}];
-                    data_out_nxt[1] = i_address[{count_reg[2:0], 2'd1}];
-                    data_out_nxt[2] = i_address[{count_reg[2:0], 2'd2}];
-                    data_out_nxt[3] = i_address[{count_reg[2:0], 2'd3}];
+                    data_out_nxt[0] = i_address[{count_reg[ADDRESS_SEL_MSB:0], 2'd0}];
+                    data_out_nxt[1] = i_address[{count_reg[ADDRESS_SEL_MSB:0], 2'd1}];
+                    data_out_nxt[2] = i_address[{count_reg[ADDRESS_SEL_MSB:0], 2'd2}];
+                    data_out_nxt[3] = i_address[{count_reg[ADDRESS_SEL_MSB:0], 2'd3}];
                 end else begin
-                    data_out_nxt[0] = i_address[count_reg[4:0]];
+                    data_out_nxt[0] = i_address[count_reg[ADDRESS_SEL_MSB_SINGLE:0]];
                 end
             end
 
