@@ -108,7 +108,7 @@ module SPIController #(
         case (control_state_reg)
             IDLE: begin
                 if (go) begin
-                    address_nxt = ADDRESS_LENGTH'(i_address);   // ToDo: the code should run with the address width of the project.
+                    address_nxt = ADDRESS_LENGTH'(i_address);
                     data_in_nxt = i_data_write;
                     opcode_nxt = (i_write_enable) ? OPCODE_WRITE_ENABLE : OPCODE_READ;
                     control_state_nxt = (i_write_enable) ? WRITE_ENABLE : READ;
