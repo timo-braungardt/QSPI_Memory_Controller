@@ -57,7 +57,7 @@ module SPIController #(
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ = 8'h03;
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE_ENABLE = 8'h06;
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE = 8'h02;
-    localparam [OPCODE_LENGTH -1 : 0] OPCODE_LONG_ADDRESS_ENABLE = 8'hB7;
+    //localparam [OPCODE_LENGTH -1 : 0] OPCODE_LONG_ADDRESS_ENABLE = 8'hB7;
 
     assign o_reset = 1'b0;
 
