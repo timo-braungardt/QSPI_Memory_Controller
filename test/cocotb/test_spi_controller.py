@@ -42,7 +42,6 @@ async def spi_transmission_test(dut):
             cs_name="o_chip_select_neg",
         )
     )
-    spi_subordinate.address_width = dut.ADDRESS_LENGTH.value.to_unsigned()
 
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
@@ -76,7 +75,6 @@ async def spi_read_test(dut):
             cs_name="o_chip_select_neg",
         )
     )
-    spi_subordinate.address_width = dut.ADDRESS_LENGTH.value.to_unsigned()
 
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
@@ -114,7 +112,6 @@ async def spi_write_test(dut):
             cs_name="o_chip_select_neg",
         )
     )
-    spi_subordinate.address_width = dut.ADDRESS_LENGTH.value.to_unsigned()
 
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())

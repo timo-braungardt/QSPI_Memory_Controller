@@ -7,6 +7,7 @@ class QSpiFlashMemory(QSpiSubordinateBase):
     write_enable = 0x06
     program = 0x02
     read = 0x03
+    long_address_enable = 0xB7
 
     def __init__(self, bus: QSpiBus, config: QSpiConfig):
         self.log = logging.getLogger(f"cocotb.qspi")
@@ -32,6 +33,9 @@ class QSpiFlashMemory(QSpiSubordinateBase):
         if self.opcode == QSpiFlashMemory.write_enable:
             self.write_enable = True
             self.log.info("   writing enabled")
+        elif self.opcode == QSpiFlashMemory.long_address_enable:
+            self.address_width = 32
+            self.log.info("   address length now 32 bit")
         else:
             self.address = int(await self._quad_recieve(self.address_width))
             self.log.info("   address: %d", self.address)
