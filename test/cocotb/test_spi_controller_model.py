@@ -37,7 +37,6 @@ async def read_test(dut):
     await reset_model(dut)
 
     dut.Controller.config_quad_mode.value = False
-    dut.Controller.SPI_Transmitter.num_bits.value = 16
 
     # step: write
     dut.i_address.value = 0x20

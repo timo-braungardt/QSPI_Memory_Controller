@@ -87,7 +87,6 @@ async def spi_read_test(dut):
     dut.i_address.value = 20
     dut.i_write_enable.value = False
 
-    dut.SPI_Transmitter.num_bits.value = 16
     spi_subordinate.num_bytes = 16 // 8
     spi_subordinate.data = [0x12, 0x34, 0x56, 0x78]
 
@@ -126,7 +125,6 @@ async def spi_write_test(dut):
     dut.i_data_write.value = 0x8001
     dut.i_write_enable.value = True
 
-    dut.SPI_Transmitter.num_bits.value = 16
     spi_subordinate.num_bytes = 16 // 8
 
     assert not spi_subordinate.write_enable

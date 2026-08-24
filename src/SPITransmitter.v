@@ -50,7 +50,6 @@ module SPITransmitter (
     integer                   clock_count_reg;
 
     // Logic stuff
-    integer                   num_bits;         // ToDo: have to find a solution
     integer                   state_reg;
     integer                   state_nxt;
 
@@ -135,10 +134,10 @@ module SPITransmitter (
                             count_nxt = (i_config_quad_mode) ? ADDRESS_LENGTH / BITS_PER_SHIFT - 1 : ADDRESS_LENGTH - 1;
                             state_nxt = SEND_ADDRESS;
                         end else if (i_config_write_data) begin
-                            count_nxt = (i_config_quad_mode) ? num_bits / BITS_PER_SHIFT - 1 : num_bits - 1;
+                            count_nxt = (i_config_quad_mode) ? DATA_WIDTH / BITS_PER_SHIFT - 1 : DATA_WIDTH - 1;
                             state_nxt = SEND_DATA;
                         end else if (i_config_read_data) begin
-                            count_nxt = (i_config_quad_mode) ? num_bits / BITS_PER_SHIFT - 1 : num_bits - 1;
+                            count_nxt = (i_config_quad_mode) ? DATA_WIDTH / BITS_PER_SHIFT - 1 : DATA_WIDTH - 1;
                             buffer_count_nxt = 0;
                             state_nxt = RECEIVE_DATA;
                         end else state_nxt = FINISH;
@@ -150,7 +149,7 @@ module SPITransmitter (
                 if (clock_tick_neg) count_nxt = count_reg - 1;
 
                 if (count_reg == 0 && clock_tick_neg) begin
-                    count_nxt = (i_config_quad_mode) ? num_bits / BITS_PER_SHIFT - 1 : num_bits - 1;
+                    count_nxt = (i_config_quad_mode) ? DATA_WIDTH / BITS_PER_SHIFT - 1 : DATA_WIDTH - 1;
                     buffer_count_nxt = 0;
                     if (i_config_write_data) state_nxt = SEND_DATA;
                     else if (i_config_read_data) state_nxt = RECEIVE_DATA;
@@ -292,13 +291,6 @@ module SPITransmitter (
                     data_read_reg[count_reg[BYTE_SEL_LSB_SINGLE:0]] <= data_in[0];
                 end
             end
-        end
-    end
-
-
-    always @(posedge clk) begin : configuration_register
-        if (!reset_neg) begin
-            num_bits <= DATA_WIDTH;
         end
     end
 
