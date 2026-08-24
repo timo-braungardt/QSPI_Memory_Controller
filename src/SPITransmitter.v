@@ -13,6 +13,7 @@ module SPITransmitter #(
     input                       i_config_write_data,
     input                       i_config_write_address,
     input                       i_config_quad_mode,
+    input  [               4:0] i_config_dummy_cycles,
     input  [              15:0] i_data_write,
     output [              15:0] o_data_read,
     output                      o_finish,
@@ -72,6 +73,7 @@ module SPITransmitter #(
     localparam integer IDLE = 0;
     localparam integer SEND_OPCODE = 1;
     localparam integer SEND_ADDRESS = 2;
+    localparam integer DUMMY_CYCLES = 6;
     localparam integer SEND_DATA = 3;
     localparam integer RECEIVE_DATA = 4;
     localparam integer FINISH = 5;
@@ -136,6 +138,9 @@ module SPITransmitter #(
                         if (i_config_write_address) begin
                             count_nxt = (i_config_quad_mode) ? ADDRESS_LENGTH / BITS_PER_SHIFT - 1 : ADDRESS_LENGTH - 1;
                             state_nxt = SEND_ADDRESS;
+                        end else if (i_config_dummy_cycles != 0) begin
+                            count_nxt = i_config_dummy_cycles;
+                            state_nxt = DUMMY_CYCLES;
                         end else if (i_config_write_data) begin
                             count_nxt = (i_config_quad_mode) ? DATA_WIDTH / BITS_PER_SHIFT - 1 : DATA_WIDTH - 1;
                             state_nxt = SEND_DATA;
@@ -154,9 +159,25 @@ module SPITransmitter #(
                 if (count_reg == 0 && clock_tick_neg) begin
                     count_nxt = (i_config_quad_mode) ? DATA_WIDTH / BITS_PER_SHIFT - 1 : DATA_WIDTH - 1;
                     buffer_count_nxt = 0;
-                    if (i_config_write_data) state_nxt = SEND_DATA;
+                    if (i_config_dummy_cycles != 0) begin
+                        count_nxt = i_config_dummy_cycles;
+                        state_nxt = DUMMY_CYCLES;
+                    end else if (i_config_write_data) state_nxt = SEND_DATA;
                     else if (i_config_read_data) state_nxt = RECEIVE_DATA;
                     else state_nxt = FINISH;
+                end
+            end
+
+            DUMMY_CYCLES: begin
+                if (clock_tick_neg) count_nxt = count_reg - 1;
+
+                if (count_reg == 0 && clock_tick_neg) begin
+                    count_nxt = (i_config_quad_mode) ? DATA_WIDTH / BITS_PER_SHIFT - 1 : DATA_WIDTH - 1;
+                    buffer_count_nxt = 0;
+                    if (i_config_write_data) state_nxt = SEND_DATA;
+                    else if (i_config_read_data) state_nxt = RECEIVE_DATA;
+                    else
+                        state_nxt = FINISH;    // note: this path to finish should not be possible, it does not require dummy cycles
                 end
             end
 
