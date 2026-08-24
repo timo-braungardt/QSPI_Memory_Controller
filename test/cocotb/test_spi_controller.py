@@ -158,7 +158,7 @@ async def spi_dummy_cycles_test(dut):
     await reset_dut(dut)
 
     dut.config_quad_mode.value = False
-    dut.config_dummy_cycles.value = 8 - 1
+    dut.config_dummy_cycles.value = 8
 
     dut.i_address.value = 20
     dut.i_write_enable.value = False
