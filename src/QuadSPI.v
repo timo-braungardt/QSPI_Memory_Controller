@@ -9,8 +9,8 @@ module QuadSPI (
     output o_bus_clock,
     output reg o_chip_select_neg,
     output o_reset,
-    inout io_dq0_manager_serial_in,
-    inout io_dq1_manager_serial_out,
+    inout io_dq0,
+    inout io_dq1,
     inout io_dq2,
     inout io_dq3
 );
@@ -28,12 +28,12 @@ module QuadSPI (
     reg serial_out_0_nxt, serial_out_1_nxt, serial_out_2_nxt, serial_out_3_nxt;
     wire serial_in_0, serial_in_1, serial_in_2, serial_in_3;
 
-    assign io_dq0_manager_serial_in = (en_serial_out) ? serial_out_0_reg : 1'bZ;
-    assign io_dq1_manager_serial_out  = (en_serial_out)  ? serial_out_1_reg : 1'bZ;       // ToDo: this pin is not serial out for spi mode!
+    assign io_dq0 = (en_serial_out) ? serial_out_0_reg : 1'bZ;
+    assign io_dq1 = (en_serial_out) ? serial_out_1_reg : 1'bZ;
     assign io_dq2 = (en_serial_out) ? serial_out_2_reg : 1'bZ;
     assign io_dq3 = (en_serial_out) ? serial_out_3_reg : 1'bZ;
-    assign serial_in_0 = io_dq0_manager_serial_in;
-    assign serial_in_1 = io_dq1_manager_serial_out;
+    assign serial_in_0 = io_dq0;
+    assign serial_in_1 = io_dq1;
     assign serial_in_2 = io_dq2;
     assign serial_in_3 = io_dq3;
 
