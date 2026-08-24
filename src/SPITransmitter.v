@@ -139,7 +139,7 @@ module SPITransmitter #(
                             count_nxt = (i_config_quad_mode) ? ADDRESS_LENGTH / BITS_PER_SHIFT - 1 : ADDRESS_LENGTH - 1;
                             state_nxt = SEND_ADDRESS;
                         end else if (i_config_dummy_cycles != 0) begin
-                            count_nxt = i_config_dummy_cycles - 1;
+                            count_nxt = {27'd0, i_config_dummy_cycles - 5'd1};
                             state_nxt = DUMMY_CYCLES;
                         end else if (i_config_write_data) begin
                             count_nxt = (i_config_quad_mode) ? DATA_WIDTH / BITS_PER_SHIFT - 1 : DATA_WIDTH - 1;
@@ -160,7 +160,7 @@ module SPITransmitter #(
                     count_nxt = (i_config_quad_mode) ? DATA_WIDTH / BITS_PER_SHIFT - 1 : DATA_WIDTH - 1;
                     buffer_count_nxt = 0;
                     if (i_config_dummy_cycles != 0) begin
-                        count_nxt = i_config_dummy_cycles - 1;
+                            count_nxt = {27'd0, i_config_dummy_cycles - 5'd1};
                         state_nxt = DUMMY_CYCLES;
                     end else if (i_config_write_data) state_nxt = SEND_DATA;
                     else if (i_config_read_data) state_nxt = RECEIVE_DATA;
