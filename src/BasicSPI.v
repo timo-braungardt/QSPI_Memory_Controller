@@ -42,6 +42,7 @@ module BasicSPI (
     reg            write_data;
     reg            read_data;
     integer        num_bits;
+    integer        num_dummy_cycles;
     integer        state_reg;
     integer        state_nxt;
 
@@ -60,6 +61,7 @@ module BasicSPI (
     localparam integer IDLE = 0;
     localparam integer SEND_OPCODE = 1;
     localparam integer SEND_ADDRESS = 2;
+    localparam integer DUMMY_CYCLES = 6;
     localparam integer SEND_DATA = 3;
     localparam integer RECEIVE_DATA = 4;
 
@@ -132,6 +134,9 @@ module BasicSPI (
                         if (write_address) begin
                             count_nxt = ADDRESS_LENGTH - 1;
                             state_nxt = SEND_ADDRESS;
+                        end else if (num_dummy_cycles != 0) begin
+                            count_nxt = num_dummy_cycles - 1;
+                            state_nxt = DUMMY_CYCLES;
                         end else if (write_data) begin
                             count_nxt = num_bits - 1;
                             state_nxt = SEND_DATA;
@@ -152,9 +157,25 @@ module BasicSPI (
                 if (count_reg == 0 && clock_tick_neg) begin
                     count_nxt = num_bits - 1;
                     buffer_count_nxt = 0;
-                    if (write_data) state_nxt = SEND_DATA;
+                    if (num_dummy_cycles != 0) begin
+                        count_nxt = num_dummy_cycles - 1;
+                        state_nxt = DUMMY_CYCLES;
+                    end else if (write_data) state_nxt = SEND_DATA;
                     else if (read_data) state_nxt = RECEIVE_DATA;
                     else state_nxt = IDLE;
+                end
+            end
+
+            DUMMY_CYCLES: begin
+                if (clock_tick_neg) count_nxt = count_reg - 1;
+
+                if (count_reg == 0 && clock_tick_neg) begin
+                    count_nxt = num_bits - 1;
+                    buffer_count_nxt = 0;
+                    if (write_data) state_nxt = SEND_DATA;
+                    else if (read_data) state_nxt = RECEIVE_DATA;
+                    else
+                        state_nxt = IDLE;    // note: this path to finish should not be possible, it does not require dummy cycles
                 end
             end
 
@@ -219,6 +240,7 @@ module BasicSPI (
             write_data <= 1'b0;
             read_data <= 1'b1;
             num_bits <= 32;
+            num_dummy_cycles <= 0;
         end
     end
 
