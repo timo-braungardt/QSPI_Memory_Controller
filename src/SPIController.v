@@ -35,8 +35,8 @@ module SPIController #(
     reg  [ OPCODE_LENGTH-1:0] opcode_reg;
     reg  [ADDRESS_LENGTH-1:0] address_nxt;
     reg  [ADDRESS_LENGTH-1:0] address_reg;
-    reg  [DATA_WIDTH-1:0]     data_in_nxt;
-    reg  [DATA_WIDTH-1:0]     data_in_reg;
+    reg  [    DATA_WIDTH-1:0] data_in_nxt;
+    reg  [    DATA_WIDTH-1:0] data_in_reg;
     wire                      config_write_address;
     wire                      config_write_data;
     wire                      config_read_data;
@@ -62,7 +62,9 @@ module SPIController #(
     assign o_reset = 1'b0;
 
 
-    SPITransmitter #(.ADDRESS_LENGTH(ADDRESS_LENGTH)) SPI_Transmitter (
+    SPITransmitter #(
+        .ADDRESS_LENGTH(ADDRESS_LENGTH)
+    ) SPI_Transmitter (
         .clk(clk),
         .reset_neg(reset_neg),
         .start_transmission(start_transmission),
@@ -151,7 +153,7 @@ module SPIController #(
 
         if (!reset_neg) begin
             address_reg <= 0;
-            opcode_reg  <= 0;
+            opcode_reg <= 0;
             config_quad_mode <= 1'b0;
         end
     end

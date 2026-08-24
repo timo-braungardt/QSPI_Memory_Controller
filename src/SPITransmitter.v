@@ -8,14 +8,14 @@ module SPITransmitter #(
     input start_transmission,
 
     input  [ADDRESS_LENGTH-1:0] i_address,
-    input  [ 7:0] i_opcode,
-    input         i_config_read_data,
-    input         i_config_write_data,
-    input         i_config_write_address,
-    input         i_config_quad_mode,
-    input  [15:0] i_data_write,
-    output [15:0] o_data_read,
-    output        o_finish,
+    input  [               7:0] i_opcode,
+    input                       i_config_read_data,
+    input                       i_config_write_data,
+    input                       i_config_write_address,
+    input                       i_config_quad_mode,
+    input  [              15:0] i_data_write,
+    output [              15:0] o_data_read,
+    output                      o_finish,
 
     // SPI Pins
     output o_bus_clock,
@@ -31,10 +31,10 @@ module SPITransmitter #(
     localparam integer OPCODE_LENGTH = 8;
     localparam integer DATA_WIDTH = 16;
     localparam BITS_PER_SHIFT = 4;
-    localparam BYTE_SEL_LSB = $clog2(DATA_WIDTH / BITS_PER_SHIFT)-1;
-    localparam BYTE_SEL_LSB_SINGLE = $clog2(DATA_WIDTH)-1;
-    localparam ADDRESS_SEL_MSB = $clog2(ADDRESS_LENGTH / BITS_PER_SHIFT)-1;
-    localparam ADDRESS_SEL_MSB_SINGLE = $clog2(ADDRESS_LENGTH)-1;
+    localparam BYTE_SEL_LSB = $clog2(DATA_WIDTH / BITS_PER_SHIFT) - 1;
+    localparam BYTE_SEL_LSB_SINGLE = $clog2(DATA_WIDTH) - 1;
+    localparam ADDRESS_SEL_MSB = $clog2(ADDRESS_LENGTH / BITS_PER_SHIFT) - 1;
+    localparam ADDRESS_SEL_MSB_SINGLE = $clog2(ADDRESS_LENGTH) - 1;
     localparam BUS_WIDTH = 4;
     localparam BUS_WIDTH_MSB = BUS_WIDTH - 1;
 
@@ -65,7 +65,7 @@ module SPITransmitter #(
     reg                       transmission_finished_nxt;
     reg                       transmission_finished_reg;
 
-    reg [DATA_WIDTH-1:0] data_read_reg;
+    reg     [ DATA_WIDTH-1:0] data_read_reg;
     assign o_data_read = data_read_reg;
 
     // states transmission FSM
@@ -250,18 +250,10 @@ module SPITransmitter #(
 
             SEND_DATA: begin
                 if (i_config_quad_mode) begin
-                    data_out_nxt[0] = i_data_write[{
-                        count_reg[BYTE_SEL_LSB:0], 2'd0
-                    }];
-                    data_out_nxt[1] = i_data_write[{
-                        count_reg[BYTE_SEL_LSB:0], 2'd1
-                    }];
-                    data_out_nxt[2] = i_data_write[{
-                        count_reg[BYTE_SEL_LSB:0], 2'd2
-                    }];
-                    data_out_nxt[3] = i_data_write[{
-                        count_reg[BYTE_SEL_LSB:0], 2'd3
-                    }];
+                    data_out_nxt[0] = i_data_write[{count_reg[BYTE_SEL_LSB:0], 2'd0}];
+                    data_out_nxt[1] = i_data_write[{count_reg[BYTE_SEL_LSB:0], 2'd1}];
+                    data_out_nxt[2] = i_data_write[{count_reg[BYTE_SEL_LSB:0], 2'd2}];
+                    data_out_nxt[3] = i_data_write[{count_reg[BYTE_SEL_LSB:0], 2'd3}];
                 end else begin
                     data_out_nxt[0] = i_data_write[count_reg[BYTE_SEL_LSB_SINGLE:0]];
                 end
@@ -278,18 +270,10 @@ module SPITransmitter #(
 
             if (state_reg == RECEIVE_DATA && clock_tick_pos) begin
                 if (i_config_quad_mode) begin
-                    data_read_reg[{
-                        count_reg[BYTE_SEL_LSB:0], 2'd0
-                    }] <= data_in[0];
-                    data_read_reg[{
-                        count_reg[BYTE_SEL_LSB:0], 2'd1
-                    }] <= data_in[1];
-                    data_read_reg[{
-                        count_reg[BYTE_SEL_LSB:0], 2'd2
-                    }] <= data_in[2];
-                    data_read_reg[{
-                        count_reg[BYTE_SEL_LSB:0], 2'd3
-                    }] <= data_in[3];
+                    data_read_reg[{count_reg[BYTE_SEL_LSB:0], 2'd0}] <= data_in[0];
+                    data_read_reg[{count_reg[BYTE_SEL_LSB:0], 2'd1}] <= data_in[1];
+                    data_read_reg[{count_reg[BYTE_SEL_LSB:0], 2'd2}] <= data_in[2];
+                    data_read_reg[{count_reg[BYTE_SEL_LSB:0], 2'd3}] <= data_in[3];
                 end else begin
                     data_read_reg[count_reg[BYTE_SEL_LSB_SINGLE:0]] <= data_in[0];
                 end

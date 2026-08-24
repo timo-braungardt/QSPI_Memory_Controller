@@ -26,7 +26,7 @@ module Hyperbus (
 
     wire en_data_strobe;
     reg data_strobe_out_reg;
-    reg data_strobe_out_nxt = 0;    // ToDo: The signal has to be driven for write
+    reg data_strobe_out_nxt = 0;  // ToDo: The signal has to be driven for write
     wire data_strobe_in;
 
     reg has_latency_reg;
@@ -137,10 +137,10 @@ module Hyperbus (
 
     always @(posedge clk) begin : clock_handler_register
         if (reset) begin
-            bus_clock_reg <= 0;
+            bus_clock_reg   <= 0;
             clock_count_reg <= 0;
         end else begin
-            bus_clock_reg <= bus_clock_nxt;
+            bus_clock_reg   <= bus_clock_nxt;
             clock_count_reg <= clock_count_nxt;
         end
     end

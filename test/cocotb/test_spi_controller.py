@@ -149,7 +149,13 @@ def test_spi_controller():
     sources = [proj_path / "../../src/SPIController.v", proj_path / "../../src/SPITransmitter.v"]
 
     runner = get_runner(sim)
-    runner.build(sources=sources, hdl_toplevel="SPIController", always=True, waves=True, parameters={"ADDRESS_LENGTH": 24})
+    runner.build(
+        sources=sources,
+        hdl_toplevel="SPIController",
+        always=True,
+        waves=True,
+        parameters={"ADDRESS_LENGTH": 24},
+    )
     runner.test(hdl_toplevel="SPIController", test_module="test_spi_controller", waves=True)
 
 
