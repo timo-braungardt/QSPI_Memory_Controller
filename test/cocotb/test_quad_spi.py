@@ -5,8 +5,8 @@ import cocotb
 from cocotb_tools.runner import get_runner
 from cocotb.triggers import Timer, First, ClockCycles
 from cocotb.clock import Clock
-from collections import deque
-from cocotbext.qspi import QSpiSubordinateBase, QSpiBus, QSpiConfig
+from cocotbext.qspi import QSpiBus, QSpiConfig
+from HelperClasses import QSpiFlashMemory
 
 
 async def reset_dut(dut):
@@ -16,52 +16,9 @@ async def reset_dut(dut):
     await ClockCycles(dut.clk, 1, rising=True)
 
 
-class SimpleQSpiSubordinate(QSpiSubordinateBase):
-    def __init__(self, bus: QSpiBus, config: QSpiConfig):
-        self.log = logging.getLogger(f"cocotb.qspi")
-        self._config = config
-        self.opcode = 0
-        self.address = 0
-        self.write_enable = False
-        self._out_queue = deque()
-        super().__init__(bus)
-
-    async def get_contents(self):
-        await self.idle.wait()
-        data = self._out_queue
-        self._out_queue = deque()
-        return list(data)
-
-    async def _transaction(self, frame_start, frame_end):
-        await frame_start
-        self.log.info("QSPI transaction started!")
-        self.idle.clear()
-        self.opcode = int(await self._quad_recieve(8))
-        if self.opcode == 0x06:
-            self.write_enable = True
-        else:
-            self.address = int(await self._quad_recieve(24))
-
-        self.log.info("   opcode:  %x", self.opcode)
-        self.log.info("   address: %d", self.address)
-        # Manager ordered a read
-        if self.opcode == 0x03:
-            self.log.info("   Sending Data")
-            await self._quad_send(32, 0x12345678)  # ToDo: always shifts out 4 bytes, change logic
-
-        # Manager ordered a program
-        if self.opcode == 0x02:
-            self.data = int(
-                await self._quad_recieve(16)
-            )  # ToDo: only reads two bytes, change to an array
-            self.log.info("   data %x", self.data)
-
-        await frame_end
-
-
 @cocotb.test()
 async def transmission_test(dut):
-    qspi_subordinate = SimpleQSpiSubordinate(
+    qspi_subordinate = QSpiFlashMemory(
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -83,6 +40,8 @@ async def transmission_test(dut):
             is_quad_mode=True,
         ),
     )
+    qspi_subordinate.num_bytes = 4
+
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
     await reset_dut(dut)
@@ -111,7 +70,7 @@ async def transmission_test(dut):
 @cocotb.test()
 async def read_test(dut):
 
-    qspi_subordinate = SimpleQSpiSubordinate(
+    qspi_subordinate = QSpiFlashMemory(
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -133,6 +92,8 @@ async def read_test(dut):
             is_quad_mode=True,
         ),
     )
+    qspi_subordinate.num_bytes = 4
+    qspi_subordinate.data = [0x12, 0x34, 0x56, 0x78]
 
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
@@ -165,7 +126,7 @@ async def read_test(dut):
 @cocotb.test()
 async def write_test(dut):
 
-    qspi_subordinate = SimpleQSpiSubordinate(
+    qspi_subordinate = QSpiFlashMemory(
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -187,6 +148,7 @@ async def write_test(dut):
             is_quad_mode=True,
         ),
     )
+    qspi_subordinate.num_bytes = 2
 
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
@@ -233,7 +195,7 @@ async def write_test(dut):
     assert qspi_subordinate.opcode == 0x02
     assert qspi_subordinate.address == 21
     assert qspi_subordinate.write_enable
-    assert qspi_subordinate.data == 0x8001
+    assert qspi_subordinate.data == [0x80, 0x01]
 
 
 def test_quad_spi():
