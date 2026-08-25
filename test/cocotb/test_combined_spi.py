@@ -48,7 +48,7 @@ async def qspi_transmission_test(dut):
 
     await reset_dut(dut)
 
-    dut.is_quad_mode.value = True
+    dut.is_quad_mode.value = 0b111
 
     dut.opcode.value = 5
     dut.address.value = 0x800001
@@ -104,7 +104,7 @@ async def qspi_read_test(dut):
 
     await reset_dut(dut)
 
-    dut.is_quad_mode.value = True
+    dut.is_quad_mode.value = 0b111
 
     dut.opcode.value = 0x03
     dut.address.value = 20
@@ -162,7 +162,7 @@ async def qspi_write_test(dut):
 
     await reset_dut(dut)
 
-    dut.is_quad_mode.value = True
+    dut.is_quad_mode.value = 0b111
 
     dut.opcode.value = 0x06
 
@@ -239,7 +239,7 @@ async def spi_transmission_test(dut):
 
     await reset_dut(dut)
 
-    dut.is_quad_mode.value = False
+    dut.is_quad_mode.value = 0b000
 
     dut.opcode.value = 0x81
     dut.address.value = 0x800001
@@ -275,7 +275,7 @@ async def spi_timing_read_test(dut):
 
     await reset_dut(dut)
 
-    dut.is_quad_mode.value = False
+    dut.is_quad_mode.value = 0b000
 
     dut.opcode.value = SpiFlashMemory.read
     dut.address.value = 0x000000
@@ -318,7 +318,7 @@ async def spi_timing_write_test(dut):
 
     await reset_dut(dut)
 
-    dut.is_quad_mode.value = False
+    dut.is_quad_mode.value = 0b000
 
     dut.opcode.value = SpiFlashMemory.program
     dut.address.value = 0x000000
@@ -362,7 +362,7 @@ async def spi_read_test(dut):
 
     await reset_dut(dut)
 
-    dut.is_quad_mode.value = False
+    dut.is_quad_mode.value = 0b000
 
     dut.opcode.value = SpiFlashMemory.read
     dut.address.value = 20
@@ -406,7 +406,7 @@ async def spi_write_test(dut):
 
     await reset_dut(dut)
 
-    dut.is_quad_mode.value = False
+    dut.is_quad_mode.value = 0b000
 
     dut.opcode.value = SpiFlashMemory.write_enable
 

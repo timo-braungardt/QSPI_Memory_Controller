@@ -24,6 +24,9 @@ module CombinedSPI (
     localparam BYTE_SEL_MSB_SINGLE = BYTE_SEL_LSB_SINGLE + BYTE_SEL_WIDTH - 1;
     localparam BUS_WIDTH = 4;
     localparam BUS_WIDTH_MSB = BUS_WIDTH - 1;
+    localparam QUAD_MODE_OPCODE = 2;
+    localparam QUAD_MODE_ADDRESS = 1;
+    localparam QUAD_MODE_DATA = 0;
 
     // Pin tristate stuff
     wire                      en_bus_clock;
@@ -45,7 +48,8 @@ module CombinedSPI (
     reg                       write_address;
     reg                       write_data;
     reg                       read_data;
-    reg                       is_quad_mode;
+    reg     [            2:0] is_quad_mode;
+    wire                      is_output_quad_mode;
     integer                   num_bits;
     integer                   num_dummy_cycles;
     integer                   state_reg;
@@ -82,6 +86,10 @@ module CombinedSPI (
 
     assign o_bus_clock    = (en_bus_clock) ? clk_bus_reg : 1'b0;
     assign o_reset        = 1'b0;
+
+    assign is_output_quad_mode = (is_quad_mode[QUAD_MODE_OPCODE] && state_reg == SEND_OPCODE ||
+                                  is_quad_mode[QUAD_MODE_ADDRESS] && state_reg == SEND_ADDRESS ||
+                                  is_quad_mode[QUAD_MODE_DATA] && (state_reg == SEND_DATA));  // revieve is handled by the tristate, not necessary here
 
 
     always @(*) begin : clock_handler_logic
@@ -124,7 +132,7 @@ module CombinedSPI (
             IDLE: begin
                 if (go) begin
                     state_nxt = SEND_OPCODE;
-                    count_nxt = (is_quad_mode) ? OPCODE_LENGTH / BITS_PER_SHIFT - 1 : OPCODE_LENGTH - 1;
+                    count_nxt = (is_quad_mode[QUAD_MODE_OPCODE]) ? OPCODE_LENGTH / BITS_PER_SHIFT - 1 : OPCODE_LENGTH - 1;
                 end
             end
 
@@ -133,16 +141,16 @@ module CombinedSPI (
                     count_nxt = count_reg - 1;
                     if (count_reg == 0) begin
                         if (write_address) begin
-                            count_nxt = (is_quad_mode) ? ADDRESS_LENGTH / BITS_PER_SHIFT - 1 : ADDRESS_LENGTH - 1;
+                            count_nxt = (is_quad_mode[QUAD_MODE_ADDRESS]) ? ADDRESS_LENGTH / BITS_PER_SHIFT - 1 : ADDRESS_LENGTH - 1;
                             state_nxt = SEND_ADDRESS;
                         end else if (num_dummy_cycles != 0) begin
                             count_nxt = num_dummy_cycles - 1;
                             state_nxt = DUMMY_CYCLES;
                         end else if (write_data) begin
-                            count_nxt = (is_quad_mode) ? num_bits / BITS_PER_SHIFT - 1 : num_bits - 1;
+                            count_nxt = (is_quad_mode[QUAD_MODE_DATA]) ? num_bits / BITS_PER_SHIFT - 1 : num_bits - 1;
                             state_nxt = SEND_DATA;
                         end else if (read_data) begin
-                            count_nxt = (is_quad_mode) ? num_bits / BITS_PER_SHIFT - 1 : num_bits - 1;
+                            count_nxt = (is_quad_mode[QUAD_MODE_DATA]) ? num_bits / BITS_PER_SHIFT - 1 : num_bits - 1;
                             buffer_count_nxt = 0;
                             state_nxt = RECEIVE_DATA;
                         end else state_nxt = IDLE;
@@ -154,7 +162,7 @@ module CombinedSPI (
                 if (clock_tick_neg) count_nxt = count_reg - 1;
 
                 if (count_reg == 0 && clock_tick_neg) begin
-                    count_nxt = (is_quad_mode) ? num_bits / BITS_PER_SHIFT - 1 : num_bits - 1;
+                    count_nxt = (is_quad_mode[QUAD_MODE_DATA]) ? num_bits / BITS_PER_SHIFT - 1 : num_bits - 1;
                     buffer_count_nxt = 0;
                     if (num_dummy_cycles != 0) begin
                         count_nxt = num_dummy_cycles - 1;
@@ -169,7 +177,7 @@ module CombinedSPI (
                 if (clock_tick_neg) count_nxt = count_reg - 1;
 
                 if (count_reg == 0 && clock_tick_neg) begin
-                    count_nxt = (is_quad_mode) ? num_bits / BITS_PER_SHIFT - 1 : num_bits - 1;
+                    count_nxt = (is_quad_mode[QUAD_MODE_DATA]) ? num_bits / BITS_PER_SHIFT - 1 : num_bits - 1;
                     buffer_count_nxt = 0;
                     if (write_data) state_nxt = SEND_DATA;
                     else if (read_data) state_nxt = RECEIVE_DATA;
@@ -225,13 +233,13 @@ module CombinedSPI (
 
 
     assign io_data0_manager_serial_in  = (~en_data_out) ? 1'bZ :
-                                        (is_quad_mode) ? data_out_reg[0] : 1'bZ;
+                                        (is_output_quad_mode) ? data_out_reg[0] : 1'bZ;
 
     assign io_data1_manager_serial_out = (~en_data_out) ? 1'bZ :
-                                        (is_quad_mode) ? data_out_reg[1] : data_out_reg[0];
+                                        (is_output_quad_mode) ? data_out_reg[1] : data_out_reg[0];
 
-    assign io_data2 = (~en_data_out) ? 1'bZ : (is_quad_mode) ? data_out_reg[2] : 1'bZ;
-    assign io_data3 = (~en_data_out) ? 1'bZ : (is_quad_mode) ? data_out_reg[3] : 1'bZ;
+    assign io_data2 = (~en_data_out) ? 1'bZ : (is_output_quad_mode) ? data_out_reg[2] : 1'bZ;
+    assign io_data3 = (~en_data_out) ? 1'bZ : (is_output_quad_mode) ? data_out_reg[3] : 1'bZ;
 
     always @(*) begin : data_logic
         data_out_nxt = data_out_reg;
@@ -243,7 +251,7 @@ module CombinedSPI (
 
         case (state_reg)
             SEND_OPCODE: begin
-                if (is_quad_mode) begin
+                if (is_quad_mode[QUAD_MODE_OPCODE]) begin
                     data_out_nxt[0] = opcode[{count_reg[0], 2'd0}];
                     data_out_nxt[1] = opcode[{count_reg[0], 2'd1}];
                     data_out_nxt[2] = opcode[{count_reg[0], 2'd2}];
@@ -254,7 +262,7 @@ module CombinedSPI (
             end
 
             SEND_ADDRESS: begin
-                if (is_quad_mode) begin
+                if (is_quad_mode[QUAD_MODE_ADDRESS]) begin
                     data_out_nxt[0] = address[{count_reg[2:0], 2'd0}];
                     data_out_nxt[1] = address[{count_reg[2:0], 2'd1}];
                     data_out_nxt[2] = address[{count_reg[2:0], 2'd2}];
@@ -265,7 +273,7 @@ module CombinedSPI (
             end
 
             SEND_DATA: begin
-                if (is_quad_mode) begin
+                if (is_quad_mode[QUAD_MODE_DATA]) begin
                     data_out_nxt[0] = buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
                         count_reg[0], 2'd0
                     }];
@@ -293,7 +301,7 @@ module CombinedSPI (
             data_out_reg <= data_out_nxt;
 
             if (state_reg == RECEIVE_DATA && clock_tick_pos) begin
-                if (is_quad_mode) begin
+                if (is_quad_mode[QUAD_MODE_DATA]) begin
                     buffer[buffer_count_reg[BYTE_SEL_MSB:BYTE_SEL_LSB]][{
                         count_reg[0], 2'd0
                     }] <= data_in[0];
@@ -323,7 +331,7 @@ module CombinedSPI (
             read_data <= 1'b1;
             num_bits <= 32;
             num_dummy_cycles <= 0;
-            is_quad_mode <= 1'b1;
+            is_quad_mode <= 3'b000;
         end
     end
 
