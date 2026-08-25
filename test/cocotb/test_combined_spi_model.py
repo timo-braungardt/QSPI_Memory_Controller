@@ -30,6 +30,20 @@ async def reset_model(dut):
         await dut.Memory.PoweredUp.value_change
 
 
+async def wait_for_idle(dut):
+    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
+    if dut.chip_select_neg.value == False:
+        await dut.chip_select_neg.value_change
+
+
+async def trigger_go(dut):
+    dut.go.value = 0
+    await ClockCycles(dut.clk, 5, rising=True)
+    dut.go.value = 1
+    await ClockCycles(dut.clk, 1, rising=True)
+    dut.go.value = 0
+
+
 @cocotb.test()
 async def read_test(dut):
     c = Clock(dut.clk, 20, "ns")
@@ -44,13 +58,8 @@ async def read_test(dut):
     dut.Controller.read_data.value = 0b0
     dut.Controller.is_quad_mode.value = False
 
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
-    dut.go.value = 1
-    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.chip_select_neg.value_change
+    await trigger_go(dut)
+    await wait_for_idle(dut)
 
     # program
     dut.Controller.opcode.value = SPI_COMMANDS.program
@@ -118,13 +127,8 @@ async def get_jedec_parameter_test(dut):
     dut.Controller.num_bits.value = 72
     dut.Controller.num_dummy_cycles.value = 8
 
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
-    dut.go.value = 1
-    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.chip_select_neg.value_change
+    await trigger_go(dut)
+    await wait_for_idle(dut)
 
     # Problem: in the memory model, the SFDP bytes are set and later overwritten with the manufacturer ID
     #          this may be a bug - i do not know
@@ -181,13 +185,8 @@ async def get_jedec_parameter_test(dut):
     dut.Controller.num_bits.value = 72
     dut.Controller.num_dummy_cycles.value = 8
 
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
-    dut.go.value = 1
-    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.chip_select_neg.value_change
+    await trigger_go(dut)
+    await wait_for_idle(dut)
 
     assert dut.Controller.buffer[0].value.to_unsigned() == 0xE7
     assert dut.Controller.buffer[1].value.to_unsigned() == 0x20
@@ -215,13 +214,8 @@ async def get_status_register_test(dut):
     dut.Controller.read_data.value = 0b1
     dut.Controller.num_bits.value = 8
 
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
-    dut.go.value = 1
-    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.chip_select_neg.value_change
+    await trigger_go(dut)
+    await wait_for_idle(dut)
 
     assert dut.Controller.buffer[0].value[0] == False  # Device Ready/Busy Status Flag
     assert dut.Controller.buffer[0].value[1] == False  # Write/Program Enable Status Flag
@@ -233,13 +227,8 @@ async def get_status_register_test(dut):
     dut.Controller.write_data.value = 0b0
     dut.Controller.read_data.value = 0b0
 
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
-    dut.go.value = 1
-    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.chip_select_neg.value_change
+    await trigger_go(dut)
+    await wait_for_idle(dut)
 
     # read status reg
     dut.Controller.opcode.value = SPI_COMMANDS.read_status_reg_1
@@ -250,13 +239,8 @@ async def get_status_register_test(dut):
     dut.Controller.read_data.value = 0b1
     dut.Controller.num_bits.value = 8
 
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
-    dut.go.value = 1
-    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.chip_select_neg.value_change
+    await trigger_go(dut)
+    await wait_for_idle(dut)
 
     assert dut.Controller.buffer[0].value[0] == False  # Device Ready/Busy Status Flag
     assert dut.Controller.buffer[0].value[1] == True  # Write/Program Enable Status Flag
@@ -272,13 +256,8 @@ async def get_status_register_test(dut):
     dut.Controller.buffer[1].value = 0x34
     dut.Controller.num_bits.value = 16
 
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
-    dut.go.value = 1
-    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.chip_select_neg.value_change
+    await trigger_go(dut)
+    await wait_for_idle(dut)
 
     # read status reg
     dut.Controller.opcode.value = SPI_COMMANDS.read_status_reg_1
@@ -289,13 +268,8 @@ async def get_status_register_test(dut):
     dut.Controller.read_data.value = 0b1
     dut.Controller.num_bits.value = 8
 
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
-    dut.go.value = 1
-    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.chip_select_neg.value_change
+    await trigger_go(dut)
+    await wait_for_idle(dut)
 
     assert dut.Controller.buffer[0].value[0] == True  # Device Ready/Busy Status Flag
     assert dut.Controller.buffer[0].value[1] == True  # Write/Program Enable Status Flag
