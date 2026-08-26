@@ -40,7 +40,7 @@ module SPIController #(
     wire                      config_write_address;
     wire                      config_write_data;
     wire                      config_read_data;
-    reg                       config_quad_mode;
+    reg  [               2:0] config_quad_mode;
     reg  [               4:0] config_dummy_cycles;
     wire                      start_transmission;
     wire                      transmitter_finish;
@@ -156,7 +156,7 @@ module SPIController #(
         if (!reset_neg) begin
             address_reg <= 0;
             opcode_reg <= 0;
-            config_quad_mode <= 1'b0;
+            config_quad_mode <= 3'b000;
             config_dummy_cycles <= 5'b0;
         end
     end
