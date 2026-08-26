@@ -23,8 +23,8 @@ async def qspi_transmission_test(dut):
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
-            mosi_d1_name="io_data1_manager_serial_out",
-            miso_d0_name="io_data0_manager_serial_in",
+            mosi_d0_name="io_data0_manager_serial_out",
+            miso_d1_name="io_data1_manager_serial_in",
             d2_name="io_data2",
             d3_name="io_data3",
             cs_name="o_chip_select_neg",
@@ -78,8 +78,8 @@ async def qspi_read_test(dut):
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
-            mosi_d1_name="io_data1_manager_serial_out",
-            miso_d0_name="io_data0_manager_serial_in",
+            mosi_d0_name="io_data0_manager_serial_out",
+            miso_d1_name="io_data1_manager_serial_in",
             d2_name="io_data2",
             d3_name="io_data3",
             cs_name="o_chip_select_neg",
@@ -137,8 +137,8 @@ async def qspi_write_test(dut):
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
-            mosi_d1_name="io_data1_manager_serial_out",
-            miso_d0_name="io_data0_manager_serial_in",
+            mosi_d0_name="io_data0_manager_serial_out",
+            miso_d1_name="io_data1_manager_serial_in",
             d2_name="io_data2",
             d3_name="io_data3",
             cs_name="o_chip_select_neg",
@@ -228,8 +228,8 @@ async def spi_transmission_test(dut):
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
-            mosi_name="io_data1_manager_serial_out",
-            miso_name="io_data0_manager_serial_in",
+            mosi_name="io_data0_manager_serial_out",
+            miso_name="io_data1_manager_serial_in",
             cs_name="o_chip_select_neg",
         )
     )
@@ -264,8 +264,8 @@ async def spi_timing_read_test(dut):
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
-            mosi_name="io_data1_manager_serial_out",
-            miso_name="io_data0_manager_serial_in",
+            mosi_name="io_data0_manager_serial_out",
+            miso_name="io_data1_manager_serial_in",
             cs_name="o_chip_select_neg",
         )
     )
@@ -307,8 +307,8 @@ async def spi_timing_write_test(dut):
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
-            mosi_name="io_data1_manager_serial_out",
-            miso_name="io_data0_manager_serial_in",
+            mosi_name="io_data0_manager_serial_out",
+            miso_name="io_data1_manager_serial_in",
             cs_name="o_chip_select_neg",
         )
     )
@@ -351,8 +351,8 @@ async def spi_read_test(dut):
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
-            mosi_name="io_data1_manager_serial_out",
-            miso_name="io_data0_manager_serial_in",
+            mosi_name="io_data0_manager_serial_out",
+            miso_name="io_data1_manager_serial_in",
             cs_name="o_chip_select_neg",
         )
     )
@@ -395,8 +395,8 @@ async def spi_write_test(dut):
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
-            mosi_name="io_data1_manager_serial_out",
-            miso_name="io_data0_manager_serial_in",
+            mosi_name="io_data0_manager_serial_out",
+            miso_name="io_data1_manager_serial_in",
             cs_name="o_chip_select_neg",
         )
     )

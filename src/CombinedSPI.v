@@ -9,8 +9,8 @@ module CombinedSPI (
     output o_bus_clock,
     output reg o_chip_select_neg,
     output o_reset,
-    inout io_data0_manager_serial_in,
-    inout io_data1_manager_serial_out,
+    inout io_data0_manager_serial_out,
+    inout io_data1_manager_serial_in,
     inout io_data2,
     inout io_data3
 );
@@ -232,11 +232,9 @@ module CombinedSPI (
     end
 
 
-    assign io_data0_manager_serial_in  = (~en_data_out) ? 1'bZ :
-                                        (is_output_quad_mode) ? data_out_reg[0] : 1'bZ;
+    assign io_data0_manager_serial_out  = (~en_data_out) ? 1'bZ : data_out_reg[0];
 
-    assign io_data1_manager_serial_out = (~en_data_out) ? 1'bZ :
-                                        (is_output_quad_mode) ? data_out_reg[1] : data_out_reg[0];
+    assign io_data1_manager_serial_in = (~en_data_out) ? 1'bZ : (is_output_quad_mode) ? data_out_reg[1] : 1'bZ;
 
     assign io_data2 = (~en_data_out) ? 1'bZ : (is_output_quad_mode) ? data_out_reg[2] : 1'bZ;
     assign io_data3 = (~en_data_out) ? 1'bZ : (is_output_quad_mode) ? data_out_reg[3] : 1'bZ;
@@ -244,8 +242,8 @@ module CombinedSPI (
     always @(*) begin : data_logic
         data_out_nxt = data_out_reg;
 
-        data_in[0]   = io_data0_manager_serial_in;
-        data_in[1]   = io_data1_manager_serial_out;
+        data_in[0]   = io_data0_manager_serial_out;
+        data_in[1]   = io_data1_manager_serial_in;
         data_in[2]   = io_data2;
         data_in[3]   = io_data3;
 
@@ -315,7 +313,7 @@ module CombinedSPI (
                         count_reg[0], 2'd3
                     }] <= data_in[3];
                 end else begin
-                    buffer[buffer_count_reg[BYTE_SEL_MSB_SINGLE:BYTE_SEL_LSB_SINGLE]][count_reg[BYTE_SEL_LSB_SINGLE-1:0]] <= data_in[0];
+                    buffer[buffer_count_reg[BYTE_SEL_MSB_SINGLE:BYTE_SEL_LSB_SINGLE]][count_reg[BYTE_SEL_LSB_SINGLE-1:0]] <= data_in[1];
                 end
             end
         end
