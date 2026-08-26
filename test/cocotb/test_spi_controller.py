@@ -37,8 +37,8 @@ async def spi_transmission_test(dut):
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
-            mosi_name="io_data1_manager_serial_out",
-            miso_name="io_data0_manager_serial_in",
+            mosi_name="io_data0_manager_serial_out",
+            miso_name="io_data1_manager_serial_in",
             cs_name="o_chip_select_neg",
         )
     )
@@ -70,8 +70,8 @@ async def spi_read_test(dut):
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
-            mosi_name="io_data1_manager_serial_out",
-            miso_name="io_data0_manager_serial_in",
+            mosi_name="io_data0_manager_serial_out",
+            miso_name="io_data1_manager_serial_in",
             cs_name="o_chip_select_neg",
         )
     )
@@ -107,8 +107,8 @@ async def spi_write_test(dut):
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
-            mosi_name="io_data1_manager_serial_out",
-            miso_name="io_data0_manager_serial_in",
+            mosi_name="io_data0_manager_serial_out",
+            miso_name="io_data1_manager_serial_in",
             cs_name="o_chip_select_neg",
         )
     )
@@ -146,8 +146,8 @@ async def spi_dummy_cycles_test(dut):
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
-            mosi_name="io_data1_manager_serial_out",
-            miso_name="io_data0_manager_serial_in",
+            mosi_name="io_data0_manager_serial_out",
+            miso_name="io_data1_manager_serial_in",
             cs_name="o_chip_select_neg",
         )
     )

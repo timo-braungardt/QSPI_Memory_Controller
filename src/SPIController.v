@@ -19,8 +19,8 @@ module SPIController #(
     output o_bus_clock,
     output o_chip_select_neg,
     output o_reset,
-    inout  io_data0_manager_serial_in,
-    inout  io_data1_manager_serial_out,
+    inout  io_data0_manager_serial_out,
+    inout  io_data1_manager_serial_in,
     inout  io_data2,
     inout  io_data3
 );
@@ -84,8 +84,8 @@ module SPIController #(
         // SPI Pins
         .o_bus_clock(o_bus_clock),
         .o_chip_select_neg(o_chip_select_neg),
-        .io_data0_manager_serial_in(io_data0_manager_serial_in),
-        .io_data1_manager_serial_out(io_data1_manager_serial_out),
+        .io_data0_manager_serial_out(io_data0_manager_serial_out),
+        .io_data1_manager_serial_in(io_data1_manager_serial_in),
         .io_data2(io_data2),
         .io_data3(io_data3)
     );
