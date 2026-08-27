@@ -171,11 +171,15 @@ module SPIController #(
             delay_fsm <= delay_fsm + 1;
         end
 
+        config_dummy_cycles <= 5'd0;
+        if (config_quad_mode != 3'b000) begin
+            config_dummy_cycles <= 5'd8;        // ToDo: this could also be a wire - think about a better implementation
+        end
+
         if (!reset_neg) begin
             address_reg <= 0;
             opcode_reg <= 0;
             config_quad_mode <= 3'b000;
-            config_dummy_cycles <= 5'b0;
             config_is_config_operation <= 1'b0;
         end
     end
