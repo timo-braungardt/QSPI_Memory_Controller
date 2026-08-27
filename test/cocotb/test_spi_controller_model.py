@@ -10,6 +10,8 @@ from cocotb.types import Logic, LogicArray
 from unittest import SkipTest
 
 
+T_pp_typ = Timer(480, unit="us")    # program time typical from the datasheet
+
 async def reset_model(dut):
     dut.reset_neg.value = 0
     await Timer(250, unit="ns")  # t_RP
@@ -55,6 +57,64 @@ async def read_test(dut):
 
     dut.i_address.value = 0x20
     dut.i_write_enable.value = False
+
+    await trigger_go(dut)
+    await wait_for_idle(dut)
+
+    assert dut.o_data_read.value == 0x12
+
+
+@cocotb.test()
+async def qspi_enable_test(dut):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_model(dut)
+
+    dut.i_address.value = 0
+    dut.i_data_write.value = 0
+    dut.i_write_enable.value = False
+    dut.Controller.config_is_config_operation.value = True
+    dut.Controller.config_quad_mode.value = 0b000
+
+    # step: set QUADIT bit in config register 1
+    await trigger_go(dut)
+    await wait_for_idle(dut)
+    await T_pp_typ
+
+    assert dut.Memory.QUADIT.value == True
+
+
+@cocotb.test()
+async def qspi_read_test(dut):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_model(dut)
+
+    dut.i_address.value = 0
+    dut.i_data_write.value = 0
+    dut.i_write_enable.value = False
+    dut.Controller.config_is_config_operation.value = True
+    dut.Controller.config_quad_mode.value = 0b000
+
+    # step: set QUADIT bit in config register 1
+    await trigger_go(dut)
+    await wait_for_idle(dut)
+    await T_pp_typ
+
+    # step: write
+    dut.i_address.value = 0x20
+    dut.i_data_write.value = 0x12
+    dut.i_write_enable.value = True
+
+    await trigger_go(dut)
+    await wait_for_idle(dut)
+
+    # step: read
+    await Timer(480, unit="us")  # T_PP typ in the datasheet
+
+    dut.i_address.value = 0x20
+    dut.i_write_enable.value = False
+    dut.Controller.config_quad_mode.value = 0b001
 
     await trigger_go(dut)
     await wait_for_idle(dut)

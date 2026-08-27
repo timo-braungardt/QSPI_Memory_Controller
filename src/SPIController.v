@@ -30,6 +30,10 @@ module SPIController #(
     localparam integer OPCODE_LENGTH = 8;
     localparam DELAY_CYCLES = 10;
 
+    // Chip specific hardcoded constants
+    localparam CONFIG_ADDRESS = 32'h00800002;
+    localparam CONFIG_QSPI_ENABLE = 8'b00000010;
+
     // Logic stuff
     reg  [ OPCODE_LENGTH-1:0] opcode_nxt;
     reg  [ OPCODE_LENGTH-1:0] opcode_reg;
@@ -42,6 +46,7 @@ module SPIController #(
     wire                      config_read_data;
     reg  [               2:0] config_quad_mode;
     reg  [               4:0] config_dummy_cycles;
+    reg                       config_is_config_operation;
     wire                      start_transmission;
     wire                      transmitter_finish;
 
@@ -51,13 +56,16 @@ module SPIController #(
     localparam integer WRITE_ENABLE = 2;
     localparam integer WAIT = 4;
     localparam integer WRITE = 3;
+    localparam integer WRITE_CONFIG = 5;
 
     integer control_state_reg;
     integer control_state_nxt;
 
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ = 8'h03;
+    localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ_114 = 8'h6B;
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE_ENABLE = 8'h06;
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE = 8'h02;
+    localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE_ANY_REG = 8'h71;
     //localparam [OPCODE_LENGTH -1 : 0] OPCODE_LONG_ADDRESS_ENABLE = 8'hB7;
 
     assign o_reset = 1'b0;
@@ -94,8 +102,8 @@ module SPIController #(
 
     assign start_transmission = (control_state_reg != IDLE && control_state_reg != WAIT);
     assign config_read_data = (control_state_reg == READ);
-    assign config_write_data = (control_state_reg == WRITE);
-    assign config_write_address = (control_state_reg == READ || control_state_reg == WRITE);
+    assign config_write_data = (control_state_reg == WRITE || control_state_reg == WRITE_CONFIG);
+    assign config_write_address = (control_state_reg == READ || control_state_reg == WRITE || control_state_reg == WRITE_CONFIG);
     assign o_busy = (control_state_reg != IDLE);
 
 
@@ -111,8 +119,8 @@ module SPIController #(
                 if (go) begin
                     address_nxt = ADDRESS_LENGTH'(i_address);
                     data_in_nxt = i_data_write;
-                    opcode_nxt = (i_write_enable) ? OPCODE_WRITE_ENABLE : OPCODE_READ;
-                    control_state_nxt = (i_write_enable) ? WRITE_ENABLE : READ;
+                    opcode_nxt = (i_write_enable | config_is_config_operation) ? OPCODE_WRITE_ENABLE : (config_quad_mode == 3'b000) ? OPCODE_READ : OPCODE_READ_114;
+                    control_state_nxt = (i_write_enable | config_is_config_operation) ? WRITE_ENABLE : READ;
                 end
             end
 
@@ -128,12 +136,21 @@ module SPIController #(
 
             WAIT: begin
                 if (delay_fsm == DELAY_CYCLES) begin
-                    control_state_nxt = WRITE;
-                    opcode_nxt = OPCODE_WRITE;
+                    control_state_nxt = (config_is_config_operation) ? WRITE_CONFIG : WRITE;
+                    opcode_nxt = (config_is_config_operation) ? OPCODE_WRITE_ANY_REG : OPCODE_WRITE;
+
+                    if (config_is_config_operation) begin
+                        address_nxt = ADDRESS_LENGTH'(CONFIG_ADDRESS);
+                        data_in_nxt = CONFIG_QSPI_ENABLE;
+                    end
                 end
             end
 
             WRITE: begin
+                if (transmitter_finish) control_state_nxt = IDLE;
+            end
+
+            WRITE_CONFIG: begin
                 if (transmitter_finish) control_state_nxt = IDLE;
             end
 
@@ -159,6 +176,7 @@ module SPIController #(
             opcode_reg <= 0;
             config_quad_mode <= 3'b000;
             config_dummy_cycles <= 5'b0;
+            config_is_config_operation <= 1'b0;
         end
     end
 
