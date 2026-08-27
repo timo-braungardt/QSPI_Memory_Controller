@@ -10,16 +10,6 @@ from cocotb.types import Logic, LogicArray
 from unittest import SkipTest
 
 
-class SPI_COMMANDS:
-    write_enable = 0x06
-    program = 0x02
-    read = 0x03
-    read_status_reg_1 = 0x05
-    read_status_reg_2 = 0x07
-    read_config_reg_1 = 0x35
-    read_JEDEC_parameter = 0x5A
-
-
 async def reset_model(dut):
     dut.reset_neg.value = 0
     await Timer(250, unit="ns")  # t_RP
@@ -30,31 +20,35 @@ async def reset_model(dut):
         await dut.Memory.PoweredUp.value_change
 
 
+async def wait_for_idle(dut):
+    timeout = Timer(100, unit="us")
+    trigger = await First(FallingEdge(dut.busy), timeout)
+    assert trigger != timeout
+
+
+async def trigger_go(dut):
+    dut.go.value = 0
+    await ClockCycles(dut.clk, 5, rising=True)
+    dut.go.value = 1
+    await ClockCycles(dut.clk, 1, rising=True)
+    dut.go.value = 0
+
+
 @cocotb.test()
 async def read_test(dut):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
     await reset_model(dut)
 
-    dut.Controller.config_quad_mode.value = False
+    dut.Controller.config_quad_mode.value = 0b000
 
     # step: write
     dut.i_address.value = 0x20
     dut.i_data_write.value = 0x1234
     dut.i_write_enable.value = True
 
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
-    dut.go.value = 1
-    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
-    dut.go.value = 0
-    # write enable
-    timeout = Timer(100, unit="us")
-    trigger = await First(RisingEdge(dut.chip_select_neg), timeout)
-    assert trigger != timeout
-    # write
-    trigger = await First(RisingEdge(dut.chip_select_neg), timeout)
-    assert trigger != timeout
+    await trigger_go(dut)
+    await wait_for_idle(dut)
 
     # step: read
     await Timer(480, unit="us")  # T_PP typ in the datasheet
@@ -62,14 +56,8 @@ async def read_test(dut):
     dut.i_address.value = 0x20
     dut.i_write_enable.value = False
 
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
-    dut.go.value = 1
-    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
-    dut.go.value = 0
-    timeout = Timer(100, unit="us")
-    trigger = await First(RisingEdge(dut.chip_select_neg), timeout)
-    assert trigger != timeout
+    await trigger_go(dut)
+    await wait_for_idle(dut)
 
     assert dut.o_data_read.value == 0x1234
 
