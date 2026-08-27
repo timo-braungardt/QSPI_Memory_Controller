@@ -348,7 +348,6 @@ async def qspi_read_test(dut):
     await wait_for_idle(dut)
 
     assert dut.Controller.buffer[0].value[1] == True  # QUADIT bit
-    dut.Controller.is_quad_mode.value = 0b001
 
     # write enable
     dut.Controller.opcode.value = SPI_COMMANDS.write_enable

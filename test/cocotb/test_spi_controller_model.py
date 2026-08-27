@@ -99,27 +99,27 @@ async def qspi_read_test(dut):
     # step: set QUADIT bit in config register 1
     await trigger_go(dut)
     await wait_for_idle(dut)
+    dut.Controller.config_is_config_operation.value = False
     await T_pp_typ
 
     # step: write
-    dut.i_address.value = 0x20
-    dut.i_data_write.value = 0x12
+    dut.i_address.value = 0x30
+    dut.i_data_write.value = 0x34
     dut.i_write_enable.value = True
 
     await trigger_go(dut)
     await wait_for_idle(dut)
-
-    # step: read
     await Timer(480, unit="us")  # T_PP typ in the datasheet
 
-    dut.i_address.value = 0x20
+    # step: read
+    dut.i_address.value = 0x30
     dut.i_write_enable.value = False
     dut.Controller.config_quad_mode.value = 0b001
 
     await trigger_go(dut)
     await wait_for_idle(dut)
 
-    assert dut.o_data_read.value == 0x12
+    assert dut.o_data_read.value == 0x34
 
 
 def test_spi_controller_model(wave=False):
