@@ -15,8 +15,8 @@ module SPITransmitter #(
     input                       i_config_write_address,
     input  [               2:0] i_config_quad_mode,
     input  [               4:0] i_config_dummy_cycles,
-    input  [              15:0] i_data_write,
-    output [              15:0] o_data_read,
+    input  [    DATA_WIDTH-1:0] i_data_write,
+    output [    DATA_WIDTH-1:0] o_data_read,
     output                      o_finish,
 
     // SPI Pins

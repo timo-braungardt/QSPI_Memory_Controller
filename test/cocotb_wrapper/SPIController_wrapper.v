@@ -1,20 +1,27 @@
 `timescale 1ns / 100ps
 
-module SPIController_wrapper;
+module SPIController_wrapper #(
+    parameter ADDRESS_LENGTH = 24,
+    parameter DATA_WIDTH = 8
+);
+
     reg clk;
     reg go;
     reg reset_neg = 1'b0;
     wire busy;
 
-    reg [31:0] i_address;
-    reg [15:0] i_data_write;
-    reg [15:0] o_data_read;
+    reg [ADDRESS_LENGTH-1:0] i_address;
+    reg [DATA_WIDTH-1:0] i_data_write;
+    reg [DATA_WIDTH-1:0] o_data_read;
     reg i_write_enable;
 
     wire [3:0] data;
     wire bus_clock, chip_select_neg;
 
-    SPIController Controller (
+    SPIController #(
+        .ADDRESS_LENGTH(ADDRESS_LENGTH),
+        .DATA_WIDTH(DATA_WIDTH)
+    ) Controller (
         .clk(clk),
         .reset_neg(reset_neg),
         .go(go),

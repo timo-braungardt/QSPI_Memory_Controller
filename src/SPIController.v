@@ -10,11 +10,11 @@ module SPIController #(
     input reset_neg,
     input go,
 
-    input  [31:0] i_address,
-    input         i_write_enable,
-    input  [15:0] i_data_write,
-    output [15:0] o_data_read,
-    output        o_busy,
+    input  [ADDRESS_LENGTH-1:0] i_address,
+    input                       i_write_enable,
+    input  [    DATA_WIDTH-1:0] i_data_write,
+    output [    DATA_WIDTH-1:0] o_data_read,
+    output                      o_busy,
 
     // SPI Pins
     output o_bus_clock,
