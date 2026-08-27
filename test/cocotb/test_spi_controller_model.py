@@ -111,10 +111,11 @@ async def qspi_read_test(dut):
     await wait_for_idle(dut)
     await Timer(480, unit="us")  # T_PP typ in the datasheet
 
-    # step: read
+    # step: qspi read
     dut.i_address.value = 0x30
     dut.i_write_enable.value = False
     dut.Controller.config_quad_mode.value = 0b001
+    dut.Controller.config_dummy_cycles.value = 8
 
     await trigger_go(dut)
     await wait_for_idle(dut)

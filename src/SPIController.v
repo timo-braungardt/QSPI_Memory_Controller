@@ -41,14 +41,16 @@ module SPIController #(
     reg  [ADDRESS_LENGTH-1:0] address_reg;
     reg  [    DATA_WIDTH-1:0] data_in_nxt;
     reg  [    DATA_WIDTH-1:0] data_in_reg;
+    wire                      start_transmission;
+    wire                      transmitter_finish;
+
+    // Config stuff - this should be later configured using a second port
     wire                      config_write_address;
     wire                      config_write_data;
     wire                      config_read_data;
     reg  [               2:0] config_quad_mode;
     reg  [               4:0] config_dummy_cycles;
     reg                       config_is_config_operation;
-    wire                      start_transmission;
-    wire                      transmitter_finish;
 
     // states control FSM
     localparam integer IDLE = 0;
@@ -171,16 +173,12 @@ module SPIController #(
             delay_fsm <= delay_fsm + 1;
         end
 
-        config_dummy_cycles <= 5'd0;
-        if (config_quad_mode != 3'b000) begin
-            config_dummy_cycles <= 5'd8;        // ToDo: this could also be a wire - think about a better implementation
-        end
-
         if (!reset_neg) begin
             address_reg <= 0;
             opcode_reg <= 0;
             config_quad_mode <= 3'b000;
             config_is_config_operation <= 1'b0;
+            config_dummy_cycles <= 5'd0;
         end
     end
 
