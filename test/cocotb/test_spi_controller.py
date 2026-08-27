@@ -49,7 +49,7 @@ async def spi_transmission_test(dut):
     await reset_dut(dut)
 
     dut.config_quad_mode.value = False
-    spi_subordinate.num_bytes = 16 // 8
+    spi_subordinate.num_bytes = 1
 
     dut.i_address.value = 0x800001
     dut.i_write_enable.value = 0b0
@@ -86,8 +86,8 @@ async def spi_read_test(dut):
     dut.i_address.value = 20
     dut.i_write_enable.value = False
 
-    spi_subordinate.num_bytes = 16 // 8
-    spi_subordinate.data = [0x12, 0x34, 0x56, 0x78]
+    spi_subordinate.num_bytes = 1
+    spi_subordinate.data = [0x12, 0x34]
 
     await trigger_go(dut)
     timeout = Timer(100, unit="us")
@@ -97,7 +97,7 @@ async def spi_read_test(dut):
     [opcode, address] = await spi_subordinate.get_content()
     assert opcode == SpiFlashMemory.read
     assert address == 20
-    assert dut.o_data_read.value == 0x1234
+    assert dut.o_data_read.value == 0x12
 
 
 @cocotb.test()
@@ -121,10 +121,10 @@ async def spi_write_test(dut):
     dut.config_quad_mode.value = False
 
     dut.i_address.value = 21
-    dut.i_data_write.value = 0x8001
+    dut.i_data_write.value = 0x81
     dut.i_write_enable.value = True
 
-    spi_subordinate.num_bytes = 16 // 8
+    spi_subordinate.num_bytes = 1
 
     assert not spi_subordinate.write_enable
     await trigger_go(dut)
@@ -137,7 +137,7 @@ async def spi_write_test(dut):
     assert spi_subordinate.opcode == SpiFlashMemory.program
     assert spi_subordinate.address == 21
     assert spi_subordinate.write_enable
-    assert spi_subordinate.data == [0x80, 0x01]
+    assert spi_subordinate.data == [0x81]
 
 
 @cocotb.test()
@@ -163,7 +163,7 @@ async def spi_dummy_cycles_test(dut):
     dut.i_address.value = 20
     dut.i_write_enable.value = False
 
-    spi_subordinate.num_bytes = 3
+    spi_subordinate.num_bytes = 2
     spi_subordinate.data = [0x12, 0x34, 0x56]
 
     await trigger_go(dut)
@@ -174,7 +174,7 @@ async def spi_dummy_cycles_test(dut):
     [opcode, address] = await spi_subordinate.get_content()
     assert opcode == SpiFlashMemory.read
     assert address == 20
-    assert dut.o_data_read.value == 0x3456
+    assert dut.o_data_read.value == 0x34
 
 
 def test_spi_controller():

@@ -44,7 +44,7 @@ async def read_test(dut):
 
     # step: write
     dut.i_address.value = 0x20
-    dut.i_data_write.value = 0x1234
+    dut.i_data_write.value = 0x12
     dut.i_write_enable.value = True
 
     await trigger_go(dut)
@@ -59,7 +59,7 @@ async def read_test(dut):
     await trigger_go(dut)
     await wait_for_idle(dut)
 
-    assert dut.o_data_read.value == 0x1234
+    assert dut.o_data_read.value == 0x12
 
 
 def test_spi_controller_model(wave=False):

@@ -1,7 +1,8 @@
 `timescale 1ns / 100ps
 
 module SPITransmitter #(
-    parameter ADDRESS_LENGTH = 24
+    parameter ADDRESS_LENGTH = 24,
+    parameter DATA_WIDTH = 8
 ) (
     input clk,
     input reset_neg,
@@ -30,7 +31,6 @@ module SPITransmitter #(
     // constants
     localparam integer TIMER_COUNT = 2;
     localparam integer OPCODE_LENGTH = 8;
-    localparam integer DATA_WIDTH = 16;
     localparam BITS_PER_SHIFT = 4;
     localparam BYTE_SEL_LSB = $clog2(DATA_WIDTH / BITS_PER_SHIFT) - 1;
     localparam BYTE_SEL_LSB_SINGLE = $clog2(DATA_WIDTH) - 1;

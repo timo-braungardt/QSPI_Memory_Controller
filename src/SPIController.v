@@ -3,7 +3,8 @@
 module SPIController #(
     // Warining: the SPI flash chips start with a 24 bit address width.
     // ToDo: the automatic upgrade to 32bit address width is not yet implemented
-    parameter ADDRESS_LENGTH = 24
+    parameter ADDRESS_LENGTH = 24,
+    parameter DATA_WIDTH = 8
 ) (
     input clk,
     input reset_neg,
@@ -27,7 +28,6 @@ module SPIController #(
 
     // constants
     localparam integer OPCODE_LENGTH = 8;
-    localparam integer DATA_WIDTH = 16;
     localparam DELAY_CYCLES = 10;
 
     // Logic stuff
@@ -64,7 +64,8 @@ module SPIController #(
 
 
     SPITransmitter #(
-        .ADDRESS_LENGTH(ADDRESS_LENGTH)
+        .ADDRESS_LENGTH(ADDRESS_LENGTH),
+        .DATA_WIDTH(DATA_WIDTH)
     ) SPI_Transmitter (
         .clk(clk),
         .reset_neg(reset_neg),
