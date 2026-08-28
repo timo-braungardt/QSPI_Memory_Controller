@@ -14,6 +14,7 @@ module SPITransmitter #(
     input                       i_config_write_data,
     input                       i_config_write_address,
     input  [               2:0] i_config_quad_mode,
+    input  [(DATA_WIDTH/8)-1:0] i_num_bytes,    // 0 based indexing
     input  [               4:0] i_config_dummy_cycles,
     input  [    DATA_WIDTH-1:0] i_data_write,
     output [    DATA_WIDTH-1:0] o_data_read,

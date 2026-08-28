@@ -52,6 +52,7 @@ async def transmission_test(dut):
     dut.i_config_write_data.value = True
     dut.i_config_write_address.value = True
     dut.i_config_quad_mode.value = 0b000
+    dut.i_num_bytes.value = 0b00
     dut.i_config_dummy_cycles.value = 0
     dut.i_config_dummy_cycles.value = 0
 
@@ -64,6 +65,47 @@ async def transmission_test(dut):
     assert opcode == 0x02
     assert address == 0x800001
     assert spi_subordinate.data == [0x78]
+
+
+@cocotb.test()
+@cocotb.parametrize(num_bytes=[0, 1, 2, 3])
+async def transmission_test_4bytes(dut, num_bytes):
+    spi_subordinate = SpiFlashMemory(
+        SpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_name="io_data0_manager_serial_out",
+            miso_name="io_data1_manager_serial_in",
+            cs_name="o_chip_select_neg",
+        )
+    )
+    test_data = [0x12, 0x34, 0x56, 0x78]
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
+
+    dut.i_opcode.value = 0x02
+    dut.i_address.value = 0x800001
+    dut.i_data_write.value = 0x12345678
+
+    dut.i_config_read_data.value = False
+    dut.i_config_write_data.value = True
+    dut.i_config_write_address.value = True
+    dut.i_config_quad_mode.value = 0b000
+    dut.i_num_bytes.value = num_bytes
+    dut.i_config_dummy_cycles.value = 0
+    dut.i_config_dummy_cycles.value = 0
+
+    spi_subordinate.write_enable = True
+    spi_subordinate.num_bytes = 1
+    await trigger_go(dut)
+    await wait_for_idle(dut)
+
+    [opcode, address] = await spi_subordinate.get_content()
+    assert opcode == 0x02
+    assert address == 0x800001
+    lower_bound = len(test_data) - num_bytes - 1
+    assert spi_subordinate.data == test_data[lower_bound:]
 
 
 def test_spi_transmitter():
