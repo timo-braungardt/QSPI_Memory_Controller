@@ -7,6 +7,7 @@ class QSpiFlashMemory(QSpiSubordinateBase):
     write_enable = 0x06
     program = 0x02
     read = 0x03
+    long_address_enable = 0xB7
 
     def __init__(self, bus: QSpiBus, config: QSpiConfig):
         self.log = logging.getLogger(f"cocotb.qspi")
@@ -16,6 +17,7 @@ class QSpiFlashMemory(QSpiSubordinateBase):
         self.write_enable = False
         self.data = []
         self.num_bytes = 4
+        self.address_width = 24
         super().__init__(bus)
 
     async def get_contents(self):
@@ -31,8 +33,11 @@ class QSpiFlashMemory(QSpiSubordinateBase):
         if self.opcode == QSpiFlashMemory.write_enable:
             self.write_enable = True
             self.log.info("   writing enabled")
+        elif self.opcode == QSpiFlashMemory.long_address_enable:
+            self.address_width = 32
+            self.log.info("   address length now 32 bit")
         else:
-            self.address = int(await self._quad_recieve(24))
+            self.address = int(await self._quad_recieve(self.address_width))
             self.log.info("   address: %d", self.address)
 
         # Manager ordered a read
@@ -48,7 +53,7 @@ class QSpiFlashMemory(QSpiSubordinateBase):
         if self.opcode == QSpiFlashMemory.program:
             if not self.write_enable:
                 raise RuntimeError("Write enable not set!")
-            
+
             for i in range(self.num_bytes):
                 data = int(await self._quad_recieve(8))
                 self.log.info(f"   recieved {data}")

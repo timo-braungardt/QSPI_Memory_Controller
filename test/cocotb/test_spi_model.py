@@ -114,6 +114,7 @@ async def get_jedec_parameter_test(dut):
     dut.Controller.write_data.value = 0b0
     dut.Controller.read_data.value = 0b1
     dut.Controller.num_bits.value = 72
+    dut.Controller.num_dummy_cycles.value = 8
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -123,42 +124,39 @@ async def get_jedec_parameter_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
     await dut.chip_select_neg.value_change
 
-    # ToDo: the data arrives only after 8 cycles, so the first byte in the buffer is undefined.
     # Problem: in the memory model, the SFDP bytes are set and later overwritten with the manufacturer ID
     #          this may be a bug - i do not know
 
-    # assert dut.Controller.buffer[0].value
-    assert dut.Controller.buffer[1].value.to_unsigned() == 0x34
-    assert dut.Controller.buffer[2].value.to_unsigned() == 0x2A
-    assert dut.Controller.buffer[3].value.to_unsigned() == 0x1A
-    assert dut.Controller.buffer[4].value.to_unsigned() == 0x0F
+    assert dut.Controller.buffer[0].value.to_unsigned() == 0x34
+    assert dut.Controller.buffer[1].value.to_unsigned() == 0x2A
+    assert dut.Controller.buffer[2].value.to_unsigned() == 0x1A
+    assert dut.Controller.buffer[3].value.to_unsigned() == 0x0F
 
-    assert dut.Controller.buffer[5].value.to_unsigned() == 0x03
-    assert dut.Controller.buffer[6].value.to_unsigned() == 0x90
-    assert dut.Controller.buffer[7].value.to_unsigned() == 0xFF
+    assert dut.Controller.buffer[4].value.to_unsigned() == 0x03
+    assert dut.Controller.buffer[5].value.to_unsigned() == 0x90
+    assert dut.Controller.buffer[6].value.to_unsigned() == 0xFF
 
     # SFDP Header
-    # assert dut.Controller.buffer[0].value
-    # assert dut.Controller.buffer[1].value.to_unsigned() == 0x53 # ascii: S
-    # assert dut.Controller.buffer[2].value.to_unsigned() == 0x46 # ascii: F
-    # assert dut.Controller.buffer[3].value.to_unsigned() == 0x44 # ascii: D
-    # assert dut.Controller.buffer[4].value.to_unsigned() == 0x50 # ascii: P
+    # assert dut.Controller.buffer[0].value.to_unsigned() == 0x53 # ascii: S
+    # assert dut.Controller.buffer[1].value.to_unsigned() == 0x46 # ascii: F
+    # assert dut.Controller.buffer[2].value.to_unsigned() == 0x44 # ascii: D
+    # assert dut.Controller.buffer[3].value.to_unsigned() == 0x50 # ascii: P
 
-    # assert dut.Controller.buffer[5].value.to_unsigned() == 0x08 # SFDP minor version
-    # assert dut.Controller.buffer[6].value.to_unsigned() == 0x01 # SFDP major version
-    # assert dut.Controller.buffer[7].value.to_unsigned() == 0x03 # number of parameter headers
-    # assert dut.Controller.buffer[8].value.to_unsigned() == 0xFF # access protocoll
+    # assert dut.Controller.buffer[4].value.to_unsigned() == 0x08 # SFDP minor version
+    # assert dut.Controller.buffer[5].value.to_unsigned() == 0x01 # SFDP major version
+    # assert dut.Controller.buffer[6].value.to_unsigned() == 0x03 # number of parameter headers
+    # assert dut.Controller.buffer[7].value.to_unsigned() == 0xFF # access protocoll
 
     # 1st Parameter
-    # assert dut.Controller.buffer[9].value.to_unsigned() == 0x00 # param ID lsb
-    # assert dut.Controller.buffer[10].value.to_unsigned() == 0x00 # minor version
-    # assert dut.Controller.buffer[11].value.to_unsigned() == 0x01 # major version
-    # assert dut.Controller.buffer[12].value.to_unsigned() == 0x14 # parameter length
+    # assert dut.Controller.buffer[8].value.to_unsigned() == 0x00 # param ID lsb
+    # assert dut.Controller.buffer[9].value.to_unsigned() == 0x00 # minor version
+    # assert dut.Controller.buffer[10].value.to_unsigned() == 0x01 # major version
+    # assert dut.Controller.buffer[11].value.to_unsigned() == 0x14 # parameter length
 
-    # assert dut.Controller.buffer[13].value.to_unsigned() == 0x00 # address
-    # assert dut.Controller.buffer[14].value.to_unsigned() == 0x01 # address
-    # assert dut.Controller.buffer[15].value.to_unsigned() == 0x00 # address
-    # assert dut.Controller.buffer[].value.to_unsigned() == 0xFF # parameter ID msb
+    # assert dut.Controller.buffer[12].value.to_unsigned() == 0x00 # address
+    # assert dut.Controller.buffer[13].value.to_unsigned() == 0x01 # address
+    # assert dut.Controller.buffer[14].value.to_unsigned() == 0x00 # address
+    # assert dut.Controller.buffer[15].value.to_unsigned() == 0xFF # parameter ID msb
 
     ## get memory size
 
@@ -179,6 +177,7 @@ async def get_jedec_parameter_test(dut):
     dut.Controller.write_data.value = 0b0
     dut.Controller.read_data.value = 0b1
     dut.Controller.num_bits.value = 72
+    dut.Controller.num_dummy_cycles.value = 8
 
     dut.go.value = 0
     await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
@@ -188,17 +187,15 @@ async def get_jedec_parameter_test(dut):
     await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
     await dut.chip_select_neg.value_change
 
-    # ToDo: the data arrives only after 8 cycles, so the first byte in the buffer is undefined.
-    # assert dut.Controller.buffer[0].value
-    assert dut.Controller.buffer[1].value.to_unsigned() == 0xE7
-    assert dut.Controller.buffer[2].value.to_unsigned() == 0x20
-    assert dut.Controller.buffer[3].value.to_unsigned() == 0xFA
-    assert dut.Controller.buffer[4].value.to_unsigned() == 0xFF
+    assert dut.Controller.buffer[0].value.to_unsigned() == 0xE7
+    assert dut.Controller.buffer[1].value.to_unsigned() == 0x20
+    assert dut.Controller.buffer[2].value.to_unsigned() == 0xFA
+    assert dut.Controller.buffer[3].value.to_unsigned() == 0xFF
 
+    assert dut.Controller.buffer[4].value.to_unsigned() == 0xFF
     assert dut.Controller.buffer[5].value.to_unsigned() == 0xFF
     assert dut.Controller.buffer[6].value.to_unsigned() == 0xFF
-    assert dut.Controller.buffer[7].value.to_unsigned() == 0xFF
-    assert dut.Controller.buffer[8].value.to_unsigned() == 0x1F
+    assert dut.Controller.buffer[7].value.to_unsigned() == 0x1F
 
 
 @cocotb.test()

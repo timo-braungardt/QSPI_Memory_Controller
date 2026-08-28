@@ -22,8 +22,8 @@ async def transmission_test(dut):
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
-            mosi_d1_name="io_dq1_manager_serial_out",
-            miso_d0_name="io_dq0_manager_serial_in",
+            mosi_d0_name="io_dq0",  # Notice: the controller does not support spi mode, this is not the miso pin.
+            miso_d1_name="io_dq1",
             d2_name="io_dq2",
             d3_name="io_dq3",
             cs_name="o_chip_select_neg",
@@ -74,8 +74,8 @@ async def read_test(dut):
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
-            mosi_d1_name="io_dq1_manager_serial_out",
-            miso_d0_name="io_dq0_manager_serial_in",
+            mosi_d0_name="io_dq0",
+            miso_d1_name="io_dq1",
             d2_name="io_dq2",
             d3_name="io_dq3",
             cs_name="o_chip_select_neg",
@@ -130,8 +130,8 @@ async def write_test(dut):
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
-            mosi_d1_name="io_dq1_manager_serial_out",
-            miso_d0_name="io_dq0_manager_serial_in",
+            mosi_d0_name="io_dq0",
+            miso_d1_name="io_dq1",
             d2_name="io_dq2",
             d3_name="io_dq3",
             cs_name="o_chip_select_neg",

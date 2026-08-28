@@ -14,8 +14,8 @@ module Combined_SPI_wrapper;
         .go(go),
         .o_bus_clock(bus_clock),
         .o_chip_select_neg(chip_select_neg),
-        .io_data0_manager_serial_in(data[0]),
-        .io_data1_manager_serial_out(data[1]),
+        .io_data0_manager_serial_out(data[0]),
+        .io_data1_manager_serial_in(data[1]),
         .io_data2(data[2]),
         .io_data3(data[3])
     );
@@ -25,8 +25,8 @@ module Combined_SPI_wrapper;
         .SCK(bus_clock),
         .RESETNeg(~reset),
         .CSNeg(chip_select_neg),
-        .SI(data[1]),
-        .SO(data[0]),
+        .SI(data[0]),
+        .SO(data[1]),
         .WPNeg(data[2]),
         .IO3_RESETNeg(data[3])
     );

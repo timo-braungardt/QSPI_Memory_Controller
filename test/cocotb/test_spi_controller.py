@@ -1,0 +1,200 @@
+import os
+import logging
+from pathlib import Path
+import cocotb
+from cocotb_tools.runner import get_runner
+from cocotb.triggers import Timer, First, ClockCycles, RisingEdge
+from cocotb.clock import Clock
+from collections import deque
+from cocotbext.spi import SpiBus
+from HelperClasses import SpiFlashMemory
+
+
+async def reset_dut(dut):
+    dut.reset_neg.value = 0
+    await ClockCycles(dut.clk, 2, rising=True)
+    dut.reset_neg.value = 1
+    await ClockCycles(dut.clk, 1, rising=True)
+
+
+async def wait_for_idle(dut):
+    if dut.o_chip_select_neg.value == False:
+        await dut.o_chip_select_neg.value_change
+
+
+async def trigger_go(dut):
+    await wait_for_idle(dut)
+    dut.go.value = 0
+    await ClockCycles(dut.clk, 5, rising=True)
+    dut.go.value = 1
+    await ClockCycles(dut.clk, 1, rising=True)
+    dut.go.value = 0
+
+
+@cocotb.test()
+async def spi_transmission_test(dut):
+    spi_subordinate = SpiFlashMemory(
+        SpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_name="io_data0_manager_serial_out",
+            miso_name="io_data1_manager_serial_in",
+            cs_name="o_chip_select_neg",
+        )
+    )
+
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await reset_dut(dut)
+
+    dut.config_quad_mode.value = False
+    spi_subordinate.num_bytes = 1
+
+    dut.i_address.value = 0x800001
+    dut.i_write_enable.value = 0b0
+
+    await trigger_go(dut)
+    timeout = Timer(100, unit="us")
+    trigger = await First(RisingEdge(dut.o_chip_select_neg), timeout)
+    assert trigger != timeout
+
+    [opcode, address] = await spi_subordinate.get_content()
+    assert opcode == 0x03
+    assert address == 0x800001
+
+
+@cocotb.test()
+async def spi_read_test(dut):
+    spi_subordinate = SpiFlashMemory(
+        SpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_name="io_data0_manager_serial_out",
+            miso_name="io_data1_manager_serial_in",
+            cs_name="o_chip_select_neg",
+        )
+    )
+
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await reset_dut(dut)
+
+    dut.config_quad_mode.value = False
+
+    dut.i_address.value = 20
+    dut.i_write_enable.value = False
+
+    spi_subordinate.num_bytes = 1
+    spi_subordinate.data = [0x12, 0x34]
+
+    await trigger_go(dut)
+    timeout = Timer(100, unit="us")
+    trigger = await First(RisingEdge(dut.o_chip_select_neg), timeout)
+    assert trigger != timeout
+
+    [opcode, address] = await spi_subordinate.get_content()
+    assert opcode == SpiFlashMemory.read
+    assert address == 20
+    assert dut.o_data_read.value == 0x12
+
+
+@cocotb.test()
+async def spi_write_test(dut):
+
+    spi_subordinate = SpiFlashMemory(
+        SpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_name="io_data0_manager_serial_out",
+            miso_name="io_data1_manager_serial_in",
+            cs_name="o_chip_select_neg",
+        )
+    )
+
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await reset_dut(dut)
+
+    dut.config_quad_mode.value = False
+
+    dut.i_address.value = 21
+    dut.i_data_write.value = 0x81
+    dut.i_write_enable.value = True
+
+    spi_subordinate.num_bytes = 1
+
+    assert not spi_subordinate.write_enable
+    await trigger_go(dut)
+    timeout = Timer(100, unit="us")
+    trigger = await First(RisingEdge(dut.o_chip_select_neg), timeout)
+    assert trigger != timeout
+    trigger = await First(RisingEdge(dut.o_chip_select_neg), timeout)
+    assert trigger != timeout
+
+    assert spi_subordinate.opcode == SpiFlashMemory.program
+    assert spi_subordinate.address == 21
+    assert spi_subordinate.write_enable
+    assert spi_subordinate.data == [0x81]
+
+
+@cocotb.test()
+async def spi_dummy_cycles_test(dut):
+    spi_subordinate = SpiFlashMemory(
+        SpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_name="io_data0_manager_serial_out",
+            miso_name="io_data1_manager_serial_in",
+            cs_name="o_chip_select_neg",
+        )
+    )
+
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await reset_dut(dut)
+
+    dut.config_quad_mode.value = False
+    dut.config_dummy_cycles.value = 8
+
+    dut.i_address.value = 20
+    dut.i_write_enable.value = False
+
+    spi_subordinate.num_bytes = 2
+    spi_subordinate.data = [0x12, 0x34, 0x56]
+
+    await trigger_go(dut)
+    timeout = Timer(100, unit="us")
+    trigger = await First(RisingEdge(dut.o_chip_select_neg), timeout)
+    assert trigger != timeout
+
+    [opcode, address] = await spi_subordinate.get_content()
+    assert opcode == SpiFlashMemory.read
+    assert address == 20
+    assert dut.o_data_read.value == 0x34
+
+
+def test_spi_controller():
+    """
+    Test the spi controller against cocotb memory models.
+    """
+    sim = os.getenv("SIM", "icarus")
+    proj_path = Path(__file__).resolve().parent
+    sources = [proj_path / "../../src/SPIController.v", proj_path / "../../src/SPITransmitter.v"]
+
+    runner = get_runner(sim)
+    runner.build(
+        sources=sources,
+        hdl_toplevel="SPIController",
+        always=True,
+        waves=True,
+        parameters={"ADDRESS_LENGTH": 24},
+    )
+    runner.test(hdl_toplevel="SPIController", test_module="test_spi_controller", waves=True)
+
+
+if __name__ == "__main__":
+    test_spi_controller()

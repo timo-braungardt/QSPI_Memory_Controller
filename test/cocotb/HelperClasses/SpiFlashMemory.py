@@ -8,6 +8,7 @@ class SpiFlashMemory(SpiSlaveBase):
     write_enable = 0x06
     program = 0x02
     read = 0x03
+    long_address_enable = 0xB7
 
     def __init__(self, bus):
         self.log = logging.getLogger(f"cocotb.spi")
@@ -17,6 +18,7 @@ class SpiFlashMemory(SpiSlaveBase):
         self.write_enable = False
         self.data = []
         self.num_bytes = 4
+        self.address_width = 24
         super().__init__(bus)
 
     async def get_content(self):
@@ -55,8 +57,11 @@ class SpiFlashMemory(SpiSlaveBase):
         if self.opcode == SpiFlashMemory.write_enable:
             self.write_enable = True
             self.log.info("   writing enabled")
+        elif self.opcode == SpiFlashMemory.long_address_enable:
+            self.address_width = 32
+            self.log.info("   address length now 32 bit")
         else:
-            self.address = int(await self._recieve_data(24))
+            self.address = int(await self._recieve_data(self.address_width))
             self.log.info("   address: %d", self.address)
 
         # Manager ordered a read
