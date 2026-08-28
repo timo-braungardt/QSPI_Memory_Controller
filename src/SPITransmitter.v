@@ -65,8 +65,6 @@ module SPITransmitter #(
     integer                   count_nxt;
     wire                      clock_tick_pos;
     wire                      clock_tick_neg;
-    integer                   buffer_count_reg;
-    integer                   buffer_count_nxt;
     reg                       transmission_finished_nxt;
     reg                       transmission_finished_reg;
 
@@ -127,7 +125,6 @@ module SPITransmitter #(
     always @(*) begin : transmission_logic
         state_nxt = state_reg;
         count_nxt = count_reg;
-        buffer_count_nxt = buffer_count_reg;
         transmission_finished_nxt = 0;
 
         case (state_reg)
@@ -153,7 +150,6 @@ module SPITransmitter #(
                             state_nxt = SEND_DATA;
                         end else if (i_config_read_data) begin
                             count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? DATA_WIDTH / BITS_PER_SHIFT - 1 : DATA_WIDTH - 1;
-                            buffer_count_nxt = 0;
                             state_nxt = RECEIVE_DATA;
                         end else state_nxt = FINISH;
                     end
@@ -165,7 +161,6 @@ module SPITransmitter #(
 
                 if (count_reg == 0 && clock_tick_neg) begin
                     count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? DATA_WIDTH / BITS_PER_SHIFT - 1 : DATA_WIDTH - 1;
-                    buffer_count_nxt = 0;
                     if (i_config_dummy_cycles != 0) begin
                             count_nxt = {27'd0, i_config_dummy_cycles - 5'd1};
                         state_nxt = DUMMY_CYCLES;
@@ -180,7 +175,6 @@ module SPITransmitter #(
 
                 if (count_reg == 0 && clock_tick_neg) begin
                     count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? DATA_WIDTH / BITS_PER_SHIFT - 1 : DATA_WIDTH - 1;
-                    buffer_count_nxt = 0;
                     if (i_config_write_data) state_nxt = SEND_DATA;
                     else if (i_config_read_data) state_nxt = RECEIVE_DATA;
                     else
@@ -191,7 +185,6 @@ module SPITransmitter #(
             RECEIVE_DATA: begin
                 if (clock_tick_pos) begin
                     count_nxt = count_reg - 1;
-                    buffer_count_nxt = buffer_count_reg + 1;
                 end
 
                 transmission_finished_nxt = (count_reg == 0 & clock_tick_neg) || transmission_finished_reg;
@@ -203,7 +196,6 @@ module SPITransmitter #(
             SEND_DATA: begin
                 if (clock_tick_neg) begin
                     count_nxt = count_reg - 1;
-                    buffer_count_nxt = buffer_count_reg + 1;
                 end
 
                 transmission_finished_nxt = (count_reg == 0 & clock_tick_pos) || transmission_finished_reg;
@@ -223,13 +215,11 @@ module SPITransmitter #(
         if (!reset_neg) begin
             state_reg <= IDLE;
             count_reg <= 0;
-            buffer_count_reg <= 0;
             o_chip_select_neg <= 1'b1;
             transmission_finished_reg <= 0;
         end else begin
             state_reg <= state_nxt;
             count_reg <= count_nxt;
-            buffer_count_reg <= buffer_count_nxt;
             o_chip_select_neg <= ~(state_reg != IDLE);  // state_nxt possible for perfect sync with state
             transmission_finished_reg <= transmission_finished_nxt;
         end
