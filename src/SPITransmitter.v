@@ -2,7 +2,7 @@
 
 module SPITransmitter #(
     parameter ADDRESS_LENGTH = 24,
-    parameter DATA_WIDTH = 8
+    parameter DATA_WIDTH = 32
 ) (
     input clk,
     input reset_neg,
@@ -32,8 +32,9 @@ module SPITransmitter #(
     localparam integer TIMER_COUNT = 2;
     localparam integer OPCODE_LENGTH = 8;
     localparam BITS_PER_SHIFT = 4;
-    localparam BYTE_SEL_LSB = $clog2(DATA_WIDTH / BITS_PER_SHIFT) - 1;
-    localparam BYTE_SEL_LSB_SINGLE = $clog2(DATA_WIDTH) - 1;
+    localparam BYTE = 8;
+    localparam BYTE_SEL_LSB = $clog2(BYTE / BITS_PER_SHIFT) - 1;
+    localparam BYTE_SEL_LSB_SINGLE = $clog2(BYTE) - 1;
     localparam ADDRESS_SEL_MSB = $clog2(ADDRESS_LENGTH / BITS_PER_SHIFT) - 1;
     localparam ADDRESS_SEL_MSB_SINGLE = $clog2(ADDRESS_LENGTH) - 1;
     localparam BUS_WIDTH = 4;
@@ -146,10 +147,10 @@ module SPITransmitter #(
                             count_nxt = {27'd0, i_config_dummy_cycles - 5'd1};
                             state_nxt = DUMMY_CYCLES;
                         end else if (i_config_write_data) begin
-                            count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? DATA_WIDTH / BITS_PER_SHIFT - 1 : DATA_WIDTH - 1;
+                            count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? BYTE / BITS_PER_SHIFT - 1 : BYTE - 1;
                             state_nxt = SEND_DATA;
                         end else if (i_config_read_data) begin
-                            count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? DATA_WIDTH / BITS_PER_SHIFT - 1 : DATA_WIDTH - 1;
+                            count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? BYTE / BITS_PER_SHIFT - 1 : BYTE - 1;
                             state_nxt = RECEIVE_DATA;
                         end else state_nxt = FINISH;
                     end
@@ -160,7 +161,7 @@ module SPITransmitter #(
                 if (clock_tick_neg) count_nxt = count_reg - 1;
 
                 if (count_reg == 0 && clock_tick_neg) begin
-                    count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? DATA_WIDTH / BITS_PER_SHIFT - 1 : DATA_WIDTH - 1;
+                    count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? BYTE / BITS_PER_SHIFT - 1 : BYTE - 1;
                     if (i_config_dummy_cycles != 0) begin
                             count_nxt = {27'd0, i_config_dummy_cycles - 5'd1};
                         state_nxt = DUMMY_CYCLES;
@@ -174,7 +175,7 @@ module SPITransmitter #(
                 if (clock_tick_neg) count_nxt = count_reg - 1;
 
                 if (count_reg == 0 && clock_tick_neg) begin
-                    count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? DATA_WIDTH / BITS_PER_SHIFT - 1 : DATA_WIDTH - 1;
+                    count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? BYTE / BITS_PER_SHIFT - 1 : BYTE - 1;
                     if (i_config_write_data) state_nxt = SEND_DATA;
                     else if (i_config_read_data) state_nxt = RECEIVE_DATA;
                     else
@@ -281,6 +282,7 @@ module SPITransmitter #(
     always @(posedge clk) begin : data_register
         if (!reset_neg) begin
             data_out_reg <= 0;
+            data_read_reg <= 0;
         end else begin
             data_out_reg <= data_out_nxt;
 
