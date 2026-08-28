@@ -5,7 +5,8 @@ from cocotb_tools.runner import get_runner
 from cocotb.clock import Clock
 from cocotb.triggers import Timer, First, ClockCycles, RisingEdge
 from cocotbext.spi import SpiBus
-from HelperClasses import SpiFlashMemory
+from cocotbext.qspi import QSpiBus, QSpiConfig
+from HelperClasses import SpiFlashMemory, QSpiFlashMemory
 
 async def reset_dut(dut):
     dut.reset_neg.value = 0
@@ -29,47 +30,8 @@ async def trigger_go(dut):
 
 
 @cocotb.test()
-async def transmission_test(dut):
-    spi_subordinate = SpiFlashMemory(
-        SpiBus(
-            entity=dut,
-            sclk_name="o_bus_clock",
-            mosi_name="io_data0_manager_serial_out",
-            miso_name="io_data1_manager_serial_in",
-            cs_name="o_chip_select_neg",
-        )
-    )
-
-    c = Clock(dut.clk, 20, "ns")
-    cocotb.start_soon(c.start())
-    await reset_dut(dut)
-    
-    dut.i_opcode.value = 0x02
-    dut.i_address.value = 0x800001
-    dut.i_data_write.value = 0x12345678
-
-    dut.i_config_read_data.value = False
-    dut.i_config_write_data.value = True
-    dut.i_config_write_address.value = True
-    dut.i_config_quad_mode.value = 0b000
-    dut.i_num_bytes.value = 0b00
-    dut.i_config_dummy_cycles.value = 0
-    dut.i_config_dummy_cycles.value = 0
-
-    spi_subordinate.write_enable = True
-    spi_subordinate.num_bytes = 1
-    await trigger_go(dut)
-    await wait_for_idle(dut)
-
-    [opcode, address] = await spi_subordinate.get_content()
-    assert opcode == 0x02
-    assert address == 0x800001
-    assert spi_subordinate.data == [0x78]
-
-
-@cocotb.test()
 @cocotb.parametrize(num_bytes=[0, 1, 2, 3])
-async def transmission_test_4bytes(dut, num_bytes):
+async def transmission_test_4bytes_spi(dut, num_bytes):
     spi_subordinate = SpiFlashMemory(
         SpiBus(
             entity=dut,
@@ -94,10 +56,9 @@ async def transmission_test_4bytes(dut, num_bytes):
     dut.i_config_quad_mode.value = 0b000
     dut.i_num_bytes.value = num_bytes
     dut.i_config_dummy_cycles.value = 0
-    dut.i_config_dummy_cycles.value = 0
 
     spi_subordinate.write_enable = True
-    spi_subordinate.num_bytes = 1
+    spi_subordinate.num_bytes = num_bytes+1
     await trigger_go(dut)
     await wait_for_idle(dut)
 
@@ -106,6 +67,58 @@ async def transmission_test_4bytes(dut, num_bytes):
     assert address == 0x800001
     lower_bound = len(test_data) - num_bytes - 1
     assert spi_subordinate.data == test_data[lower_bound:]
+
+
+@cocotb.test()
+@cocotb.parametrize(num_bytes=[0, 1, 2, 3])
+async def transmission_test_4bytes_qspi(dut, num_bytes):
+    qspi_subordinate = QSpiFlashMemory(
+        QSpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_d0_name="io_data0_manager_serial_out",
+            miso_d1_name="io_data1_manager_serial_in",
+            d2_name="io_data2",
+            d3_name="io_data3",
+            cs_name="o_chip_select_neg",
+        ),
+        QSpiConfig(
+            word_width=8,
+            sclk_freq=20e6,
+            cpol=0,
+            cpha=0,
+            msb_first=True,
+            frame_spacing_ns=10,
+            ignore_rx_value=None,
+            cs_active_low=True,
+            is_quad_mode=True,
+        ),
+    )
+    test_data = [0x12, 0x34, 0x56, 0x78]
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
+
+    dut.i_opcode.value = 0x02
+    dut.i_address.value = 0x800001
+    dut.i_data_write.value = 0x12345678
+
+    dut.i_config_read_data.value = False
+    dut.i_config_write_data.value = True
+    dut.i_config_write_address.value = True
+    dut.i_config_quad_mode.value = 0b111
+    dut.i_num_bytes.value = num_bytes
+    dut.i_config_dummy_cycles.value = 0
+
+    qspi_subordinate.write_enable = True
+    qspi_subordinate.num_bytes = num_bytes+1
+    await trigger_go(dut)
+    await wait_for_idle(dut)
+
+    assert qspi_subordinate.opcode == 0x02
+    assert qspi_subordinate.address == 0x800001
+    lower_bound = len(test_data) - num_bytes - 1
+    assert qspi_subordinate.data == test_data[lower_bound:]
 
 
 def test_spi_transmitter():
