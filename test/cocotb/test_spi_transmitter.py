@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+import pytest
 import cocotb
 from cocotb_tools.runner import get_runner
 from cocotb.clock import Clock
@@ -7,6 +8,10 @@ from cocotb.triggers import Timer, First, ClockCycles, RisingEdge
 from cocotbext.spi import SpiBus
 from cocotbext.qspi import QSpiBus, QSpiConfig
 from HelperClasses import SpiFlashMemory, QSpiFlashMemory
+
+DATA_WIDTH = int(os.environ.get("PARAM_DATA_WIDTH", 32))
+NUM_BYTES = DATA_WIDTH // 8
+
 
 async def reset_dut(dut):
     dut.reset_neg.value = 0
@@ -29,8 +34,23 @@ async def trigger_go(dut):
     dut.start_transmission.value = 0
 
 
+def get_test_array():
+    if NUM_BYTES == 4:
+        return [0x12, 0x34, 0x56, 0x78]
+    if NUM_BYTES == 8:
+        return [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xFF]
+
+
+def get_test_number():
+    number = 0
+    for i in get_test_array():
+        number = (number << 8) + i
+    return number
+
+
+
 @cocotb.test()
-@cocotb.parametrize(num_bytes=[0, 1, 2, 3])
+@cocotb.parametrize(num_bytes=range(NUM_BYTES))
 async def write_test_4bytes_spi(dut, num_bytes):
     spi_subordinate = SpiFlashMemory(
         SpiBus(
@@ -41,14 +61,14 @@ async def write_test_4bytes_spi(dut, num_bytes):
             cs_name="o_chip_select_neg",
         )
     )
-    test_data = [0x12, 0x34, 0x56, 0x78]
+    test_data = get_test_array()
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
     await reset_dut(dut)
 
     dut.i_opcode.value = 0x02
     dut.i_address.value = 0x800001
-    dut.i_data_write.value = 0x12345678
+    dut.i_data_write.value = get_test_number()
 
     dut.i_config_read_data.value = False
     dut.i_config_write_data.value = True
@@ -70,7 +90,7 @@ async def write_test_4bytes_spi(dut, num_bytes):
 
 
 @cocotb.test()
-@cocotb.parametrize(num_bytes=[0, 1, 2, 3])
+@cocotb.parametrize(num_bytes=range(NUM_BYTES))
 async def read_test_4bytes_spi(dut, num_bytes):
     spi_subordinate = SpiFlashMemory(
         SpiBus(
@@ -96,7 +116,7 @@ async def read_test_4bytes_spi(dut, num_bytes):
     dut.i_config_dummy_cycles.value = 0
 
     spi_subordinate.num_bytes = num_bytes+1
-    spi_subordinate.data = [0x12, 0x34, 0x56, 0x78]
+    spi_subordinate.data = get_test_array()
     await trigger_go(dut)
     await wait_for_idle(dut)
 
@@ -110,7 +130,7 @@ async def read_test_4bytes_spi(dut, num_bytes):
 
 
 @cocotb.test()
-@cocotb.parametrize(num_bytes=[0, 1, 2, 3])
+@cocotb.parametrize(num_bytes=range(NUM_BYTES))
 async def write_test_4bytes_qspi(dut, num_bytes):
     qspi_subordinate = QSpiFlashMemory(
         QSpiBus(
@@ -134,14 +154,14 @@ async def write_test_4bytes_qspi(dut, num_bytes):
             is_quad_mode=True,
         ),
     )
-    test_data = [0x12, 0x34, 0x56, 0x78]
+    test_data = get_test_array()
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
     await reset_dut(dut)
 
     dut.i_opcode.value = 0x02
     dut.i_address.value = 0x800001
-    dut.i_data_write.value = 0x12345678
+    dut.i_data_write.value = get_test_number()
 
     dut.i_config_read_data.value = False
     dut.i_config_write_data.value = True
@@ -162,7 +182,7 @@ async def write_test_4bytes_qspi(dut, num_bytes):
 
 
 @cocotb.test()
-@cocotb.parametrize(num_bytes=[0, 1, 2, 3])
+@cocotb.parametrize(num_bytes=range(NUM_BYTES))
 async def read_test_4bytes_qspi(dut, num_bytes):
     qspi_subordinate = QSpiFlashMemory(
             QSpiBus(
@@ -201,7 +221,7 @@ async def read_test_4bytes_qspi(dut, num_bytes):
     dut.i_config_dummy_cycles.value = 0
 
     qspi_subordinate.num_bytes = num_bytes+1
-    qspi_subordinate.data = [0x12, 0x34, 0x56, 0x78]
+    qspi_subordinate.data = get_test_array()
     await trigger_go(dut)
     await wait_for_idle(dut)
 
@@ -213,7 +233,8 @@ async def read_test_4bytes_qspi(dut, num_bytes):
     assert dut.o_data_read.value.to_unsigned() == test_data
 
 
-def test_spi_transmitter():
+@pytest.mark.parametrize("data_width", [32, 64])
+def test_spi_transmitter(data_width):
     """
     Test if the basics of the SPI protocol are implemented correctly.
     """
@@ -221,9 +242,13 @@ def test_spi_transmitter():
     proj_path = Path(__file__).resolve().parent
     sources = [proj_path / "../../src/SPITransmitter.v"]
 
+    parameters = {}
+    parameters["DATA_WIDTH"] = data_width
+    extra_env = {f"PARAM_{k}": str(v) for k, v in parameters.items()}
+
     runner = get_runner(sim)
-    runner.build(sources=sources, hdl_toplevel="SPITransmitter", always=True, waves=True)
-    runner.test(hdl_toplevel="SPITransmitter", test_module="test_spi_transmitter", waves=True)
+    runner.build(sources=sources, hdl_toplevel="SPITransmitter", always=True, waves=True, parameters=parameters)
+    runner.test(hdl_toplevel="SPITransmitter", test_module="test_spi_transmitter", parameters=parameters, waves=True, extra_env=extra_env)
 
 
 if __name__ == "__main__":
