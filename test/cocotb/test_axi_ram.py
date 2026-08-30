@@ -214,7 +214,7 @@ def test_axi_ram(data_width):
     extra_env = {f"PARAM_{k}": str(v) for k, v in parameters.items()}
 
     runner = get_runner(sim)
-    runner.build(sources=sources, hdl_toplevel=top_level, always=True, waves=True)
+    runner.build(sources=sources, hdl_toplevel=top_level, always=True, waves=True, parameters=parameters)
 
     runner.test(
         hdl_toplevel=top_level,
