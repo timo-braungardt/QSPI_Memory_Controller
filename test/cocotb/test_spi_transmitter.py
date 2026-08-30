@@ -50,6 +50,17 @@ def get_test_number():
     return number
 
 
+async def handle_burst(dut, subordinate, burst_num_bytes):
+    subordinate.num_bytes = burst_num_bytes
+    dut.i_num_bytes.value = NUM_BYTES -1
+    num_loops = burst_num_bytes // NUM_BYTES
+    last_num_bytes = burst_num_bytes - (NUM_BYTES * num_loops)
+
+    for _ in range(num_loops):
+        await RisingEdge(dut.o_next_word)
+    dut.i_last_word.value = True
+    await wait_for_idle(dut)
+
 
 @cocotb.test()
 @cocotb.parametrize(num_bytes=range(NUM_BYTES))
@@ -70,6 +81,7 @@ async def write_test_4bytes_spi(dut, num_bytes):
 
     dut.i_opcode.value = 0x02
     dut.i_address.value = 0x800001
+    dut.i_last_word.value = True
     dut.i_data_write.value = get_test_number()
 
     dut.i_config_read_data.value = False
@@ -109,6 +121,7 @@ async def read_test_4bytes_spi(dut, num_bytes):
 
     dut.i_opcode.value = 0x03
     dut.i_address.value = 0x800001
+    dut.i_last_word.value = True
 
     dut.i_config_read_data.value = True
     dut.i_config_write_data.value = False
@@ -163,6 +176,7 @@ async def write_test_4bytes_qspi(dut, num_bytes):
 
     dut.i_opcode.value = 0x02
     dut.i_address.value = 0x800001
+    dut.i_last_word.value = True
     dut.i_data_write.value = get_test_number()
 
     dut.i_config_read_data.value = False
@@ -214,6 +228,7 @@ async def read_test_4bytes_qspi(dut, num_bytes):
 
     dut.i_opcode.value = 0x03
     dut.i_address.value = 0x800001
+    dut.i_last_word.value = True
 
     dut.i_config_read_data.value = True
     dut.i_config_write_data.value = False
@@ -233,6 +248,58 @@ async def read_test_4bytes_qspi(dut, num_bytes):
     for i in qspi_subordinate.data[:num_bytes+1]:
         test_data = (test_data << 8) + i
     assert dut.o_data_read.value.to_unsigned() == test_data
+
+
+@cocotb.test()
+@cocotb.parametrize(num_bytes=[NUM_BYTES*2])
+async def write_test_burst_qspi(dut, num_bytes):
+    qspi_subordinate = QSpiFlashMemory(
+        QSpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_d0_name="io_data0_manager_serial_out",
+            miso_d1_name="io_data1_manager_serial_in",
+            d2_name="io_data2",
+            d3_name="io_data3",
+            cs_name="o_chip_select_neg",
+        ),
+        QSpiConfig(
+            word_width=8,
+            sclk_freq=20e6,
+            cpol=0,
+            cpha=0,
+            msb_first=True,
+            frame_spacing_ns=10,
+            ignore_rx_value=None,
+            cs_active_low=True,
+            is_quad_mode=True,
+        ),
+    )
+    test_data = get_test_array()
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
+
+    dut.i_opcode.value = 0x02
+    dut.i_address.value = 0x800001
+    dut.i_last_word.value = False
+    dut.i_data_write.value = get_test_number()
+
+    dut.i_config_read_data.value = False
+    dut.i_config_write_data.value = True
+    dut.i_config_write_address.value = True
+    dut.i_config_quad_mode.value = 0b111
+    dut.i_config_dummy_cycles.value = 0
+
+    qspi_subordinate.write_enable = True
+    await trigger_go(dut)
+    await handle_burst(dut, qspi_subordinate, num_bytes)
+
+    assert qspi_subordinate.opcode == 0x02
+    assert qspi_subordinate.address == 0x800001
+    test_data.extend(test_data)
+    assert len(qspi_subordinate.data) == len(test_data)
+    assert qspi_subordinate.data == test_data
 
 
 @pytest.mark.parametrize("data_width", [32, 64])
