@@ -87,6 +87,7 @@ module SPIController #(
         .i_config_write_data(config_write_data),
         .i_config_write_address(config_write_address),
         .i_config_quad_mode(config_quad_mode),
+        .i_num_bytes(0),
         .i_config_dummy_cycles(config_dummy_cycles),    // ToDo: depending on the opcode, we need dummy cycles or not
         .i_data_write(data_in_reg),
         .o_data_read(o_data_read),
