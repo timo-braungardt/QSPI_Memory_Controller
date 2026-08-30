@@ -53,15 +53,17 @@ module SPIController #(
     reg                       config_is_config_operation;
 
     // states control FSM
-    localparam integer IDLE = 0;
-    localparam integer READ = 1;
-    localparam integer WRITE_ENABLE = 2;
-    localparam integer WAIT = 4;
-    localparam integer WRITE = 3;
-    localparam integer WRITE_CONFIG = 5;
+    localparam NUM_STATES = 6;
+    localparam INDEX_STATES_MSB = $clog2(NUM_STATES) - 1;
+    localparam [INDEX_STATES_MSB:0] IDLE = 0;
+    localparam [INDEX_STATES_MSB:0] READ = 1;
+    localparam [INDEX_STATES_MSB:0] WRITE_ENABLE = 2;
+    localparam [INDEX_STATES_MSB:0] WRITE = 3;
+    localparam [INDEX_STATES_MSB:0] WRITE_CONFIG = 4;
+    localparam [INDEX_STATES_MSB:0] WAIT = 5;
 
-    integer control_state_reg;
-    integer control_state_nxt;
+    reg [INDEX_STATES_MSB:0] control_state_reg;
+    reg [INDEX_STATES_MSB:0] control_state_nxt;
 
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ = 8'h03;
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ_114 = 8'h6B;
@@ -175,8 +177,10 @@ module SPIController #(
         end
 
         if (!reset_neg) begin
+            control_state_reg <= IDLE;
             address_reg <= 0;
             opcode_reg <= 0;
+            data_in_reg <= 0;
             config_quad_mode <= 3'b000;
             config_is_config_operation <= 1'b0;
             config_dummy_cycles <= 5'd0;

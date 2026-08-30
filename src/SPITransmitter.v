@@ -65,8 +65,8 @@ module SPITransmitter #(
 
     // Logic stuff
     wire                      is_output_quad_mode;
-    integer                   state_reg;
-    integer                   state_nxt;
+    reg [INDEX_STATES_MSB:0]  state_reg;
+    reg [INDEX_STATES_MSB:0]  state_nxt;
 
     integer                   count_reg;
     integer                   count_nxt;
@@ -89,13 +89,15 @@ module SPITransmitter #(
     assign data_write_selected_byte_quad = i_data_write[count_reg[BYTE_SEL_MSB_QUAD:BYTE_SEL_LSB_QUAD]*8 +: 8];
 
     // states transmission FSM
-    localparam integer IDLE = 0;
-    localparam integer SEND_OPCODE = 1;
-    localparam integer SEND_ADDRESS = 2;
-    localparam integer DUMMY_CYCLES = 6;
-    localparam integer SEND_DATA = 3;
-    localparam integer RECEIVE_DATA = 4;
-    localparam integer FINISH = 5;
+    localparam NUM_STATES = 7;
+    localparam INDEX_STATES_MSB = $clog2(NUM_STATES) - 1;
+    localparam [INDEX_STATES_MSB:0] IDLE = 0;
+    localparam [INDEX_STATES_MSB:0] SEND_OPCODE = 1;
+    localparam [INDEX_STATES_MSB:0] SEND_ADDRESS = 2;
+    localparam [INDEX_STATES_MSB:0] DUMMY_CYCLES = 3;
+    localparam [INDEX_STATES_MSB:0] SEND_DATA = 4;
+    localparam [INDEX_STATES_MSB:0] RECEIVE_DATA = 5;
+    localparam [INDEX_STATES_MSB:0] FINISH = 6;
 
     assign en_bus_clock   = (state_reg != IDLE);
     assign clock_tick_pos = (clock_count_reg == 0 && ~clk_bus_reg);
@@ -295,6 +297,8 @@ module SPITransmitter #(
                     data_out_nxt[0] = data_write_selected_byte[index_data_send_single_mode];
                 end
             end
+
+            default:;
         endcase
     end
 
