@@ -249,6 +249,11 @@ module SPITransmitter #(
     assign io_data2 = (~en_data_out) ? 1'bZ : (is_output_quad_mode) ? data_out_reg[2] : 1'bZ;
     assign io_data3 = (~en_data_out) ? 1'bZ : (is_output_quad_mode) ? data_out_reg[3] : 1'bZ;
 
+    wire [ADDRESS_SEL_MSB_QUAD:0] index_address_quad_mode = count_reg[ADDRESS_SEL_MSB_QUAD:0];
+    wire [ADDRESS_SEL_MSB_SINGLE:0] index_address_single_mode = count_reg[ADDRESS_SEL_MSB_SINGLE:0];
+    wire index_data_send_quad_mode = count_reg[BYTE_SEL_LSB_QUAD-1];
+    wire [BYTE_SEL_LSB_SINGLE-1:0] index_data_send_single_mode = count_reg[BYTE_SEL_LSB_SINGLE-1:0];
+
     always @(*) begin : data_logic
         data_out_nxt = data_out_reg;
 
@@ -271,28 +276,31 @@ module SPITransmitter #(
 
             SEND_ADDRESS: begin
                 if (i_config_quad_mode[QUAD_MODE_ADDRESS]) begin
-                    data_out_nxt[0] = i_address[{count_reg[ADDRESS_SEL_MSB_QUAD:0], 2'd0}];
-                    data_out_nxt[1] = i_address[{count_reg[ADDRESS_SEL_MSB_QUAD:0], 2'd1}];
-                    data_out_nxt[2] = i_address[{count_reg[ADDRESS_SEL_MSB_QUAD:0], 2'd2}];
-                    data_out_nxt[3] = i_address[{count_reg[ADDRESS_SEL_MSB_QUAD:0], 2'd3}];
+                    data_out_nxt[0] = i_address[{index_address_quad_mode, 2'd0}];
+                    data_out_nxt[1] = i_address[{index_address_quad_mode, 2'd1}];
+                    data_out_nxt[2] = i_address[{index_address_quad_mode, 2'd2}];
+                    data_out_nxt[3] = i_address[{index_address_quad_mode, 2'd3}];
                 end else begin
-                    data_out_nxt[0] = i_address[count_reg[ADDRESS_SEL_MSB_SINGLE:0]];
+                    data_out_nxt[0] = i_address[index_address_single_mode];
                 end
             end
 
             SEND_DATA: begin
                 if (i_config_quad_mode[QUAD_MODE_DATA]) begin
-                    data_out_nxt[0] = data_write_selected_byte_quad[{count_reg[BYTE_SEL_LSB_QUAD-1], 2'd0}];
-                    data_out_nxt[1] = data_write_selected_byte_quad[{count_reg[BYTE_SEL_LSB_QUAD-1], 2'd1}];
-                    data_out_nxt[2] = data_write_selected_byte_quad[{count_reg[BYTE_SEL_LSB_QUAD-1], 2'd2}];
-                    data_out_nxt[3] = data_write_selected_byte_quad[{count_reg[BYTE_SEL_LSB_QUAD-1], 2'd3}];
+                    data_out_nxt[0] = data_write_selected_byte_quad[{index_data_send_quad_mode, 2'd0}];
+                    data_out_nxt[1] = data_write_selected_byte_quad[{index_data_send_quad_mode, 2'd1}];
+                    data_out_nxt[2] = data_write_selected_byte_quad[{index_data_send_quad_mode, 2'd2}];
+                    data_out_nxt[3] = data_write_selected_byte_quad[{index_data_send_quad_mode, 2'd3}];
                 end else begin
-                    data_out_nxt[0] = data_write_selected_byte[count_reg[BYTE_SEL_LSB_SINGLE-1:0]];
+                    data_out_nxt[0] = data_write_selected_byte[index_data_send_single_mode];
                 end
             end
         endcase
     end
 
+
+    wire [DATA_SEL_MSB_QUAD:0] index_data_recieve_quad_mode = count_reg[DATA_SEL_MSB_QUAD:0];
+    wire [DATA_SEL_MSB_SINGLE:0] index_data_recieve_single_mode = count_reg[DATA_SEL_MSB_SINGLE:0];
 
     always @(posedge clk) begin : data_register
         if (!reset_neg) begin
@@ -303,12 +311,12 @@ module SPITransmitter #(
 
             if (state_reg == RECEIVE_DATA && clock_tick_pos) begin
                 if (i_config_quad_mode[QUAD_MODE_DATA]) begin
-                    data_read_reg[{count_reg[DATA_SEL_MSB_QUAD:0], 2'd0}] <= data_in[0];
-                    data_read_reg[{count_reg[DATA_SEL_MSB_QUAD:0], 2'd1}] <= data_in[1];
-                    data_read_reg[{count_reg[DATA_SEL_MSB_QUAD:0], 2'd2}] <= data_in[2];
-                    data_read_reg[{count_reg[DATA_SEL_MSB_QUAD:0], 2'd3}] <= data_in[3];
+                    data_read_reg[{index_data_recieve_quad_mode, 2'd0}] <= data_in[0];
+                    data_read_reg[{index_data_recieve_quad_mode, 2'd1}] <= data_in[1];
+                    data_read_reg[{index_data_recieve_quad_mode, 2'd2}] <= data_in[2];
+                    data_read_reg[{index_data_recieve_quad_mode, 2'd3}] <= data_in[3];
                 end else begin
-                    data_read_reg[count_reg[DATA_SEL_MSB_SINGLE:0]] <= data_in[1];
+                    data_read_reg[index_data_recieve_single_mode] <= data_in[1];
                 end
             end
         end
