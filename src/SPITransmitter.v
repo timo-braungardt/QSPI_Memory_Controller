@@ -136,6 +136,7 @@ module SPITransmitter #(
         end
     end
 
+
     assign o_finish = (state_reg == FINISH);
 
     always @(*) begin : transmission_logic
@@ -243,9 +244,7 @@ module SPITransmitter #(
 
 
     assign io_data0_manager_serial_out  = (~en_data_out) ? 1'bZ : data_out_reg[0];
-
     assign io_data1_manager_serial_in = (~en_data_out) ? 1'bZ : (is_output_quad_mode) ? data_out_reg[1] : 1'bZ;
-
     assign io_data2 = (~en_data_out) ? 1'bZ : (is_output_quad_mode) ? data_out_reg[2] : 1'bZ;
     assign io_data3 = (~en_data_out) ? 1'bZ : (is_output_quad_mode) ? data_out_reg[3] : 1'bZ;
 
