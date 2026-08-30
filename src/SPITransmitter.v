@@ -34,6 +34,7 @@ module SPITransmitter #(
     localparam integer OPCODE_LENGTH = 8;
     localparam BITS_PER_SHIFT = 4;
     localparam BYTE = 8;
+    localparam MAX_INDEX_BYTES = $clog2(DATA_WIDTH) - 1;
     localparam DATA_SEL_MSB_QUAD = $clog2(DATA_WIDTH / BITS_PER_SHIFT) - 1;
     localparam DATA_SEL_MSB_SINGLE = $clog2(DATA_WIDTH) - 1;
     localparam BYTE_SEL_LSB_SINGLE = $clog2(BYTE);
@@ -78,9 +79,9 @@ module SPITransmitter #(
     assign o_data_read = data_read_reg;
 
     // ToDo: what should the size be? currently log(8 bits * 4 bytes)
-    wire [4:0] transmission_num_cycles_single;
+    wire [MAX_INDEX_BYTES:0] transmission_num_cycles_single;
     assign transmission_num_cycles_single = (i_num_bytes + 1) * 8 - 1;  // for 8 bits we need 8 cycles
-    wire [4:0] transmission_num_cycles;
+    wire [MAX_INDEX_BYTES:0] transmission_num_cycles;
     assign transmission_num_cycles = (i_num_bytes + 1) * 2 - 1;     // for 8 bits we need 2 cycles
     wire [BYTE -1:0] data_write_selected_byte;
     assign data_write_selected_byte = i_data_write[count_reg[BYTE_SEL_MSB_SINGLE:BYTE_SEL_LSB_SINGLE]*8 +: 8];
