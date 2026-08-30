@@ -37,8 +37,10 @@ async def trigger_go(dut):
 def get_test_array():
     if NUM_BYTES == 4:
         return [0x12, 0x34, 0x56, 0x78]
-    if NUM_BYTES == 8:
+    elif NUM_BYTES == 8:
         return [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xFF]
+    else:
+        raise NotImplementedError(f"Test Data can only be created for 32 or 64 bit data width!")
 
 
 def get_test_number():
