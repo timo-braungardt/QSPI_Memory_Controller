@@ -67,8 +67,6 @@ module SPITransmitter #(
 
     // Logic stuff
     wire                      is_output_quad_mode;
-    reg [INDEX_STATES_MSB:0]  state_reg;
-    reg [INDEX_STATES_MSB:0]  state_nxt;
 
     integer                   count_reg;
     integer                   count_nxt;
@@ -100,6 +98,9 @@ module SPITransmitter #(
     localparam [INDEX_STATES_MSB:0] SEND_DATA = 4;
     localparam [INDEX_STATES_MSB:0] RECEIVE_DATA = 5;
     localparam [INDEX_STATES_MSB:0] FINISH = 6;
+
+    reg [INDEX_STATES_MSB:0]  state_reg;
+    reg [INDEX_STATES_MSB:0]  state_nxt;
 
     assign en_bus_clock   = (state_reg != IDLE);
     assign clock_tick_pos = (clock_count_reg == 0 && ~clk_bus_reg);
