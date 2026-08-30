@@ -144,7 +144,7 @@ module SPIController #(
 
                     if (config_is_config_operation) begin
                         address_nxt = ADDRESS_LENGTH'(CONFIG_ADDRESS);
-                        data_in_nxt = CONFIG_QSPI_ENABLE;
+                        data_in_nxt = {24'd0, CONFIG_QSPI_ENABLE};
                     end
                 end
             end
