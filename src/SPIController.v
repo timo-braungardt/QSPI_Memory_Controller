@@ -12,9 +12,12 @@ module SPIController #(
 
     input  [ADDRESS_LENGTH-1:0] i_address,
     input                       i_write_enable,
+    input                       i_last_word,
+    input  [(DATA_WIDTH/8)-1:0] i_num_bytes,    // 0 based indexing
     input  [    DATA_WIDTH-1:0] i_data_write,
     output [    DATA_WIDTH-1:0] o_data_read,
     output                      o_busy,
+    output                      o_next_word,
 
     // SPI Pins
     output o_bus_clock,
@@ -89,13 +92,13 @@ module SPIController #(
         .i_config_write_data(config_write_data),
         .i_config_write_address(config_write_address),
         .i_config_quad_mode(config_quad_mode),
-        .i_num_bytes(0),
-        .i_last_word(1),
+        .i_num_bytes(i_num_bytes),
+        .i_last_word(i_last_word),
         .i_config_dummy_cycles(config_dummy_cycles),    // ToDo: depending on the opcode, we need dummy cycles or not
         .i_data_write(data_in_reg),
         .o_data_read(o_data_read),
         .o_finish(transmitter_finish),
-        .o_next_word(),
+        .o_next_word(o_next_word),
 
         // SPI Pins
         .o_bus_clock(o_bus_clock),

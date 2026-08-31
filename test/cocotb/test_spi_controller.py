@@ -9,6 +9,9 @@ from collections import deque
 from cocotbext.spi import SpiBus
 from HelperClasses import SpiFlashMemory
 
+DATA_WIDTH = int(os.environ.get("PARAM_DATA_WIDTH", 32))
+NUM_BYTES = DATA_WIDTH // 8
+
 
 async def reset_dut(dut):
     dut.reset_neg.value = 0
@@ -29,6 +32,20 @@ async def trigger_go(dut):
     dut.go.value = 1
     await ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
+
+
+async def handle_burst(dut, subordinate, test_data):
+    subordinate.num_bytes = len(test_data)
+    dut.i_num_bytes.value = NUM_BYTES -1
+    num_loops = len(test_data) // NUM_BYTES
+    last_num_bytes = len(test_data) - (NUM_BYTES * num_loops)
+
+    for _ in range(num_loops):
+        await RisingEdge(dut.o_next_word)
+    await RisingEdge(dut.clk)
+    dut.i_last_word.value = True
+    dut.i_num_bytes.value = last_num_bytes
+    await wait_for_idle(dut)
 
 
 @cocotb.test()
@@ -53,6 +70,8 @@ async def spi_transmission_test(dut):
 
     dut.i_address.value = 0x800001
     dut.i_write_enable.value = 0b0
+    dut.i_last_word.value = True
+    dut.i_num_bytes.value = 0b000
 
     await trigger_go(dut)
     timeout = Timer(100, unit="us")
@@ -85,6 +104,8 @@ async def spi_read_test(dut):
 
     dut.i_address.value = 20
     dut.i_write_enable.value = False
+    dut.i_last_word.value = True
+    dut.i_num_bytes.value = 0b000
 
     spi_subordinate.num_bytes = 1
     spi_subordinate.data = [0x12, 0x34]
@@ -123,6 +144,8 @@ async def spi_write_test(dut):
     dut.i_address.value = 21
     dut.i_data_write.value = 0x81
     dut.i_write_enable.value = True
+    dut.i_last_word.value = True
+    dut.i_num_bytes.value = 0b000
 
     spi_subordinate.num_bytes = 1
 
@@ -162,6 +185,8 @@ async def spi_dummy_cycles_test(dut):
 
     dut.i_address.value = 20
     dut.i_write_enable.value = False
+    dut.i_last_word.value = True
+    dut.i_num_bytes.value = 0b000
 
     spi_subordinate.num_bytes = 2
     spi_subordinate.data = [0x12, 0x34, 0x56]
