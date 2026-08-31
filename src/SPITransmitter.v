@@ -111,7 +111,7 @@ module SPITransmitter #(
     assign is_output_quad_mode = (i_config_quad_mode[QUAD_MODE_OPCODE] && state_reg == SEND_OPCODE ||
                                   i_config_quad_mode[QUAD_MODE_ADDRESS] && state_reg == SEND_ADDRESS ||
                                   i_config_quad_mode[QUAD_MODE_DATA] && (state_reg == SEND_DATA));  // revieve is handled by the tristate, not necessary here
-    assign o_next_word = (count_nxt == 0 & ~i_last_word & state_reg == SEND_DATA);
+    assign o_next_word = (count_reg == 0 & state_reg == SEND_DATA);
 
 
     always @(*) begin : clock_handler_logic
@@ -218,15 +218,17 @@ module SPITransmitter #(
             end
 
             SEND_DATA: begin
+                transmission_finished_nxt = transmission_finished_reg;
                 if (clock_tick_neg) begin
-                    if (count_reg == 0 & ~i_last_word)
+                    if (count_reg == 0) begin
                         count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? {27'd0, transmission_num_cycles} : {27'd0, transmission_num_cycles_single};
+                        transmission_finished_nxt = i_last_word;
+                    end
                     else
                         count_nxt = count_reg - 1;
                 end
 
-                transmission_finished_nxt = (count_reg == 0 & clock_tick_pos & i_last_word) || transmission_finished_reg;
-                if (transmission_finished_reg & clock_tick_neg) begin
+                if (count_reg == 0 & transmission_finished_reg & clock_tick_neg) begin
                     state_nxt = FINISH;
                 end
             end

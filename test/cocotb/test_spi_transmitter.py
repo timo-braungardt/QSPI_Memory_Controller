@@ -58,7 +58,9 @@ async def handle_burst(dut, subordinate, test_data):
 
     for _ in range(num_loops):
         await RisingEdge(dut.o_next_word)
+    await RisingEdge(dut.clk)
     dut.i_last_word.value = True
+    dut.i_num_bytes.value = last_num_bytes
     await wait_for_idle(dut)
 
 
@@ -251,7 +253,7 @@ async def read_test_4bytes_qspi(dut, num_bytes):
 
 
 @cocotb.test()
-@cocotb.parametrize(num_bytes=[NUM_BYTES*2])
+@cocotb.parametrize(num_bytes=range(NUM_BYTES*2, NUM_BYTES*3+1))
 async def write_test_burst_qspi(dut, num_bytes):
     qspi_subordinate = QSpiFlashMemory(
         QSpiBus(
