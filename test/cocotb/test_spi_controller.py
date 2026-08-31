@@ -1,6 +1,8 @@
 import os
 import logging
 from pathlib import Path
+import random
+import pytest
 import cocotb
 from cocotb_tools.runner import get_runner
 from cocotb.triggers import Timer, First, ClockCycles, RisingEdge
@@ -32,6 +34,20 @@ async def trigger_go(dut):
     dut.go.value = 1
     await ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
+
+
+def generate_test_array(num_bytes):
+    array = []
+    for _ in range(num_bytes):
+        array.append(random.randrange(256))
+    return array
+
+
+def get_test_number(test_array):
+    number = 0
+    for i in test_array:
+        number = (number << 8) + i
+    return number
 
 
 async def handle_burst(dut, subordinate, test_data):
@@ -84,7 +100,8 @@ async def spi_transmission_test(dut):
 
 
 @cocotb.test()
-async def spi_read_test(dut):
+@cocotb.parametrize(num_bytes=range(NUM_BYTES))
+async def spi_read_test(dut, num_bytes):
     spi_subordinate = SpiFlashMemory(
         SpiBus(
             entity=dut,
@@ -94,7 +111,7 @@ async def spi_read_test(dut):
             cs_name="o_chip_select_neg",
         )
     )
-
+    test_data = generate_test_array(num_bytes+1)
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
 
@@ -105,10 +122,10 @@ async def spi_read_test(dut):
     dut.i_address.value = 20
     dut.i_write_enable.value = False
     dut.i_last_word.value = True
-    dut.i_num_bytes.value = 0b000
+    dut.i_num_bytes.value = num_bytes
 
-    spi_subordinate.num_bytes = 1
-    spi_subordinate.data = [0x12, 0x34]
+    spi_subordinate.num_bytes = num_bytes+1
+    spi_subordinate.data = test_data
 
     await trigger_go(dut)
     timeout = Timer(100, unit="us")
@@ -118,12 +135,12 @@ async def spi_read_test(dut):
     [opcode, address] = await spi_subordinate.get_content()
     assert opcode == SpiFlashMemory.read
     assert address == 20
-    assert dut.o_data_read.value == 0x12
+    assert dut.o_data_read.value == get_test_number(test_data)
 
 
 @cocotb.test()
-async def spi_write_test(dut):
-
+@cocotb.parametrize(num_bytes=range(NUM_BYTES))
+async def spi_write_test(dut, num_bytes):
     spi_subordinate = SpiFlashMemory(
         SpiBus(
             entity=dut,
@@ -133,7 +150,7 @@ async def spi_write_test(dut):
             cs_name="o_chip_select_neg",
         )
     )
-
+    test_data = generate_test_array(num_bytes+1)
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
 
@@ -142,12 +159,12 @@ async def spi_write_test(dut):
     dut.config_quad_mode.value = False
 
     dut.i_address.value = 21
-    dut.i_data_write.value = 0x81
+    dut.i_data_write.value = get_test_number(test_data)
     dut.i_write_enable.value = True
     dut.i_last_word.value = True
-    dut.i_num_bytes.value = 0b000
+    dut.i_num_bytes.value = num_bytes
 
-    spi_subordinate.num_bytes = 1
+    spi_subordinate.num_bytes = num_bytes+1
 
     assert not spi_subordinate.write_enable
     await trigger_go(dut)
@@ -160,7 +177,7 @@ async def spi_write_test(dut):
     assert spi_subordinate.opcode == SpiFlashMemory.program
     assert spi_subordinate.address == 21
     assert spi_subordinate.write_enable
-    assert spi_subordinate.data == [0x81]
+    assert spi_subordinate.data == test_data
 
 
 @cocotb.test()
@@ -202,7 +219,8 @@ async def spi_dummy_cycles_test(dut):
     assert dut.o_data_read.value == 0x34
 
 
-def test_spi_controller():
+@pytest.mark.parametrize("data_width", [32, 64])
+def test_spi_controller(data_width):
     """
     Test the spi controller against cocotb memory models.
     """
@@ -210,15 +228,20 @@ def test_spi_controller():
     proj_path = Path(__file__).resolve().parent
     sources = [proj_path / "../../src/SPIController.v", proj_path / "../../src/SPITransmitter.v"]
 
+    parameters = {}
+    parameters["DATA_WIDTH"] = data_width
+    parameters["ADDRESS_WIDTH"] = 24
+    extra_env = {f"PARAM_{k}": str(v) for k, v in parameters.items()}
+
     runner = get_runner(sim)
     runner.build(
         sources=sources,
         hdl_toplevel="SPIController",
         always=True,
         waves=True,
-        parameters={"ADDRESS_LENGTH": 24},
+        parameters=parameters,
     )
-    runner.test(hdl_toplevel="SPIController", test_module="test_spi_controller", waves=True)
+    runner.test(hdl_toplevel="SPIController", test_module="test_spi_controller", parameters=parameters, waves=True, extra_env=extra_env)
 
 
 if __name__ == "__main__":
