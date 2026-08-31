@@ -303,6 +303,55 @@ async def write_test_burst_qspi(dut, num_bytes):
     assert qspi_subordinate.data == test_data
 
 
+@cocotb.test()
+@cocotb.parametrize(num_bytes=range(NUM_BYTES*2, NUM_BYTES*3+1))
+async def read_test_burst_qspi(dut, num_bytes):
+    qspi_subordinate = QSpiFlashMemory(
+        QSpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_d0_name="io_data0_manager_serial_out",
+            miso_d1_name="io_data1_manager_serial_in",
+            d2_name="io_data2",
+            d3_name="io_data3",
+            cs_name="o_chip_select_neg",
+        ),
+        QSpiConfig(
+            word_width=8,
+            sclk_freq=20e6,
+            cpol=0,
+            cpha=0,
+            msb_first=True,
+            frame_spacing_ns=10,
+            ignore_rx_value=None,
+            cs_active_low=True,
+            is_quad_mode=True,
+        ),
+    )
+    test_data = [0x81] * num_bytes
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
+
+    dut.i_opcode.value = 0x03
+    dut.i_address.value = 0x800001
+    dut.i_last_word.value = False
+
+    dut.i_config_read_data.value = True
+    dut.i_config_write_data.value = False
+    dut.i_config_write_address.value = True
+    dut.i_config_quad_mode.value = 0b111
+    dut.i_config_dummy_cycles.value = 0
+
+    qspi_subordinate.write_enable = False
+    qspi_subordinate.data = test_data
+    await trigger_go(dut)
+    await handle_burst(dut, qspi_subordinate, test_data)
+
+    assert qspi_subordinate.opcode == 0x03
+    assert qspi_subordinate.address == 0x800001
+
+
 @pytest.mark.parametrize("data_width", [32, 64])
 def test_spi_transmitter(data_width):
     """

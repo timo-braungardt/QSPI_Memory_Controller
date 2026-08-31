@@ -111,7 +111,7 @@ module SPITransmitter #(
     assign is_output_quad_mode = (i_config_quad_mode[QUAD_MODE_OPCODE] && state_reg == SEND_OPCODE ||
                                   i_config_quad_mode[QUAD_MODE_ADDRESS] && state_reg == SEND_ADDRESS ||
                                   i_config_quad_mode[QUAD_MODE_DATA] && (state_reg == SEND_DATA));  // revieve is handled by the tristate, not necessary here
-    assign o_next_word = (count_reg == 0 & state_reg == SEND_DATA);
+    assign o_next_word = (count_reg == 0 & (state_reg == SEND_DATA || state_reg == RECEIVE_DATA));
 
 
     always @(*) begin : clock_handler_logic
@@ -160,6 +160,7 @@ module SPITransmitter #(
             end
 
             SEND_OPCODE: begin
+                transmission_finished_nxt = i_last_word;
                 if (clock_tick_neg) begin
                     count_nxt = count_reg - 1;
                     if (count_reg == 0) begin
@@ -181,6 +182,7 @@ module SPITransmitter #(
             end
 
             SEND_ADDRESS: begin
+                transmission_finished_nxt = i_last_word;
                 if (clock_tick_neg) count_nxt = count_reg - 1;
 
                 if (count_reg == 0 && clock_tick_neg) begin
@@ -195,6 +197,7 @@ module SPITransmitter #(
             end
 
             DUMMY_CYCLES: begin
+                transmission_finished_nxt = i_last_word;
                 if (clock_tick_neg) count_nxt = count_reg - 1;
 
                 if (count_reg == 0 && clock_tick_neg) begin
@@ -206,13 +209,21 @@ module SPITransmitter #(
                 end
             end
 
+            // the transmission_finished_nxt entries in the other states are needed because of the recieve state.
+            // without them the FSM would always read two rounds because transmission_finished_reg is not set in time.
+            // ToDo: fix the complicated logic
             RECEIVE_DATA: begin
+                transmission_finished_nxt = transmission_finished_reg;
                 if (clock_tick_pos) begin
-                    count_nxt = count_reg - 1;
+                    if (count_reg == 0) begin
+                        count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? {27'd0, transmission_num_cycles} : {27'd0, transmission_num_cycles_single};
+                        transmission_finished_nxt = i_last_word;
+                    end
+                    else
+                        count_nxt = count_reg - 1;
                 end
 
-                transmission_finished_nxt = (count_reg == 0 & clock_tick_neg) || transmission_finished_reg;
-                if (transmission_finished_reg & clock_tick_neg) begin
+                if (count_reg == 0 & transmission_finished_reg & clock_tick_pos) begin
                     state_nxt = FINISH;
                 end
             end
