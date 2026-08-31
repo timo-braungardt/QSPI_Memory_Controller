@@ -43,18 +43,18 @@ def get_test_array():
         raise NotImplementedError(f"Test Data can only be created for 32 or 64 bit data width!")
 
 
-def get_test_number():
+def get_test_number(test_array):
     number = 0
-    for i in get_test_array():
+    for i in test_array:
         number = (number << 8) + i
     return number
 
 
-async def handle_burst(dut, subordinate, burst_num_bytes):
-    subordinate.num_bytes = burst_num_bytes
+async def handle_burst(dut, subordinate, test_data):
+    subordinate.num_bytes = len(test_data)
     dut.i_num_bytes.value = NUM_BYTES -1
-    num_loops = burst_num_bytes // NUM_BYTES
-    last_num_bytes = burst_num_bytes - (NUM_BYTES * num_loops)
+    num_loops = len(test_data) // NUM_BYTES
+    last_num_bytes = len(test_data) - (NUM_BYTES * num_loops)
 
     for _ in range(num_loops):
         await RisingEdge(dut.o_next_word)
@@ -82,7 +82,7 @@ async def write_test_4bytes_spi(dut, num_bytes):
     dut.i_opcode.value = 0x02
     dut.i_address.value = 0x800001
     dut.i_last_word.value = True
-    dut.i_data_write.value = get_test_number()
+    dut.i_data_write.value = get_test_number(get_test_array())
 
     dut.i_config_read_data.value = False
     dut.i_config_write_data.value = True
@@ -177,7 +177,7 @@ async def write_test_4bytes_qspi(dut, num_bytes):
     dut.i_opcode.value = 0x02
     dut.i_address.value = 0x800001
     dut.i_last_word.value = True
-    dut.i_data_write.value = get_test_number()
+    dut.i_data_write.value = get_test_number(get_test_array())
 
     dut.i_config_read_data.value = False
     dut.i_config_write_data.value = True
@@ -275,7 +275,7 @@ async def write_test_burst_qspi(dut, num_bytes):
             is_quad_mode=True,
         ),
     )
-    test_data = get_test_array()
+    test_data = [0x81] * num_bytes
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
     await reset_dut(dut)
@@ -283,7 +283,7 @@ async def write_test_burst_qspi(dut, num_bytes):
     dut.i_opcode.value = 0x02
     dut.i_address.value = 0x800001
     dut.i_last_word.value = False
-    dut.i_data_write.value = get_test_number()
+    dut.i_data_write.value = get_test_number(test_data[0:NUM_BYTES])
 
     dut.i_config_read_data.value = False
     dut.i_config_write_data.value = True
@@ -293,11 +293,10 @@ async def write_test_burst_qspi(dut, num_bytes):
 
     qspi_subordinate.write_enable = True
     await trigger_go(dut)
-    await handle_burst(dut, qspi_subordinate, num_bytes)
+    await handle_burst(dut, qspi_subordinate, test_data)
 
     assert qspi_subordinate.opcode == 0x02
     assert qspi_subordinate.address == 0x800001
-    test_data.extend(test_data)
     assert len(qspi_subordinate.data) == len(test_data)
     assert qspi_subordinate.data == test_data
 
