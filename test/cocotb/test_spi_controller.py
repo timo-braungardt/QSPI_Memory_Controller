@@ -56,8 +56,10 @@ async def handle_burst(dut, subordinate, test_data):
     num_loops = len(test_data) // NUM_BYTES
     last_num_bytes = len(test_data) - (NUM_BYTES * num_loops)
 
-    for _ in range(num_loops):
+    for i in range(num_loops):
         await RisingEdge(dut.o_next_word)
+        index = (i + 1)* NUM_BYTES
+        dut.i_data_write.value = get_test_number(test_data[index: index+NUM_BYTES])
     await RisingEdge(dut.clk)
     dut.i_last_word.value = True
     dut.i_num_bytes.value = last_num_bytes
@@ -178,6 +180,73 @@ async def spi_write_test(dut, num_bytes):
     assert spi_subordinate.address == 21
     assert spi_subordinate.write_enable
     assert spi_subordinate.data == test_data
+
+
+@cocotb.test()
+@cocotb.parametrize(num_bytes=range(NUM_BYTES*2, NUM_BYTES*3+1))
+async def write_test_burst_qspi(dut, num_bytes):
+    spi_subordinate = SpiFlashMemory(
+            SpiBus(
+                entity=dut,
+                sclk_name="o_bus_clock",
+                mosi_name="io_data0_manager_serial_out",
+                miso_name="io_data1_manager_serial_in",
+                cs_name="o_chip_select_neg",
+            )
+        )
+    test_data = generate_test_array(num_bytes+1)
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
+
+    dut.i_address.value = 0x800001
+    dut.i_write_enable.value = True
+    dut.i_last_word.value = False
+    dut.i_data_write.value = get_test_number(test_data[0:NUM_BYTES])
+
+    dut.config_quad_mode.value = False
+
+    await trigger_go(dut)
+    await handle_burst(dut, spi_subordinate, test_data)
+
+    assert spi_subordinate.opcode == SpiFlashMemory.program
+    assert spi_subordinate.write_enable
+    assert spi_subordinate.address == 0x800001
+    assert len(spi_subordinate.data) == len(test_data)
+    print(spi_subordinate.data)
+    print(test_data)
+    assert spi_subordinate.data == test_data
+
+
+@cocotb.test()
+@cocotb.parametrize(num_bytes=range(NUM_BYTES*2, NUM_BYTES*3+1))
+async def read_test_burst_qspi(dut, num_bytes):
+    spi_subordinate = SpiFlashMemory(
+            SpiBus(
+                entity=dut,
+                sclk_name="o_bus_clock",
+                mosi_name="io_data0_manager_serial_out",
+                miso_name="io_data1_manager_serial_in",
+                cs_name="o_chip_select_neg",
+            )
+        )
+    test_data = generate_test_array(num_bytes+1)
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
+
+    dut.i_address.value = 0x800001
+    dut.i_write_enable.value = False
+    dut.i_last_word.value = False
+
+    dut.config_quad_mode.value = False
+
+    spi_subordinate.data = test_data
+    await trigger_go(dut)
+    await handle_burst(dut, spi_subordinate, test_data)
+
+    assert spi_subordinate.opcode == SpiFlashMemory.read
+    assert spi_subordinate.address == 0x800001
 
 
 @cocotb.test()
