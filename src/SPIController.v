@@ -42,8 +42,9 @@ module SPIController #(
     reg  [ OPCODE_LENGTH-1:0] opcode_reg;
     reg  [ADDRESS_LENGTH-1:0] address_nxt;
     reg  [ADDRESS_LENGTH-1:0] address_reg;
-    reg  [    DATA_WIDTH-1:0] data_in_nxt;
-    reg  [    DATA_WIDTH-1:0] data_in_reg;
+    reg  [    DATA_WIDTH-1:0] config_data_nxt;
+    reg  [    DATA_WIDTH-1:0] config_data_reg;
+    wire [    DATA_WIDTH-1:0] data_in_muxed;         
     wire                      start_transmission;
     wire                      transmitter_finish;
 
@@ -76,6 +77,7 @@ module SPIController #(
     //localparam [OPCODE_LENGTH -1 : 0] OPCODE_LONG_ADDRESS_ENABLE = 8'hB7;
 
     assign o_reset = 1'b0;
+    assign data_in_muxed = (control_state_reg == WRITE_CONFIG) ? config_data_reg : i_data_write;
 
 
     SPITransmitter #(
@@ -95,7 +97,7 @@ module SPIController #(
         .i_num_bytes(i_num_bytes),
         .i_last_word(i_last_word),
         .i_config_dummy_cycles(config_dummy_cycles),    // ToDo: depending on the opcode, we need dummy cycles or not
-        .i_data_write(i_data_write),
+        .i_data_write(data_in_muxed),
         .o_data_read(o_data_read),
         .o_finish(transmitter_finish),
         .o_next_word(o_next_word),
@@ -121,7 +123,7 @@ module SPIController #(
     always @(*) begin : control_logic
         address_nxt = address_reg;
         opcode_nxt = opcode_reg;
-        data_in_nxt = data_in_reg;
+        config_data_nxt = config_data_reg;
         control_state_nxt = control_state_reg;
 
         case (control_state_reg)
@@ -150,7 +152,7 @@ module SPIController #(
 
                     if (config_is_config_operation) begin
                         address_nxt = ADDRESS_LENGTH'(CONFIG_ADDRESS);
-                        data_in_nxt = {24'd0, CONFIG_QSPI_ENABLE};
+                        config_data_nxt = {24'd0, CONFIG_QSPI_ENABLE};
                     end
                 end
             end
@@ -174,6 +176,7 @@ module SPIController #(
         opcode_reg <= opcode_nxt;
         control_state_reg <= control_state_nxt;
         delay_fsm <= 0;
+        config_data_reg <= config_data_nxt;
 
         if (control_state_reg == WAIT) begin
             delay_fsm <= delay_fsm + 1;
