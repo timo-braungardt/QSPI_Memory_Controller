@@ -4,7 +4,7 @@ module SPIController #(
     // Warining: the SPI flash chips start with a 24 bit address width.
     // ToDo: the automatic upgrade to 32bit address width is not yet implemented
     parameter ADDRESS_LENGTH = 24,
-    parameter DATA_WIDTH = 8
+    parameter DATA_WIDTH = 32
 ) (
     input clk,
     input reset_neg,
@@ -12,9 +12,12 @@ module SPIController #(
 
     input  [ADDRESS_LENGTH-1:0] i_address,
     input                       i_write_enable,
+    input                       i_last_word,
+    input  [(DATA_WIDTH/8)-1:0] i_num_bytes,    // 0 based indexing
     input  [    DATA_WIDTH-1:0] i_data_write,
     output [    DATA_WIDTH-1:0] o_data_read,
     output                      o_busy,
+    output                      o_next_word,
 
     // SPI Pins
     output o_bus_clock,
@@ -39,8 +42,9 @@ module SPIController #(
     reg  [ OPCODE_LENGTH-1:0] opcode_reg;
     reg  [ADDRESS_LENGTH-1:0] address_nxt;
     reg  [ADDRESS_LENGTH-1:0] address_reg;
-    reg  [    DATA_WIDTH-1:0] data_in_nxt;
-    reg  [    DATA_WIDTH-1:0] data_in_reg;
+    reg  [    DATA_WIDTH-1:0] config_data_nxt;
+    reg  [    DATA_WIDTH-1:0] config_data_reg;
+    wire [    DATA_WIDTH-1:0] data_in_muxed;         
     wire                      start_transmission;
     wire                      transmitter_finish;
 
@@ -53,15 +57,17 @@ module SPIController #(
     reg                       config_is_config_operation;
 
     // states control FSM
-    localparam integer IDLE = 0;
-    localparam integer READ = 1;
-    localparam integer WRITE_ENABLE = 2;
-    localparam integer WAIT = 4;
-    localparam integer WRITE = 3;
-    localparam integer WRITE_CONFIG = 5;
+    localparam NUM_STATES = 6;
+    localparam INDEX_STATES_MSB = $clog2(NUM_STATES) - 1;
+    localparam [INDEX_STATES_MSB:0] IDLE = 0;
+    localparam [INDEX_STATES_MSB:0] READ = 1;
+    localparam [INDEX_STATES_MSB:0] WRITE_ENABLE = 2;
+    localparam [INDEX_STATES_MSB:0] WRITE = 3;
+    localparam [INDEX_STATES_MSB:0] WRITE_CONFIG = 4;
+    localparam [INDEX_STATES_MSB:0] WAIT = 5;
 
-    integer control_state_reg;
-    integer control_state_nxt;
+    reg [INDEX_STATES_MSB:0] control_state_reg;
+    reg [INDEX_STATES_MSB:0] control_state_nxt;
 
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ = 8'h03;
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ_114 = 8'h6B;
@@ -71,6 +77,7 @@ module SPIController #(
     //localparam [OPCODE_LENGTH -1 : 0] OPCODE_LONG_ADDRESS_ENABLE = 8'hB7;
 
     assign o_reset = 1'b0;
+    assign data_in_muxed = (control_state_reg == WRITE_CONFIG) ? config_data_reg : i_data_write;
 
 
     SPITransmitter #(
@@ -87,10 +94,13 @@ module SPIController #(
         .i_config_write_data(config_write_data),
         .i_config_write_address(config_write_address),
         .i_config_quad_mode(config_quad_mode),
+        .i_num_bytes(i_num_bytes),
+        .i_last_word(i_last_word),
         .i_config_dummy_cycles(config_dummy_cycles),    // ToDo: depending on the opcode, we need dummy cycles or not
-        .i_data_write(data_in_reg),
+        .i_data_write(data_in_muxed),
         .o_data_read(o_data_read),
         .o_finish(transmitter_finish),
+        .o_next_word(o_next_word),
 
         // SPI Pins
         .o_bus_clock(o_bus_clock),
@@ -113,14 +123,13 @@ module SPIController #(
     always @(*) begin : control_logic
         address_nxt = address_reg;
         opcode_nxt = opcode_reg;
-        data_in_nxt = data_in_reg;
+        config_data_nxt = config_data_reg;
         control_state_nxt = control_state_reg;
 
         case (control_state_reg)
             IDLE: begin
                 if (go) begin
                     address_nxt = ADDRESS_LENGTH'(i_address);
-                    data_in_nxt = i_data_write;
                     opcode_nxt = (i_write_enable | config_is_config_operation) ? OPCODE_WRITE_ENABLE : (config_quad_mode == 3'b000) ? OPCODE_READ : OPCODE_READ_114;
                     control_state_nxt = (i_write_enable | config_is_config_operation) ? WRITE_ENABLE : READ;
                 end
@@ -143,7 +152,7 @@ module SPIController #(
 
                     if (config_is_config_operation) begin
                         address_nxt = ADDRESS_LENGTH'(CONFIG_ADDRESS);
-                        data_in_nxt = CONFIG_QSPI_ENABLE;
+                        config_data_nxt = {24'd0, CONFIG_QSPI_ENABLE};
                     end
                 end
             end
@@ -165,15 +174,16 @@ module SPIController #(
     always @(posedge clk) begin : control_register
         address_reg <= address_nxt;
         opcode_reg <= opcode_nxt;
-        data_in_reg <= data_in_nxt;
         control_state_reg <= control_state_nxt;
         delay_fsm <= 0;
+        config_data_reg <= config_data_nxt;
 
         if (control_state_reg == WAIT) begin
             delay_fsm <= delay_fsm + 1;
         end
 
         if (!reset_neg) begin
+            control_state_reg <= IDLE;
             address_reg <= 0;
             opcode_reg <= 0;
             config_quad_mode <= 3'b000;

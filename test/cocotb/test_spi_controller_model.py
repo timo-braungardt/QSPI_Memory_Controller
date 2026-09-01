@@ -48,6 +48,8 @@ async def read_test(dut):
     dut.i_address.value = 0x20
     dut.i_data_write.value = 0x12
     dut.i_write_enable.value = True
+    dut.i_last_word.value = True
+    dut.i_num_bytes.value = 0b000
 
     await trigger_go(dut)
     await wait_for_idle(dut)
@@ -75,6 +77,8 @@ async def qspi_enable_test(dut):
     dut.i_write_enable.value = False
     dut.Controller.config_is_config_operation.value = True
     dut.Controller.config_quad_mode.value = 0b000
+    dut.i_last_word.value = True
+    dut.i_num_bytes.value = 0b000
 
     # step: set QUADIT bit in config register 1
     await trigger_go(dut)
@@ -95,6 +99,8 @@ async def qspi_read_test(dut):
     dut.i_write_enable.value = False
     dut.Controller.config_is_config_operation.value = True
     dut.Controller.config_quad_mode.value = 0b000
+    dut.i_last_word.value = True
+    dut.i_num_bytes.value = 0b000
 
     # step: set QUADIT bit in config register 1
     await trigger_go(dut)

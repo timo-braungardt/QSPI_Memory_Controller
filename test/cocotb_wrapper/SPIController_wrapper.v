@@ -28,9 +28,12 @@ module SPIController_wrapper #(
 
         .i_address(i_address),
         .i_write_enable(i_write_enable),
+        .i_num_bytes(i_num_bytes),
+        .i_last_word(i_last_word),
         .i_data_write(i_data_write),
         .o_data_read(o_data_read),
         .o_busy(busy),
+        .o_next_word(o_next_word),
 
         .o_bus_clock(bus_clock),
         .o_chip_select_neg(chip_select_neg),

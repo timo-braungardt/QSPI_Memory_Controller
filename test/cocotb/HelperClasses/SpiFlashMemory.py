@@ -9,6 +9,7 @@ class SpiFlashMemory(SpiSlaveBase):
     program = 0x02
     read = 0x03
     long_address_enable = 0xB7
+    write_any_address = 0x71
 
     def __init__(self, bus):
         self.log = logging.getLogger(f"cocotb.spi")
@@ -16,6 +17,7 @@ class SpiFlashMemory(SpiSlaveBase):
         self.opcode = 0
         self.address = 0
         self.write_enable = False
+        self.quad_enable_bit = False
         self.data = []
         self.num_bytes = 4
         self.address_width = 24
@@ -82,5 +84,14 @@ class SpiFlashMemory(SpiSlaveBase):
                 data = int(await self._recieve_data(8))
                 self.log.info(f"   recieved {data}")
                 self.data.append(data)
+
+        if self.opcode == SpiFlashMemory.write_any_address:
+            if not self.write_enable:
+                raise RuntimeError("Write enable not set!")
+
+            data = int(await self._recieve_data(8))
+            self.log.info(f"   recieved {data} for register address {self.address}")
+            if data == 0b00000010:
+                self.quad_enable_bit = True
 
         await frame_end
