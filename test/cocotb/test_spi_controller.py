@@ -5,7 +5,7 @@ import random
 import pytest
 import cocotb
 from cocotb_tools.runner import get_runner
-from cocotb.triggers import Timer, First, ClockCycles, RisingEdge
+from cocotb.triggers import Timer, First, ClockCycles, RisingEdge, FallingEdge
 from cocotb.clock import Clock
 from collections import deque
 from cocotbext.spi import SpiBus
@@ -286,6 +286,42 @@ async def spi_dummy_cycles_test(dut):
     assert opcode == SpiFlashMemory.read
     assert address == 20
     assert dut.o_data_read.value == 0x34
+
+
+@cocotb.test()
+async def qspi_enable_test(dut):
+    spi_subordinate = SpiFlashMemory(
+        SpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_name="io_data0_manager_serial_out",
+            miso_name="io_data1_manager_serial_in",
+            cs_name="o_chip_select_neg",
+        )
+    )
+
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await reset_dut(dut)
+
+    dut.i_address.value = 0
+    dut.i_data_write.value = 0
+    dut.i_write_enable.value = False
+    dut.config_is_config_operation.value = True
+    dut.config_quad_mode.value = 0b000
+    dut.i_last_word.value = True
+    dut.i_num_bytes.value = 0b000
+
+    assert spi_subordinate.quad_enable_bit == False
+
+    # step: set QUADIT bit in config register 1
+    await trigger_go(dut)
+    timeout = Timer(100, unit="us")
+    trigger = await First(FallingEdge(dut.o_busy), timeout)
+    assert trigger != timeout
+
+    assert spi_subordinate.quad_enable_bit == True
 
 
 @pytest.mark.parametrize("data_width", [32, 64])
