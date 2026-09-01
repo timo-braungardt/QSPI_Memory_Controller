@@ -8,3 +8,9 @@ groups:
     files: 
       - src/SPIController.v
       - src/SPITransmitter.v
+  - top: MemoryController
+    files: 
+      - src/MemoryController.v
+      - src/SPIController.v
+      - src/SPITransmitter.v
+      - src/AXI.v
