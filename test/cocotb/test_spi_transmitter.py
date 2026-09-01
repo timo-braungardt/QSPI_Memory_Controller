@@ -56,11 +56,14 @@ async def handle_burst(dut, subordinate, test_data):
     num_loops = len(test_data) // NUM_BYTES
     last_num_bytes = len(test_data) - (NUM_BYTES * num_loops)
 
-    for _ in range(num_loops):
+    for i in range(num_loops):
+        if last_num_bytes == 0 and (num_loops - i) == 0:
+            dut.i_last_word.value = True
         await RisingEdge(dut.o_next_word)
     await RisingEdge(dut.clk)
     dut.i_last_word.value = True
-    dut.i_num_bytes.value = last_num_bytes
+    if last_num_bytes != 0:
+        dut.i_num_bytes.value = last_num_bytes -1
     await wait_for_idle(dut)
 
 
@@ -285,6 +288,7 @@ async def write_test_burst_qspi(dut, num_bytes):
     dut.i_opcode.value = 0x02
     dut.i_address.value = 0x800001
     dut.i_last_word.value = False
+    dut.i_num_bytes.value = NUM_BYTES -1
     dut.i_data_write.value = get_test_number(test_data[0:NUM_BYTES])
 
     dut.i_config_read_data.value = False
