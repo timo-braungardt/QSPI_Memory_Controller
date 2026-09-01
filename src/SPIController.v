@@ -95,7 +95,7 @@ module SPIController #(
         .i_num_bytes(i_num_bytes),
         .i_last_word(i_last_word),
         .i_config_dummy_cycles(config_dummy_cycles),    // ToDo: depending on the opcode, we need dummy cycles or not
-        .i_data_write(data_in_reg),
+        .i_data_write(i_data_write),
         .o_data_read(o_data_read),
         .o_finish(transmitter_finish),
         .o_next_word(o_next_word),
@@ -128,7 +128,6 @@ module SPIController #(
             IDLE: begin
                 if (go) begin
                     address_nxt = ADDRESS_LENGTH'(i_address);
-                    data_in_nxt = i_data_write;
                     opcode_nxt = (i_write_enable | config_is_config_operation) ? OPCODE_WRITE_ENABLE : (config_quad_mode == 3'b000) ? OPCODE_READ : OPCODE_READ_114;
                     control_state_nxt = (i_write_enable | config_is_config_operation) ? WRITE_ENABLE : READ;
                 end
@@ -173,7 +172,6 @@ module SPIController #(
     always @(posedge clk) begin : control_register
         address_reg <= address_nxt;
         opcode_reg <= opcode_nxt;
-        data_in_reg <= data_in_nxt;
         control_state_reg <= control_state_nxt;
         delay_fsm <= 0;
 
@@ -185,7 +183,6 @@ module SPIController #(
             control_state_reg <= IDLE;
             address_reg <= 0;
             opcode_reg <= 0;
-            data_in_reg <= 0;
             config_quad_mode <= 3'b000;
             config_is_config_operation <= 1'b0;
             config_dummy_cycles <= 5'd0;

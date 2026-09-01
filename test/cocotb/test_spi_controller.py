@@ -62,7 +62,7 @@ async def handle_burst(dut, subordinate, test_data):
         dut.i_data_write.value = get_test_number(test_data[index: index+NUM_BYTES])
     await RisingEdge(dut.clk)
     dut.i_last_word.value = True
-    dut.i_num_bytes.value = last_num_bytes
+    dut.i_num_bytes.value = last_num_bytes -1
     await wait_for_idle(dut)
 
 
@@ -194,7 +194,7 @@ async def write_test_burst_qspi(dut, num_bytes):
                 cs_name="o_chip_select_neg",
             )
         )
-    test_data = generate_test_array(num_bytes+1)
+    test_data = generate_test_array(num_bytes)
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
     await reset_dut(dut)
@@ -299,7 +299,7 @@ def test_spi_controller(data_width):
 
     parameters = {}
     parameters["DATA_WIDTH"] = data_width
-    parameters["ADDRESS_WIDTH"] = 24
+    parameters["ADDRESS_LENGTH"] = 24
     extra_env = {f"PARAM_{k}": str(v) for k, v in parameters.items()}
 
     runner = get_runner(sim)

@@ -231,7 +231,6 @@ module SPITransmitter #(
                 if (clock_tick_pos) begin
                     if (count_reg == 0) begin
                         count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? {27'd0, transmission_num_cycles} : {27'd0, transmission_num_cycles_single};
-                        data_write_nxt = i_data_write;
                         transmission_finished_nxt = i_last_word;
                     end
                     else
@@ -245,6 +244,7 @@ module SPITransmitter #(
 
             SEND_DATA: begin
                 transmission_finished_nxt = transmission_finished_reg;
+                num_bytes_nxt = i_num_bytes;    // ToDo: hacky
                 if (clock_tick_neg) begin
                     if (count_reg == 0) begin
                         count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? {27'd0, transmission_num_cycles} : {27'd0, transmission_num_cycles_single};
@@ -252,6 +252,11 @@ module SPITransmitter #(
                     end
                     else
                         count_nxt = count_reg - 1;
+                end
+
+                // ToDo: hacky - cannot explain why it needs to be here...
+                if (clock_tick_pos & count_reg == 0) begin
+                    data_write_nxt = i_data_write;
                 end
 
                 if (count_reg == 0 & transmission_finished_reg & clock_tick_neg) begin
