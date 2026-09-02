@@ -48,7 +48,18 @@ module AXIInterface #(
     input wire clk,
     input wire rst,
 
-    input  wire [  ID_WIDTH-1:0] s_axi_awid,
+    // Control Interface Pins
+    output wire                  o_valid,
+    input  wire                  i_ready,
+    input  wire                  i_busy,
+    output wire                  o_last_word,
+    output wire                  o_write_enable,
+    output wire [ADDR_WIDTH-1:0] o_address,
+    output wire [DATA_WIDTH-1:0] o_write_data,
+    input  wire [DATA_WIDTH-1:0] i_read_data,
+
+    // AXI Pins
+    input  wire [  ID_WIDTH-1:0] s_axi_awid,     // write address channel
     input  wire [ADDR_WIDTH-1:0] s_axi_awaddr,
     input  wire [           7:0] s_axi_awlen,
     input  wire [           2:0] s_axi_awsize,
@@ -58,16 +69,19 @@ module AXIInterface #(
     input  wire [           2:0] s_axi_awprot,
     input  wire                  s_axi_awvalid,
     output wire                  s_axi_awready,
-    input  wire [DATA_WIDTH-1:0] s_axi_wdata,
+
+    input  wire [DATA_WIDTH-1:0] s_axi_wdata,   // write data channel
     input  wire [STRB_WIDTH-1:0] s_axi_wstrb,
     input  wire                  s_axi_wlast,
     input  wire                  s_axi_wvalid,
     output wire                  s_axi_wready,
-    output wire [  ID_WIDTH-1:0] s_axi_bid,
+
+    output wire [  ID_WIDTH-1:0] s_axi_bid,     // write response channel
     output wire [           1:0] s_axi_bresp,
     output wire                  s_axi_bvalid,
     input  wire                  s_axi_bready,
-    input  wire [  ID_WIDTH-1:0] s_axi_arid,
+
+    input  wire [  ID_WIDTH-1:0] s_axi_arid,     // read address channel
     input  wire [ADDR_WIDTH-1:0] s_axi_araddr,
     input  wire [           7:0] s_axi_arlen,
     input  wire [           2:0] s_axi_arsize,
@@ -77,7 +91,8 @@ module AXIInterface #(
     input  wire [           2:0] s_axi_arprot,
     input  wire                  s_axi_arvalid,
     output wire                  s_axi_arready,
-    output wire [  ID_WIDTH-1:0] s_axi_rid,
+
+    output wire [  ID_WIDTH-1:0] s_axi_rid,     // read data channel
     output wire [DATA_WIDTH-1:0] s_axi_rdata,
     output wire [           1:0] s_axi_rresp,
     output wire                  s_axi_rlast,
