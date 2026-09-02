@@ -118,13 +118,20 @@ module AXIInterface #(
         end
     end
 
-    localparam [0:0] READ_STATE_IDLE = 1'd0, READ_STATE_BURST = 1'd1;
+    // Read FSM
+    localparam [0:0] READ_STATE_IDLE = 1'd0;
+    localparam [0:0] READ_STATE_BURST = 1'd1;
 
-    reg [0:0] read_state_reg, read_state_next;
+    reg [0:0] read_state_reg; 
+    reg [0:0] read_state_next;
 
-    localparam [1:0] WRITE_STATE_IDLE = 2'd0, WRITE_STATE_BURST = 2'd1, WRITE_STATE_RESP = 2'd2;
+    // Write FSM
+    localparam [1:0] WRITE_STATE_IDLE = 2'd0;
+    localparam [1:0] WRITE_STATE_BURST = 2'd1;
+    localparam [1:0] WRITE_STATE_RESP = 2'd2;
 
-    reg [1:0] write_state_reg, write_state_next;
+    reg [1:0] write_state_reg;
+    reg [1:0] write_state_next;
 
     reg mem_wr_en;
     reg mem_rd_en;
