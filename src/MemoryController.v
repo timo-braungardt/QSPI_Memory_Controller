@@ -1,4 +1,9 @@
 `timescale 1ns / 100ps
+/*
+Memory Controller
+
+Module to wrap all components together and connect the AXI to the SPI Controller.
+*/
 
 module MemoryController #(
     parameter ADDR_WIDTH = 24,

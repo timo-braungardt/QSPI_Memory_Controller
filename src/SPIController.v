@@ -1,4 +1,10 @@
 `timescale 1ns / 100ps
+/*
+SPI Controller
+
+Module to handle the SPI-Flash interface via the SPI transmitter.
+For example a write to flash requires to send an write enable opcode before the memory transaciton can start.
+*/
 
 module SPIController #(
     // Warining: the SPI flash chips start with a 24 bit address width.

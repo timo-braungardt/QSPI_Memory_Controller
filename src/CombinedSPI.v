@@ -1,4 +1,9 @@
 `timescale 1ns / 100ps
+/*
+Combined SPI
+
+Module to test switching between SPI and QSPI modes.
+*/
 
 module CombinedSPI (
     input clk,

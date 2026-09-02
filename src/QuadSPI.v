@@ -1,4 +1,10 @@
 `timescale 1ns / 100ps
+/*
+Quad SPI
+
+Module to test the quad spi protocoll.
+Cannot talk single spi.
+*/
 
 module QuadSPI (
     input clk,

@@ -1,4 +1,9 @@
 `timescale 1ns / 100ps
+/*
+SPI Transmitter
+
+Module to convert a data word to the SPI protocoll.
+*/
 
 module SPITransmitter #(
     parameter ADDRESS_LENGTH = 24,
@@ -60,7 +65,8 @@ module SPITransmitter #(
 
     // Bus Clock
     reg                       clk_bus_nxt;
-    integer                   clock_count_nxt;
+    integer                   cl
+            // this FSM cannot interrupt a burstock_count_nxt;
 
     reg                       clk_bus_reg;
     integer                   clock_count_reg;

@@ -1,4 +1,9 @@
 `timescale 1ns / 100ps
+/*
+Hyperbus
+
+Module to test the hyperbus interface.
+*/
 
 module Hyperbus (
     input clk,

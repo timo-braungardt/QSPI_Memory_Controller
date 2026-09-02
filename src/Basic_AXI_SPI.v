@@ -20,6 +20,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+/*
+Basic AXI SPI
+
+Module to mockup a simple AXI to SPI conversion.
+It cannot talk to Flash because the interface is more complex.
+It cannot handle bursts, it only writes out 4 bytes.
+*/
+
 // Language: Verilog 2001
 
 `resetall
