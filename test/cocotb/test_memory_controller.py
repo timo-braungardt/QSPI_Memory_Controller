@@ -112,7 +112,7 @@ def test_memory_controller():
     sources = [
         proj_path / "../../src/SPIController.v",
         proj_path / "../../src/SPITransmitter.v",
-        proj_path / "../../src/AXI.v",
+        proj_path / "../../src/AXIInterface.v",
         proj_path / "../../src/MemoryController.v",
     ]
 

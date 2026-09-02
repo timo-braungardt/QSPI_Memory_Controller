@@ -95,7 +95,7 @@ module MemoryController #(
     );
 
 
-    AXI #(
+    AXIInterface #(
         .DATA_WIDTH(DATA_WIDTH),
         .ADDR_WIDTH(ADDR_WIDTH),
         .ID_WIDTH  (ID_WIDTH),
