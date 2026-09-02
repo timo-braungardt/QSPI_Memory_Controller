@@ -102,7 +102,7 @@ module MemoryController #(
         .STRB_WIDTH(STRB_WIDTH)
     ) AXI_Interface (
         .clk(clk),
-        .rst(~reset_neg), // ToDo: make reset inverted
+        .rst_neg(reset_neg),
 
         .s_axi_awid(s_axi_awid),
         .s_axi_awaddr(s_axi_awaddr),

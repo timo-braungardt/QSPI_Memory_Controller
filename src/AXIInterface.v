@@ -46,7 +46,7 @@ module AXIInterface #(
     parameter PIPELINE_OUTPUT = 1'b0
 ) (
     input wire clk,
-    input wire rst,
+    input wire rst_neg,
 
     // Control Interface Pins
     output wire                  o_valid,
@@ -283,7 +283,7 @@ module AXIInterface #(
             end
         end
 
-        if (rst) begin
+        if (!rst_neg) begin
             write_state_reg   <= WRITE_STATE_IDLE;
             write_id_reg      <= {ID_WIDTH{1'b0}};
             write_addr_reg    <= {ADDR_WIDTH{1'b0}};
@@ -381,7 +381,7 @@ module AXIInterface #(
             s_axi_rvalid_pipe_reg <= s_axi_rvalid_reg;
         end
 
-        if (rst) begin
+        if (!rst_neg) begin
             read_state_reg        <= READ_STATE_IDLE;
             read_id_reg           <= {ID_WIDTH{1'b0}};
             read_addr_reg         <= {ADDR_WIDTH{1'b0}};
