@@ -21,6 +21,14 @@ THE SOFTWARE.
 */
 
 // Language: Verilog 2001
+/*
+axi_ram module
+
+AXI RAM with parametrizable data and address interface widths. 
+Supports FIXED and INCR burst types as well as narrow bursts.
+
+It cannot interrupt a burst.
+*/
 
 `resetall
 `timescale 1ns / 1ps
