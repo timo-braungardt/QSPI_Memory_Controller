@@ -17,9 +17,9 @@ NUM_BYTES = DATA_WIDTH // 8
 
 
 async def reset_dut(dut):
-    dut.reset_neg.value = 0
+    dut.reset.value = 1
     await ClockCycles(dut.clk, 4, rising=True)
-    dut.reset_neg.value = 1
+    dut.reset.value = 0
     await ClockCycles(dut.clk, 1, rising=True)
 
 
@@ -44,7 +44,7 @@ async def write_test(dut):
     await Timer(50, unit="ns")
 
 
-    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset_neg)
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
     spi_subordinate = SpiFlashMemory(
         SpiBus(
             entity=dut,
@@ -72,7 +72,7 @@ async def write_test(dut):
 
 @cocotb.test()
 async def read_test(dut):
-    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset_neg)
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
     spi_subordinate = SpiFlashMemory(
         SpiBus(
             entity=dut,

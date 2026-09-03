@@ -13,7 +13,7 @@ module MemoryController #(
 
 ) (
     input clk,
-    input reset_neg,
+    input reset,
 
     // SPI Pins
     output o_spi_bus_clock,
@@ -72,7 +72,7 @@ module MemoryController #(
         .DATA_WIDTH(DATA_WIDTH)
     ) SPI_Controller (
         .clk(clk),
-        .reset_neg(reset_neg),
+        .reset_neg(!reset),
         .go(),
 
         .i_address(),
@@ -102,7 +102,7 @@ module MemoryController #(
         .STRB_WIDTH(STRB_WIDTH)
     ) AXI_Interface (
         .clk(clk),
-        .rst_neg(reset_neg),
+        .rst_neg(!reset),
 
         // Control Interface Pins
         .o_valid(),
