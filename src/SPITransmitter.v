@@ -65,7 +65,7 @@ module SPITransmitter #(
 
     // Bus Clock
     reg                       clk_bus_nxt;
-    integer                   cl
+    integer                   clock_count_nxt;
             // this FSM cannot interrupt a burstock_count_nxt;
 
     reg                       clk_bus_reg;
