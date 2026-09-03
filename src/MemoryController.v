@@ -25,7 +25,7 @@ module MemoryController #(
     inout  io_spi_data3,
 
     // AXI Pins
-    input  wire [  ID_WIDTH-1:0] s_axi_awid,
+    input  wire [  ID_WIDTH-1:0] s_axi_awid,     // write address channel
     input  wire [ADDR_WIDTH-1:0] s_axi_awaddr,
     input  wire [           7:0] s_axi_awlen,
     input  wire [           2:0] s_axi_awsize,
@@ -36,18 +36,18 @@ module MemoryController #(
     input  wire                  s_axi_awvalid,
     output wire                  s_axi_awready,
 
-    input  wire [DATA_WIDTH-1:0] s_axi_wdata,
+    input  wire [DATA_WIDTH-1:0] s_axi_wdata,   // write data channel
     input  wire [STRB_WIDTH-1:0] s_axi_wstrb,
     input  wire                  s_axi_wlast,
     input  wire                  s_axi_wvalid,
     output wire                  s_axi_wready,
 
-    output wire [ID_WIDTH-1:0] s_axi_bid,
+    output wire [ID_WIDTH-1:0] s_axi_bid,     // write response channel
     output wire [         1:0] s_axi_bresp,
     output wire                s_axi_bvalid,
     input  wire                s_axi_bready,
 
-    input  wire [  ID_WIDTH-1:0] s_axi_arid,
+    input  wire [  ID_WIDTH-1:0] s_axi_arid,     // read address channel
     input  wire [ADDR_WIDTH-1:0] s_axi_araddr,
     input  wire [           7:0] s_axi_arlen,
     input  wire [           2:0] s_axi_arsize,
@@ -58,7 +58,7 @@ module MemoryController #(
     input  wire                  s_axi_arvalid,
     output wire                  s_axi_arready,
 
-    output wire [  ID_WIDTH-1:0] s_axi_rid,
+    output wire [  ID_WIDTH-1:0] s_axi_rid,     // read data channel
     output wire [DATA_WIDTH-1:0] s_axi_rdata,
     output wire [           1:0] s_axi_rresp,
     output wire                  s_axi_rlast,
@@ -104,6 +104,17 @@ module MemoryController #(
         .clk(clk),
         .rst_neg(reset_neg),
 
+        // Control Interface Pins
+        .o_valid(),
+        .i_ready(),
+        .i_busy(),
+        .o_last_word(),
+        .o_write_enable(),
+        .o_address(),
+        .o_write_data(),
+        .i_read_data(),
+
+        // AXI Pins
         .s_axi_awid(s_axi_awid),
         .s_axi_awaddr(s_axi_awaddr),
         .s_axi_awlen(s_axi_awlen),
