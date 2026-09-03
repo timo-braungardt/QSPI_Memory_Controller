@@ -67,7 +67,9 @@ async def write_test(dut):
     write_task = cocotb.start_soon(axi_master.write(addr, test_data))
     trigger = await First(write_task, timeout)
     assert trigger != timeout
-    assert spi_subordinate.data == test_data
+    if dut.spi_busy.value == True:
+        await FallingEdge(dut.spi_busy)
+    assert spi_subordinate.data == list(test_data)
 
 
 @cocotb.test()
@@ -97,8 +99,10 @@ async def read_test(dut):
     read_task = cocotb.start_soon(axi_master.read(addr, length))
     trigger = await First(read_task, timeout)
     assert trigger != timeout
+    if dut.spi_busy.value == True:
+        await FallingEdge(dut.spi_busy)
     data = read_task.result()
-    assert data.data == test_data
+    assert data.data == list(test_data)
 
 
 def test_memory_controller():

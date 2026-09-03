@@ -59,10 +59,10 @@ module AXIInterface #(
     input  wire [DATA_WIDTH-1:0] i_read_data,
 
     // AXI Pins
-    input  wire [  ID_WIDTH-1:0] s_axi_awid,     // write address channel
+    input  wire [  ID_WIDTH-1:0] s_axi_awid,    // write address channel
     input  wire [ADDR_WIDTH-1:0] s_axi_awaddr,
-    input  wire [           7:0] s_axi_awlen,
-    input  wire [           2:0] s_axi_awsize,
+    input  wire [           7:0] s_axi_awlen,   // length of the transaction in words
+    input  wire [           2:0] s_axi_awsize,  // number of bytes per transfer (1, 2, 4, 8, 16, 32, 64, 128)
     input  wire [           1:0] s_axi_awburst,
     input  wire                  s_axi_awlock,
     input  wire [           3:0] s_axi_awcache,
@@ -71,7 +71,7 @@ module AXIInterface #(
     output wire                  s_axi_awready,
 
     input  wire [DATA_WIDTH-1:0] s_axi_wdata,   // write data channel
-    input  wire [STRB_WIDTH-1:0] s_axi_wstrb,
+    input  wire [STRB_WIDTH-1:0] s_axi_wstrb,   // data strobe for bitmasking
     input  wire                  s_axi_wlast,
     input  wire                  s_axi_wvalid,
     output wire                  s_axi_wready,
@@ -118,6 +118,12 @@ module AXIInterface #(
         end
     end
 
+    assign o_last_word = s_axi_wlast;
+    assign o_valid = s_axi_wvalid;
+    assign o_write_enable = 1'b1;
+    assign o_address = write_addr_reg;
+    assign o_write_data = s_axi_wdata;
+
     // Read FSM
     localparam [0:0] READ_STATE_IDLE = 1'd0;
     localparam [0:0] READ_STATE_BURST = 1'd1;
@@ -161,9 +167,6 @@ module AXIInterface #(
     reg s_axi_rlast_pipe_reg;
     reg s_axi_rvalid_pipe_reg;
 
-    // (* RAM_STYLE="BLOCK" *)
-    reg [DATA_WIDTH-1:0] mem[(2**VALID_ADDR_WIDTH)-1:0];
-
     //wire [VALID_ADDR_WIDTH-1:0] s_axi_awaddr_valid = VALID_ADDR_WIDTH'(s_axi_awaddr >> SHIFT_ADDR_BY);    // unused, maybe needed later?
     //wire [VALID_ADDR_WIDTH-1:0] s_axi_araddr_valid = VALID_ADDR_WIDTH'(s_axi_araddr >> SHIFT_ADDR_BY);
     wire [VALID_ADDR_WIDTH-1:0] read_addr_valid = VALID_ADDR_WIDTH'(read_addr_reg >> SHIFT_ADDR_BY);
@@ -181,17 +184,6 @@ module AXIInterface #(
     assign s_axi_rlast = PIPELINE_OUTPUT ? s_axi_rlast_pipe_reg : s_axi_rlast_reg;
     assign s_axi_rvalid = PIPELINE_OUTPUT ? s_axi_rvalid_pipe_reg : s_axi_rvalid_reg;
 
-    integer i, j;
-
-    initial begin
-        // two nested loops for smaller number of iterations per loop
-        // workaround for synthesizer complaints about large loop counts
-        for (i = 0; i < 2 ** VALID_ADDR_WIDTH; i = i + 2 ** (VALID_ADDR_WIDTH / 2)) begin
-            for (j = i; j < i + 2 ** (VALID_ADDR_WIDTH / 2); j = j + 1) begin
-                mem[j] = 0;
-            end
-        end
-    end
 
     always @* begin
         write_state_next = WRITE_STATE_IDLE;
@@ -211,7 +203,7 @@ module AXIInterface #(
 
         case (write_state_reg)
             WRITE_STATE_IDLE: begin
-                s_axi_awready_next = 1'b1;
+                s_axi_awready_next = ~i_busy;
 
                 if (s_axi_awready && s_axi_awvalid) begin
                     write_id_next = s_axi_awid;
@@ -229,7 +221,7 @@ module AXIInterface #(
                 end
             end
             WRITE_STATE_BURST: begin
-                s_axi_wready_next = 1'b1;
+                s_axi_wready_next = i_ready;
 
                 if (s_axi_wready && s_axi_wvalid) begin
                     mem_wr_en = 1'b1;
@@ -283,12 +275,6 @@ module AXIInterface #(
         s_axi_wready_reg <= s_axi_wready_next;
         s_axi_bid_reg <= s_axi_bid_next;
         s_axi_bvalid_reg <= s_axi_bvalid_next;
-
-        for (i = 0; i < WORD_WIDTH; i = i + 1) begin
-            if (mem_wr_en & s_axi_wstrb[i]) begin
-                mem[write_addr_valid][WORD_SIZE*i +: WORD_SIZE] <= s_axi_wdata[WORD_SIZE*i +: WORD_SIZE];
-            end
-        end
 
         if (!rst_neg) begin
             write_state_reg   <= WRITE_STATE_IDLE;
@@ -378,7 +364,7 @@ module AXIInterface #(
         s_axi_rvalid_reg <= s_axi_rvalid_next;
 
         if (mem_rd_en) begin
-            s_axi_rdata_reg <= mem[read_addr_valid];
+            s_axi_rdata_reg <= 0;
         end
 
         if (!s_axi_rvalid_pipe_reg || s_axi_rready) begin
