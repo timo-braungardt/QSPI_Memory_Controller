@@ -12,8 +12,6 @@ from cocotbext.axi import AxiBus, AxiMaster
 from cocotbext.spi import SpiBus
 from HelperClasses import SpiFlashMemory
 
-import debugpy
-
 DATA_WIDTH = int(os.environ.get("PARAM_DATA_WIDTH", 32))
 NUM_BYTES = DATA_WIDTH // 8
 
