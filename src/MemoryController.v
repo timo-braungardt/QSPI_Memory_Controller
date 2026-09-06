@@ -70,17 +70,14 @@ module MemoryController #(
     wire spi_next_word;
     wire [ADDR_WIDTH-1:0]  axi_address;
     wire [DATA_WIDTH-1:0] axi_data_read;
-    wire [DATA_WIDTH-1:0] axi_data_read_big_endian;
     wire [DATA_WIDTH-1:0] axi_data_write;
-    wire [DATA_WIDTH-1:0] axi_data_write_big_endian;
     wire [2:0] axi_write_width;
     wire [DATA_WIDTH/8-1:0] spi_number_bytes;
     wire axi_write_enable;
     wire axi_last_word;
     wire HACKY_TEST_PLEASE_CHANGE;
 
-    assign axi_data_write_big_endian = {axi_data_write[7:0], axi_data_write[15:8], axi_data_write[23:16], axi_data_write[31:24]};
-    assign axi_data_read = {axi_data_read_big_endian[7:0], axi_data_read_big_endian[15:8], axi_data_read_big_endian[23:16], axi_data_read_big_endian[31:24]};
+    /*
     assign spi_number_bytes =   (DATA_WIDTH/8)'((s_axi_awsize == 3'd0) ?  0 :
                                                 (s_axi_awsize == 3'd1) ?  1 :
                                                 (s_axi_awsize == 3'd2) ?  3 :
@@ -88,6 +85,12 @@ module MemoryController #(
                                                 (s_axi_awsize == 3'd4) ? 15 :
                                                 (s_axi_awsize == 3'd5) ? 31 :
                                                 (s_axi_awsize == 3'd6) ? 63 : 127);
+                                                */
+    // ToDo: arbitrary byte masking is not possible (yet?) with flash
+    // ToDo: make it for arbitrary data width
+    assign spi_number_bytes =   (s_axi_wstrb == 4'b0001) ? 0 :
+                                (s_axi_wstrb == 4'b0011) ? 1 :
+                                (s_axi_wstrb == 4'b0111) ? 2 : 3;
 
     SPIController #(
         .ADDRESS_LENGTH(ADDR_WIDTH),
@@ -101,8 +104,8 @@ module MemoryController #(
         .i_write_enable(axi_write_enable),
         .i_last_word(axi_last_word),
         .i_num_bytes(spi_number_bytes),
-        .i_data_write(axi_data_write_big_endian),
-        .o_data_read(axi_data_read_big_endian),
+        .i_data_write(axi_data_write),
+        .o_data_read(axi_data_read),
         .o_busy(spi_busy),
         .o_next_word(spi_next_word),
 
