@@ -214,7 +214,7 @@ module AXIInterface #(
                     write_burst_next = s_axi_awburst;
 
                     s_axi_awready_next = 1'b0;
-                    s_axi_wready_next = 1'b1;
+                    s_axi_wready_next = i_ready;
                     write_state_next = WRITE_STATE_BURST;
                 end else begin
                     write_state_next = WRITE_STATE_IDLE;

@@ -53,6 +53,8 @@ module SPIController #(
     wire [    DATA_WIDTH-1:0] data_in_muxed;         
     wire                      start_transmission;
     wire                      transmitter_finish;
+    reg HACKY_NEXT_WORD_EDGE_DETECT; // ToDo: make a better logic
+    wire spi_next_word;
 
     // Config stuff - ToDo: this should be later configured using a second port
     wire                      config_write_address;
@@ -84,6 +86,7 @@ module SPIController #(
 
     assign o_reset = 1'b0;
     assign data_in_muxed = (control_state_reg == WRITE_CONFIG) ? config_data_reg : i_data_write;
+    assign o_next_word = (HACKY_NEXT_WORD_EDGE_DETECT == 0 & spi_next_word == 1);
 
 
     SPITransmitter #(
@@ -106,7 +109,7 @@ module SPIController #(
         .i_data_write(data_in_muxed),
         .o_data_read(o_data_read),
         .o_finish(transmitter_finish),
-        .o_next_word(o_next_word),
+        .o_next_word(spi_next_word),
 
         // SPI Pins
         .o_bus_clock(o_bus_clock),
@@ -183,6 +186,7 @@ module SPIController #(
         control_state_reg <= control_state_nxt;
         delay_fsm <= 0;
         config_data_reg <= config_data_nxt;
+        HACKY_NEXT_WORD_EDGE_DETECT <= spi_next_word;
 
         if (control_state_reg == WAIT) begin
             delay_fsm <= delay_fsm + 1;
@@ -195,6 +199,7 @@ module SPIController #(
             config_quad_mode <= 3'b000;
             config_is_config_operation <= 1'b0;
             config_dummy_cycles <= 5'd0;
+            HACKY_NEXT_WORD_EDGE_DETECT <= 0;
         end
     end
 
