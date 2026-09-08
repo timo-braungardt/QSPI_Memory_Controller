@@ -75,7 +75,7 @@ module MemoryController #(
     wire [DATA_WIDTH/8-1:0] spi_number_bytes;
     wire axi_write_enable;
     wire axi_last_word;
-    wire HACKY_TEST_PLEASE_CHANGE;
+    wire axi_start_transaction;
 
     /*
     assign spi_number_bytes =   (DATA_WIDTH/8)'((s_axi_awsize == 3'd0) ?  0 :
@@ -98,7 +98,7 @@ module MemoryController #(
     ) SPI_Controller (
         .clk(clk),
         .reset_neg(!reset),
-        .go(HACKY_TEST_PLEASE_CHANGE),
+        .go(axi_start_transaction),
 
         .i_address(axi_address),
         .i_write_enable(axi_write_enable),
@@ -130,11 +130,12 @@ module MemoryController #(
         .rst_neg(!reset),
 
         // Control Interface Pins
-        .o_valid(HACKY_TEST_PLEASE_CHANGE),
+        .o_valid(),
         .i_ready(spi_next_word),
         .i_busy(spi_busy),
         .o_last_word(axi_last_word),
         .o_write_enable(axi_write_enable),
+        .o_start_transaction(axi_start_transaction),
         .o_address(axi_address),
         .o_write_data(axi_data_write),
         .i_read_data(axi_data_read),

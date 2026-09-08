@@ -54,6 +54,7 @@ module AXIInterface #(
     input  wire                  i_busy,
     output wire                  o_last_word,
     output wire                  o_write_enable,
+    output wire                  o_start_transaction,
     output wire [ADDR_WIDTH-1:0] o_address,
     output wire [DATA_WIDTH-1:0] o_write_data,
     input  wire [DATA_WIDTH-1:0] i_read_data,
@@ -123,6 +124,7 @@ module AXIInterface #(
     assign o_write_enable = 1'b1;
     assign o_address = write_addr_next;
     assign o_write_data = s_axi_wdata;
+    assign o_start_transaction = ((s_axi_awready && s_axi_awvalid) | (s_axi_arready && s_axi_arvalid));
 
     // Read FSM
     localparam [0:0] READ_STATE_IDLE = 1'd0;
