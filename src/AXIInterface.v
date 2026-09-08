@@ -121,7 +121,7 @@ module AXIInterface #(
     assign o_last_word = s_axi_wlast;
     assign o_valid = s_axi_wvalid;
     assign o_write_enable = 1'b1;
-    assign o_address = write_addr_reg;
+    assign o_address = write_addr_next;
     assign o_write_data = s_axi_wdata;
 
     // Read FSM

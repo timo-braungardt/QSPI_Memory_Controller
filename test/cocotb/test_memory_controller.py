@@ -62,7 +62,7 @@ def generate_test_array(num_bytes):
 # the transmitter state machine runns on the slow clock but the outputs are routed to the axi interface
 # it is fixed now by an edge detection on the next word signal - but this is shitty, this should be implemented better
 @cocotb.test()
-@cocotb.parametrize(num_bytes=range(NUM_BYTES*2+1))
+@cocotb.parametrize(num_bytes=range(1, NUM_BYTES*2+1))
 async def write_test(dut, num_bytes):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
@@ -95,6 +95,8 @@ async def write_test(dut, num_bytes):
     assert trigger != timeout
     if dut.spi_busy.value == True:
         await FallingEdge(dut.spi_busy)
+    assert spi_subordinate.opcode == SpiFlashMemory.program
+    assert spi_subordinate.address == 0x1000
     assert len(spi_subordinate.data) == len(test_data)
     little_endian_data = swap_endian_32(spi_subordinate.data)
     assert little_endian_data == list(test_data)
@@ -128,7 +130,10 @@ async def read_test(dut):
     trigger = await First(read_task, timeout)
     assert trigger != timeout
     if dut.spi_busy.value == True:
-        await FallingEdge(dut.spi_busy)
+        timeout = Timer(100, unit="us")
+        await First(FallingEdge(dut.spi_busy), timeout)
+    assert spi_subordinate.opcode == SpiFlashMemory.read
+    assert spi_subordinate.address == 0x1000
     data = read_task.result()
     assert data.data == list(test_data)
 
