@@ -72,7 +72,7 @@ module MemoryController #(
     wire [DATA_WIDTH-1:0] axi_data_read;
     wire [DATA_WIDTH-1:0] axi_data_write;
     wire [2:0] axi_write_width;
-    wire [DATA_WIDTH/8-1:0] spi_number_bytes;
+    reg  [DATA_WIDTH/8-1:0] spi_number_bytes;
     wire axi_write_enable;
     wire axi_last_word;
     wire axi_start_transaction;
@@ -88,9 +88,19 @@ module MemoryController #(
                                                 */
     // ToDo: arbitrary byte masking is not possible (yet?) with flash
     // ToDo: make it for arbitrary data width
-    assign spi_number_bytes =   (s_axi_wstrb == 4'b0001) ? 0 :
+    always @(*) begin
+        if (axi_write_enable) begin
+            spi_number_bytes =   (s_axi_wstrb == 4'b0001) ? 0 :
                                 (s_axi_wstrb == 4'b0011) ? 1 :
                                 (s_axi_wstrb == 4'b0111) ? 2 : 3;
+        end 
+        else begin
+            spi_number_bytes =  (s_axi_arsize == 3'b000) ? 0 :
+                                (s_axi_arsize == 3'b001) ? 1 :
+                                (s_axi_arsize == 3'b010) ? 3 : 7;
+        end
+    end
+
 
     SPIController #(
         .ADDRESS_LENGTH(ADDR_WIDTH),

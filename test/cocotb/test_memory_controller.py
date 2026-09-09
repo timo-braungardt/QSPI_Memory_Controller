@@ -103,7 +103,8 @@ async def write_test(dut, num_bytes):
 
 
 @cocotb.test()
-async def read_test(dut):
+@cocotb.parametrize(num_bytes=range(1, NUM_BYTES*2+1))
+async def read_test(dut, num_bytes):
     axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
     spi_subordinate = SpiFlashMemory(
         SpiBus(
@@ -119,14 +120,17 @@ async def read_test(dut):
     await reset_dut(dut)
 
     addr = 0x1000
-    length = 4
-    test_data = generate_test_array(length)
-    spi_subordinate.length = length
-    spi_subordinate.data = test_data
+    test_data = generate_test_array(num_bytes)
+    # pad the test data because of the endianness problem ToDo: fix endianness
+    missing_bytes = 4 - (num_bytes % 4)
+    subordinate_data = test_data[:] # copy by value
+    subordinate_data.extend([255] * missing_bytes)
+    spi_subordinate.num_bytes = num_bytes + missing_bytes
+    spi_subordinate.data = swap_endian_32(subordinate_data)
 
     # step: read
     timeout = Timer(100, unit="us")
-    read_task = cocotb.start_soon(axi_master.read(addr, length))
+    read_task = cocotb.start_soon(axi_master.read(addr, num_bytes))
     trigger = await First(read_task, timeout)
     assert trigger != timeout
     if dut.spi_busy.value == True:
@@ -135,7 +139,7 @@ async def read_test(dut):
     assert spi_subordinate.opcode == SpiFlashMemory.read
     assert spi_subordinate.address == 0x1000
     data = read_task.result()
-    assert data.data == list(test_data)
+    assert list(data.data) == list(test_data)
 
 
 def test_memory_controller():

@@ -87,6 +87,8 @@ module SPITransmitter #(
     reg  [    DATA_WIDTH-1:0] data_write_reg;
     reg  [(DATA_WIDTH/8)-1:0] num_bytes_nxt;
     reg  [(DATA_WIDTH/8)-1:0] num_bytes_reg;
+    reg                       next_word_nxt;
+    reg                       next_word_reg;
     reg     [ DATA_WIDTH-1:0] data_read_reg;
     assign o_data_read = data_read_reg;
 
@@ -123,7 +125,7 @@ module SPITransmitter #(
     assign is_output_quad_mode = (i_config_quad_mode[QUAD_MODE_OPCODE] && state_reg == SEND_OPCODE ||
                                   i_config_quad_mode[QUAD_MODE_ADDRESS] && state_reg == SEND_ADDRESS ||
                                   i_config_quad_mode[QUAD_MODE_DATA] && (state_reg == SEND_DATA));  // revieve is handled by the tristate, not necessary here
-    assign o_next_word = (count_reg == 0 & (state_reg == SEND_DATA || state_reg == RECEIVE_DATA));
+    assign o_next_word = next_word_reg;
 
 
     always @(*) begin : clock_handler_logic
@@ -166,6 +168,7 @@ module SPITransmitter #(
         data_write_nxt = data_write_reg;
         num_bytes_nxt = num_bytes_reg;
         transmission_finished_nxt = 0;
+        next_word_nxt = 0;
 
         case (state_reg)
             IDLE: begin
@@ -235,9 +238,10 @@ module SPITransmitter #(
             RECEIVE_DATA: begin
                 transmission_finished_nxt = transmission_finished_reg;
                 if (clock_tick_pos) begin
+                    transmission_finished_nxt = i_last_word;
                     if (count_reg == 0) begin
                         count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? {27'd0, transmission_num_cycles} : {27'd0, transmission_num_cycles_single};
-                        transmission_finished_nxt = i_last_word;
+                        next_word_nxt = 1;
                     end
                     else
                         count_nxt = count_reg - 1;
@@ -258,6 +262,10 @@ module SPITransmitter #(
                     end
                     else
                         count_nxt = count_reg - 1;
+
+                    // the new data has to arrive before count=0, because then the data on the input is already sampled
+                    if (count_reg == 1)
+                        next_word_nxt = 1; // ToDo: make better
                 end
 
                 // ToDo: hacky - cannot explain why it needs to be here...
@@ -287,6 +295,7 @@ module SPITransmitter #(
             opcode_reg <= 0;
             data_write_reg <= 0;
             num_bytes_reg <= 0;
+            next_word_reg <= 0;
         end else begin
             state_reg <= state_nxt;
             count_reg <= count_nxt;
@@ -296,6 +305,7 @@ module SPITransmitter #(
             opcode_reg <= opcode_nxt;
             data_write_reg <= data_write_nxt;
             num_bytes_reg <= num_bytes_nxt;
+            next_word_reg <= next_word_nxt;
         end
     end
 

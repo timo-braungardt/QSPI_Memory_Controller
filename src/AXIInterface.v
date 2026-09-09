@@ -119,10 +119,10 @@ module AXIInterface #(
         end
     end
 
-    assign o_last_word = s_axi_wlast;
+    assign o_last_word = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE) ? s_axi_wlast : s_axi_rlast;
     assign o_valid = s_axi_wvalid;
-    assign o_write_enable = 1'b1;
-    assign o_address = write_addr_next;
+    assign o_write_enable = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE);
+    assign o_address = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE) ? write_addr_next : read_addr_next;
     assign o_write_data = s_axi_wdata;
     assign o_start_transaction = ((s_axi_awready && s_axi_awvalid) | (s_axi_arready && s_axi_arvalid));
 
@@ -183,7 +183,7 @@ module AXIInterface #(
     assign s_axi_rid = PIPELINE_OUTPUT ? s_axi_rid_pipe_reg : s_axi_rid_reg;
     assign s_axi_rdata = PIPELINE_OUTPUT ? s_axi_rdata_pipe_reg : s_axi_rdata_reg;
     assign s_axi_rresp = 2'b00;
-    assign s_axi_rlast = PIPELINE_OUTPUT ? s_axi_rlast_pipe_reg : s_axi_rlast_reg;
+    assign s_axi_rlast = s_axi_rlast_reg;//PIPELINE_OUTPUT ? s_axi_rlast_pipe_reg : s_axi_rlast_reg;
     assign s_axi_rvalid = PIPELINE_OUTPUT ? s_axi_rvalid_pipe_reg : s_axi_rvalid_reg;
 
 
@@ -207,6 +207,7 @@ module AXIInterface #(
             WRITE_STATE_IDLE: begin
                 s_axi_awready_next = ~i_busy;
 
+                // reviece address etc. of the transaction
                 if (s_axi_awready && s_axi_awvalid) begin
                     write_id_next = s_axi_awid;
                     write_addr_next = s_axi_awaddr;
@@ -216,7 +217,7 @@ module AXIInterface #(
                     write_burst_next = s_axi_awburst;
 
                     s_axi_awready_next = 1'b0;
-                    s_axi_wready_next = i_ready;
+                    s_axi_wready_next = i_ready;    // ToDo: this could be a problem, when the spi is not ready yet
                     write_state_next = WRITE_STATE_BURST;
                 end else begin
                     write_state_next = WRITE_STATE_IDLE;
@@ -312,7 +313,7 @@ module AXIInterface #(
 
         case (read_state_reg)
             READ_STATE_IDLE: begin
-                s_axi_arready_next = 1'b1;
+                s_axi_arready_next = ~i_busy;
 
                 if (s_axi_arready && s_axi_arvalid) begin
                     read_id_next = s_axi_arid;
@@ -329,11 +330,11 @@ module AXIInterface #(
                 end
             end
             READ_STATE_BURST: begin
-                if (s_axi_rready || (PIPELINE_OUTPUT && !s_axi_rvalid_pipe_reg) || !s_axi_rvalid_reg) begin
+                s_axi_rlast_next = (read_count_reg == 0);
+                if (s_axi_rready & i_ready) begin
                     mem_rd_en = 1'b1;
-                    s_axi_rvalid_next = 1'b1;
+                    s_axi_rvalid_next = i_ready;
                     s_axi_rid_next = read_id_reg;
-                    s_axi_rlast_next = read_count_reg == 0;
                     if (read_burst_reg != 2'b00) begin
                         read_addr_next = read_addr_reg + (1 << read_size_reg);
                     end
@@ -366,7 +367,7 @@ module AXIInterface #(
         s_axi_rvalid_reg <= s_axi_rvalid_next;
 
         if (mem_rd_en) begin
-            s_axi_rdata_reg <= 0;
+            s_axi_rdata_reg <= i_read_data;
         end
 
         if (!s_axi_rvalid_pipe_reg || s_axi_rready) begin
