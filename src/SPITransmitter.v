@@ -37,7 +37,7 @@ module SPITransmitter #(
 );
 
     // constants
-    localparam integer TIMER_COUNT = 2;
+    localparam integer TIMER_COUNT = 2;     // ToDo: make it register based so its not baked into hardware
     localparam integer OPCODE_LENGTH = 8;
     localparam BITS_PER_SHIFT = 4;
     localparam BYTE = 8;
