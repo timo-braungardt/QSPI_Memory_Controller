@@ -13,4 +13,4 @@ groups:
       - src/MemoryController.v
       - src/SPIController.v
       - src/SPITransmitter.v
-      - src/AXI.v
+      - src/AXIInterface.v
