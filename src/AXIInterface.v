@@ -49,7 +49,6 @@ module AXIInterface #(
     input wire rst_neg,
 
     // Control Interface Pins
-    output wire                  o_valid,
     input  wire                  i_ready,
     input  wire                  i_busy,
     output wire                  o_last_word,
@@ -120,7 +119,6 @@ module AXIInterface #(
     end
 
     assign o_last_word = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE) ? s_axi_wlast : s_axi_rlast;
-    assign o_valid = s_axi_wvalid;
     assign o_write_enable = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE);
     assign o_address = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE) ? write_addr_next : read_addr_next;
     assign o_write_data = s_axi_wdata;

@@ -122,7 +122,7 @@ module MemoryController #(
         // SPI Pins
         .o_bus_clock(o_spi_bus_clock),
         .o_chip_select_neg(o_spi_chip_select_neg),
-        .o_reset(),
+        .o_reset(o_spi_reset),
         .io_data0_manager_serial_out(io_spi_data0_manager_serial_out),
         .io_data1_manager_serial_in(io_spi_data1_manager_serial_in),
         .io_data2(io_spi_data2),
@@ -140,7 +140,6 @@ module MemoryController #(
         .rst_neg(!reset),
 
         // Control Interface Pins
-        .o_valid(),
         .i_ready(spi_next_word),
         .i_busy(spi_busy),
         .o_last_word(axi_last_word),
