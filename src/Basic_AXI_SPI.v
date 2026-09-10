@@ -20,6 +20,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+/*
+Basic AXI SPI
+
+Module to mockup a simple AXI to SPI conversion.
+It cannot talk to Flash because the interface is more complex.
+It cannot handle bursts, it only writes out 4 bytes.
+*/
+
 // Language: Verilog 2001
 
 `resetall
@@ -457,7 +465,7 @@ module Basic_AXI_SPI #(
     always @(posedge clk) begin : Controll_Logic_Register
         controll_state_reg <= controll_state_next;
 
-        // ToDo: the opcode is set one clock cycle after go - this feels shitty
+        // ToDo: the opcode is set one clock cycle after go - this feels shitty (issue #10)
         case (controll_state_reg)
             CONTROLL_STATE_WRITE_ENABLE: begin
                 SPI_Controller.opcode        <= 8'h06;

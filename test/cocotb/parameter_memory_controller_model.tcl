@@ -1,0 +1,19 @@
+log -r /*;
+add wave sim:/Memory_Controller_wrapper/clk;
+add wave sim:/Memory_Controller_wrapper/reset;
+add wave sim:/Memory_Controller_wrapper/data[0];
+add wave sim:/Memory_Controller_wrapper/data[1];
+add wave sim:/Memory_Controller_wrapper/data[2];
+add wave sim:/Memory_Controller_wrapper/data[3];
+add wave sim:/Memory_Controller_wrapper/chip_select_neg;
+add wave sim:/Memory_Controller_wrapper/bus_clock;
+add wave sim:/Memory_Controller_wrapper/Controller/SPI_Controller/SPI_Transmitter/state_reg;
+add wave sim:/Memory_Controller_wrapper/Controller/SPI_Controller/SPI_Transmitter/count_reg;
+add wave sim:/Memory_Controller_wrapper/Memory/data_out;
+add wave sim:/Memory_Controller_wrapper/Controller/SPI_Controller/SPI_Transmitter/data_write_selected_byte;
+add wave sim:/Memory_Controller_wrapper/Memory/Instruct;
+add wave sim:/Memory_Controller_wrapper/Memory/PoweredUp;
+add wave sim:/Memory_Controller_wrapper/Controller/SPI_Controller/o_data_read;
+add wave sim:/Memory_Controller_wrapper/Controller/SPI_Controller/i_data_write;
+run -all;
+wave zoom full

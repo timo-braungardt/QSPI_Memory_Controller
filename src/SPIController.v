@@ -1,8 +1,14 @@
 `timescale 1ns / 100ps
+/*
+SPI Controller
+
+Module to handle the SPI-Flash interface via the SPI transmitter.
+For example a write to flash requires to send an write enable opcode before the memory transaciton can start.
+*/
 
 module SPIController #(
     // Warining: the SPI flash chips start with a 24 bit address width.
-    // ToDo: the automatic upgrade to 32bit address width is not yet implemented
+    // ToDo: the automatic upgrade to 32bit address width is not yet implemented (issue #16)
     parameter ADDRESS_LENGTH = 24,
     parameter DATA_WIDTH = 32
 ) (
@@ -47,8 +53,10 @@ module SPIController #(
     wire [    DATA_WIDTH-1:0] data_in_muxed;         
     wire                      start_transmission;
     wire                      transmitter_finish;
+    reg HACKY_NEXT_WORD_EDGE_DETECT; // ToDo: make a better logic (issue #10)
+    wire spi_next_word;
 
-    // Config stuff - ToDo: this should be later configured using a second port
+    // Config stuff - ToDo: this should be later configured using a second port (issue #16)
     wire                      config_write_address;
     wire                      config_write_data;
     wire                      config_read_data;
@@ -78,6 +86,7 @@ module SPIController #(
 
     assign o_reset = 1'b0;
     assign data_in_muxed = (control_state_reg == WRITE_CONFIG) ? config_data_reg : i_data_write;
+    assign o_next_word = (HACKY_NEXT_WORD_EDGE_DETECT == 0 & spi_next_word == 1);
 
 
     SPITransmitter #(
@@ -96,11 +105,11 @@ module SPIController #(
         .i_config_quad_mode(config_quad_mode),
         .i_num_bytes(i_num_bytes),
         .i_last_word(i_last_word),
-        .i_config_dummy_cycles(config_dummy_cycles),    // ToDo: depending on the opcode, we need dummy cycles or not
+        .i_config_dummy_cycles(config_dummy_cycles),    // ToDo: depending on the opcode, we need dummy cycles or not (issue #10)
         .i_data_write(data_in_muxed),
         .o_data_read(o_data_read),
         .o_finish(transmitter_finish),
-        .o_next_word(o_next_word),
+        .o_next_word(spi_next_word),
 
         // SPI Pins
         .o_bus_clock(o_bus_clock),
@@ -119,7 +128,7 @@ module SPIController #(
     assign o_busy = (control_state_reg != IDLE);
 
 
-    integer delay_fsm;  // ToDo: make this more beautifull - the state machine probably needs multiple delays.
+    integer delay_fsm;  // ToDo: make this more beautifull - the state machine probably needs multiple delays. (issue #10)
     always @(*) begin : control_logic
         address_nxt = address_reg;
         opcode_nxt = opcode_reg;
@@ -177,6 +186,7 @@ module SPIController #(
         control_state_reg <= control_state_nxt;
         delay_fsm <= 0;
         config_data_reg <= config_data_nxt;
+        HACKY_NEXT_WORD_EDGE_DETECT <= spi_next_word;
 
         if (control_state_reg == WAIT) begin
             delay_fsm <= delay_fsm + 1;
@@ -189,6 +199,7 @@ module SPIController #(
             config_quad_mode <= 3'b000;
             config_is_config_operation <= 1'b0;
             config_dummy_cycles <= 5'd0;
+            HACKY_NEXT_WORD_EDGE_DETECT <= 0;
         end
     end
 

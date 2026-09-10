@@ -1,4 +1,9 @@
 `timescale 1ns / 100ps
+/*
+Basic SPI
+
+Module to test the single spi protocoll.
+*/
 
 module BasicSPI (
     input clk,

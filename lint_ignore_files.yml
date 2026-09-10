@@ -2,7 +2,9 @@
 files:
   - src/Basic_AXI_SPI.v
   - src/SPIController.v
+  - src/MemoryController.v
   - test/cocotb_wrapper/AXI_SPI_wrapper.v
   - test/cocotb_wrapper/HyperRAM_wrapper.v
   - test/cocotb_wrapper/SPI_wrapper.v
   - test/cocotb_wrapper/Combined_SPI_wrapper.v
+  - test/cocotb_wrapper/Memory_Controller_wrapper.v

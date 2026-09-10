@@ -1,4 +1,9 @@
 `timescale 1ns / 100ps
+/*
+Hyperbus
+
+Module to test the hyperbus interface.
+*/
 
 module Hyperbus (
     input clk,
@@ -26,7 +31,7 @@ module Hyperbus (
 
     wire en_data_strobe;
     reg data_strobe_out_reg;
-    reg data_strobe_out_nxt = 0;  // ToDo: The signal has to be driven for write
+    reg data_strobe_out_nxt = 0;  // ToDo: The signal has to be driven for write (issue #15)
     wire data_strobe_in;
 
     reg has_latency_reg;

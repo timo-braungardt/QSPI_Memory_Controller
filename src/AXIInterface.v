@@ -1,5 +1,6 @@
 /*
 Copyright (c) 2018 Alex Forencich
+Copyright (c) 2026 Timo Braungardt (modifications)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -22,22 +23,17 @@ THE SOFTWARE.
 
 // Language: Verilog 2001
 /*
-axi_ram module
+AXI Interface module
 
-AXI RAM with parametrizable data and address interface widths. 
-Supports FIXED and INCR burst types as well as narrow bursts.
-
-It cannot interrupt a burst.
+Simple interface which accepts read and write requests.
+Can create backpreasure so the SPI can write the data out.
 */
 
 `resetall
 `timescale 1ns / 1ps
 `default_nettype none
 
-/*
- * AXI4 RAM
- */
-module AXI #(
+module AXIInterface #(
     // Width of data bus in bits
     parameter DATA_WIDTH = 32,
     // Width of address bus in bits
@@ -50,28 +46,42 @@ module AXI #(
     parameter PIPELINE_OUTPUT = 1'b0
 ) (
     input wire clk,
-    input wire rst,
+    input wire rst_neg,
 
-    input  wire [  ID_WIDTH-1:0] s_axi_awid,
+    // Control Interface Pins
+    input  wire                  i_ready,
+    input  wire                  i_busy,
+    output wire                  o_last_word,
+    output wire                  o_write_enable,
+    output wire                  o_start_transaction,
+    output wire [ADDR_WIDTH-1:0] o_address,
+    output wire [DATA_WIDTH-1:0] o_write_data,
+    input  wire [DATA_WIDTH-1:0] i_read_data,
+
+    // AXI Pins
+    input  wire [  ID_WIDTH-1:0] s_axi_awid,    // write address channel
     input  wire [ADDR_WIDTH-1:0] s_axi_awaddr,
-    input  wire [           7:0] s_axi_awlen,
-    input  wire [           2:0] s_axi_awsize,
+    input  wire [           7:0] s_axi_awlen,   // length of the transaction in words
+    input  wire [           2:0] s_axi_awsize,  // number of bytes per transfer (1, 2, 4, 8, 16, 32, 64, 128)
     input  wire [           1:0] s_axi_awburst,
     input  wire                  s_axi_awlock,
     input  wire [           3:0] s_axi_awcache,
     input  wire [           2:0] s_axi_awprot,
     input  wire                  s_axi_awvalid,
     output wire                  s_axi_awready,
-    input  wire [DATA_WIDTH-1:0] s_axi_wdata,
-    input  wire [STRB_WIDTH-1:0] s_axi_wstrb,
+
+    input  wire [DATA_WIDTH-1:0] s_axi_wdata,   // write data channel
+    input  wire [STRB_WIDTH-1:0] s_axi_wstrb,   // data strobe for bitmasking
     input  wire                  s_axi_wlast,
     input  wire                  s_axi_wvalid,
     output wire                  s_axi_wready,
-    output wire [  ID_WIDTH-1:0] s_axi_bid,
+
+    output wire [  ID_WIDTH-1:0] s_axi_bid,     // write response channel
     output wire [           1:0] s_axi_bresp,
     output wire                  s_axi_bvalid,
     input  wire                  s_axi_bready,
-    input  wire [  ID_WIDTH-1:0] s_axi_arid,
+
+    input  wire [  ID_WIDTH-1:0] s_axi_arid,     // read address channel
     input  wire [ADDR_WIDTH-1:0] s_axi_araddr,
     input  wire [           7:0] s_axi_arlen,
     input  wire [           2:0] s_axi_arsize,
@@ -81,7 +91,8 @@ module AXI #(
     input  wire [           2:0] s_axi_arprot,
     input  wire                  s_axi_arvalid,
     output wire                  s_axi_arready,
-    output wire [  ID_WIDTH-1:0] s_axi_rid,
+
+    output wire [  ID_WIDTH-1:0] s_axi_rid,     // read data channel
     output wire [DATA_WIDTH-1:0] s_axi_rdata,
     output wire [           1:0] s_axi_rresp,
     output wire                  s_axi_rlast,
@@ -107,13 +118,20 @@ module AXI #(
         end
     end
 
-    localparam [0:0] READ_STATE_IDLE = 1'd0, READ_STATE_BURST = 1'd1;
+    // Read FSM
+    localparam [0:0] READ_STATE_IDLE = 1'd0;
+    localparam [0:0] READ_STATE_BURST = 1'd1;
 
-    reg [0:0] read_state_reg, read_state_next;
+    reg [0:0] read_state_reg; 
+    reg [0:0] read_state_next;
 
-    localparam [1:0] WRITE_STATE_IDLE = 2'd0, WRITE_STATE_BURST = 2'd1, WRITE_STATE_RESP = 2'd2;
+    // Write FSM
+    localparam [1:0] WRITE_STATE_IDLE = 2'd0;
+    localparam [1:0] WRITE_STATE_BURST = 2'd1;
+    localparam [1:0] WRITE_STATE_RESP = 2'd2;
 
-    reg [1:0] write_state_reg, write_state_next;
+    reg [1:0] write_state_reg;
+    reg [1:0] write_state_next;
 
     reg mem_wr_en;
     reg mem_rd_en;
@@ -143,9 +161,6 @@ module AXI #(
     reg s_axi_rlast_pipe_reg;
     reg s_axi_rvalid_pipe_reg;
 
-    // (* RAM_STYLE="BLOCK" *)
-    reg [DATA_WIDTH-1:0] mem[(2**VALID_ADDR_WIDTH)-1:0];
-
     //wire [VALID_ADDR_WIDTH-1:0] s_axi_awaddr_valid = VALID_ADDR_WIDTH'(s_axi_awaddr >> SHIFT_ADDR_BY);    // unused, maybe needed later?
     //wire [VALID_ADDR_WIDTH-1:0] s_axi_araddr_valid = VALID_ADDR_WIDTH'(s_axi_araddr >> SHIFT_ADDR_BY);
     wire [VALID_ADDR_WIDTH-1:0] read_addr_valid = VALID_ADDR_WIDTH'(read_addr_reg >> SHIFT_ADDR_BY);
@@ -160,20 +175,15 @@ module AXI #(
     assign s_axi_rid = PIPELINE_OUTPUT ? s_axi_rid_pipe_reg : s_axi_rid_reg;
     assign s_axi_rdata = PIPELINE_OUTPUT ? s_axi_rdata_pipe_reg : s_axi_rdata_reg;
     assign s_axi_rresp = 2'b00;
-    assign s_axi_rlast = PIPELINE_OUTPUT ? s_axi_rlast_pipe_reg : s_axi_rlast_reg;
+    assign s_axi_rlast = s_axi_rlast_reg;//PIPELINE_OUTPUT ? s_axi_rlast_pipe_reg : s_axi_rlast_reg;
     assign s_axi_rvalid = PIPELINE_OUTPUT ? s_axi_rvalid_pipe_reg : s_axi_rvalid_reg;
 
-    integer i, j;
+    assign o_last_word = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE) ? s_axi_wlast : s_axi_rlast;
+    assign o_write_enable = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE);
+    assign o_address = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE) ? write_addr_next : read_addr_next;
+    assign o_write_data = s_axi_wdata;
+    assign o_start_transaction = ((s_axi_awready && s_axi_awvalid) | (s_axi_arready && s_axi_arvalid));
 
-    initial begin
-        // two nested loops for smaller number of iterations per loop
-        // workaround for synthesizer complaints about large loop counts
-        for (i = 0; i < 2 ** VALID_ADDR_WIDTH; i = i + 2 ** (VALID_ADDR_WIDTH / 2)) begin
-            for (j = i; j < i + 2 ** (VALID_ADDR_WIDTH / 2); j = j + 1) begin
-                mem[j] = 0;
-            end
-        end
-    end
 
     always @* begin
         write_state_next = WRITE_STATE_IDLE;
@@ -193,8 +203,9 @@ module AXI #(
 
         case (write_state_reg)
             WRITE_STATE_IDLE: begin
-                s_axi_awready_next = 1'b1;
+                s_axi_awready_next = ~i_busy;
 
+                // reviece address etc. of the transaction
                 if (s_axi_awready && s_axi_awvalid) begin
                     write_id_next = s_axi_awid;
                     write_addr_next = s_axi_awaddr;
@@ -204,14 +215,14 @@ module AXI #(
                     write_burst_next = s_axi_awburst;
 
                     s_axi_awready_next = 1'b0;
-                    s_axi_wready_next = 1'b1;
+                    s_axi_wready_next = i_ready;    // ToDo: this could be a problem, when the spi is not ready yet (issue #14)
                     write_state_next = WRITE_STATE_BURST;
                 end else begin
                     write_state_next = WRITE_STATE_IDLE;
                 end
             end
             WRITE_STATE_BURST: begin
-                s_axi_wready_next = 1'b1;
+                s_axi_wready_next = i_ready;
 
                 if (s_axi_wready && s_axi_wvalid) begin
                     mem_wr_en = 1'b1;
@@ -266,13 +277,7 @@ module AXI #(
         s_axi_bid_reg <= s_axi_bid_next;
         s_axi_bvalid_reg <= s_axi_bvalid_next;
 
-        for (i = 0; i < WORD_WIDTH; i = i + 1) begin
-            if (mem_wr_en & s_axi_wstrb[i]) begin
-                mem[write_addr_valid][WORD_SIZE*i +: WORD_SIZE] <= s_axi_wdata[WORD_SIZE*i +: WORD_SIZE];
-            end
-        end
-
-        if (rst) begin
+        if (!rst_neg) begin
             write_state_reg   <= WRITE_STATE_IDLE;
             write_id_reg      <= {ID_WIDTH{1'b0}};
             write_addr_reg    <= {ADDR_WIDTH{1'b0}};
@@ -306,7 +311,7 @@ module AXI #(
 
         case (read_state_reg)
             READ_STATE_IDLE: begin
-                s_axi_arready_next = 1'b1;
+                s_axi_arready_next = ~i_busy;
 
                 if (s_axi_arready && s_axi_arvalid) begin
                     read_id_next = s_axi_arid;
@@ -323,11 +328,11 @@ module AXI #(
                 end
             end
             READ_STATE_BURST: begin
-                if (s_axi_rready || (PIPELINE_OUTPUT && !s_axi_rvalid_pipe_reg) || !s_axi_rvalid_reg) begin
+                s_axi_rlast_next = (read_count_reg == 0);
+                if (s_axi_rready & i_ready) begin
                     mem_rd_en = 1'b1;
-                    s_axi_rvalid_next = 1'b1;
+                    s_axi_rvalid_next = i_ready;
                     s_axi_rid_next = read_id_reg;
-                    s_axi_rlast_next = read_count_reg == 0;
                     if (read_burst_reg != 2'b00) begin
                         read_addr_next = read_addr_reg + (1 << read_size_reg);
                     end
@@ -360,7 +365,7 @@ module AXI #(
         s_axi_rvalid_reg <= s_axi_rvalid_next;
 
         if (mem_rd_en) begin
-            s_axi_rdata_reg <= mem[read_addr_valid];
+            s_axi_rdata_reg <= i_read_data;
         end
 
         if (!s_axi_rvalid_pipe_reg || s_axi_rready) begin
@@ -370,7 +375,7 @@ module AXI #(
             s_axi_rvalid_pipe_reg <= s_axi_rvalid_reg;
         end
 
-        if (rst) begin
+        if (!rst_neg) begin
             read_state_reg        <= READ_STATE_IDLE;
             read_id_reg           <= {ID_WIDTH{1'b0}};
             read_addr_reg         <= {ADDR_WIDTH{1'b0}};
