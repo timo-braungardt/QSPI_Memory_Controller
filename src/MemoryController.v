@@ -86,8 +86,8 @@ module MemoryController #(
                                                 (s_axi_awsize == 3'd5) ? 31 :
                                                 (s_axi_awsize == 3'd6) ? 63 : 127);
                                                 */
-    // ToDo: arbitrary byte masking is not possible (yet?) with flash
-    // ToDo: make it for arbitrary data width
+    // ToDo: arbitrary byte masking is not possible (yet?) with flash (issue #10)
+    // ToDo: make it for arbitrary data width (issue #10)
     always @(*) begin
         if (axi_write_enable) begin
             spi_number_bytes =   (s_axi_wstrb == 4'b0001) ? 0 :

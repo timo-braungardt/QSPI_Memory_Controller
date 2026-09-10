@@ -8,7 +8,7 @@ For example a write to flash requires to send an write enable opcode before the 
 
 module SPIController #(
     // Warining: the SPI flash chips start with a 24 bit address width.
-    // ToDo: the automatic upgrade to 32bit address width is not yet implemented
+    // ToDo: the automatic upgrade to 32bit address width is not yet implemented (issue #16)
     parameter ADDRESS_LENGTH = 24,
     parameter DATA_WIDTH = 32
 ) (
@@ -53,10 +53,10 @@ module SPIController #(
     wire [    DATA_WIDTH-1:0] data_in_muxed;         
     wire                      start_transmission;
     wire                      transmitter_finish;
-    reg HACKY_NEXT_WORD_EDGE_DETECT; // ToDo: make a better logic
+    reg HACKY_NEXT_WORD_EDGE_DETECT; // ToDo: make a better logic (issue #10)
     wire spi_next_word;
 
-    // Config stuff - ToDo: this should be later configured using a second port
+    // Config stuff - ToDo: this should be later configured using a second port (issue #16)
     wire                      config_write_address;
     wire                      config_write_data;
     wire                      config_read_data;
@@ -105,7 +105,7 @@ module SPIController #(
         .i_config_quad_mode(config_quad_mode),
         .i_num_bytes(i_num_bytes),
         .i_last_word(i_last_word),
-        .i_config_dummy_cycles(config_dummy_cycles),    // ToDo: depending on the opcode, we need dummy cycles or not
+        .i_config_dummy_cycles(config_dummy_cycles),    // ToDo: depending on the opcode, we need dummy cycles or not (issue #10)
         .i_data_write(data_in_muxed),
         .o_data_read(o_data_read),
         .o_finish(transmitter_finish),
@@ -128,7 +128,7 @@ module SPIController #(
     assign o_busy = (control_state_reg != IDLE);
 
 
-    integer delay_fsm;  // ToDo: make this more beautifull - the state machine probably needs multiple delays.
+    integer delay_fsm;  // ToDo: make this more beautifull - the state machine probably needs multiple delays. (issue #10)
     always @(*) begin : control_logic
         address_nxt = address_reg;
         opcode_nxt = opcode_reg;

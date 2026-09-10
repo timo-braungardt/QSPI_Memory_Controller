@@ -465,7 +465,7 @@ module Basic_AXI_SPI #(
     always @(posedge clk) begin : Controll_Logic_Register
         controll_state_reg <= controll_state_next;
 
-        // ToDo: the opcode is set one clock cycle after go - this feels shitty
+        // ToDo: the opcode is set one clock cycle after go - this feels shitty (issue #10)
         case (controll_state_reg)
             CONTROLL_STATE_WRITE_ENABLE: begin
                 SPI_Controller.opcode        <= 8'h06;

@@ -215,7 +215,7 @@ module AXIInterface #(
                     write_burst_next = s_axi_awburst;
 
                     s_axi_awready_next = 1'b0;
-                    s_axi_wready_next = i_ready;    // ToDo: this could be a problem, when the spi is not ready yet
+                    s_axi_wready_next = i_ready;    // ToDo: this could be a problem, when the spi is not ready yet (issue #14)
                     write_state_next = WRITE_STATE_BURST;
                 end else begin
                     write_state_next = WRITE_STATE_IDLE;

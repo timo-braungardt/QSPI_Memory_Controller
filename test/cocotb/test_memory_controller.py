@@ -58,7 +58,7 @@ def generate_test_array(num_bytes):
         array.append(random.randrange(256))
     return array
 
-# ToDo: problem with the state machines when the num_bites is bigger than 8
+# ToDo: problem with the state machines when the num_bites is bigger than 8  (issue #10)
 # the transmitter state machine runns on the slow clock but the outputs are routed to the axi interface
 # it is fixed now by an edge detection on the next word signal - but this is shitty, this should be implemented better
 @cocotb.test()
@@ -121,7 +121,7 @@ async def read_test(dut, num_bytes):
 
     addr = 0x1000
     test_data = generate_test_array(num_bytes)
-    # pad the test data because of the endianness problem ToDo: fix endianness
+    # pad the test data because of the endianness problem ToDo: fix endianness  (issue #13)
     missing_bytes = 4 - (num_bytes % 4)
     subordinate_data = test_data[:] # copy by value
     subordinate_data.extend([255] * missing_bytes)

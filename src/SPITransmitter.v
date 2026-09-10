@@ -37,7 +37,7 @@ module SPITransmitter #(
 );
 
     // constants
-    localparam integer TIMER_COUNT = 2;     // ToDo: make it register based so its not baked into hardware
+    localparam integer TIMER_COUNT = 2;     // ToDo: make it register based so its not baked into hardware (issue #16)
     localparam integer OPCODE_LENGTH = 8;
     localparam BITS_PER_SHIFT = 4;
     localparam BYTE = 8;
@@ -92,7 +92,7 @@ module SPITransmitter #(
     reg     [ DATA_WIDTH-1:0] data_read_reg;
     assign o_data_read = data_read_reg;
 
-    // ToDo: what should the size be? currently log(8 bits * 4 bytes)
+    // ToDo: what should the size be? currently log(8 bits * 4 bytes) (issue #10)
     wire [MAX_INDEX_BYTES:0] transmission_num_cycles_single;
     assign transmission_num_cycles_single = (num_bytes_reg + 1) * 8 - 1;  // for 8 bits we need 8 cycles
     wire [MAX_INDEX_BYTES:0] transmission_num_cycles;
@@ -234,7 +234,7 @@ module SPITransmitter #(
 
             // the transmission_finished_nxt entries in the other states are needed because of the recieve state.
             // without them the FSM would always read two rounds because transmission_finished_reg is not set in time.
-            // ToDo: fix the complicated logic
+            // ToDo: fix the complicated logic (issue #10)
             RECEIVE_DATA: begin
                 transmission_finished_nxt = transmission_finished_reg;
                 if (clock_tick_pos) begin
@@ -254,7 +254,7 @@ module SPITransmitter #(
 
             SEND_DATA: begin
                 transmission_finished_nxt = transmission_finished_reg;
-                num_bytes_nxt = i_num_bytes;    // ToDo: hacky
+                num_bytes_nxt = i_num_bytes;    // ToDo: hacky (issue #10)
                 if (clock_tick_neg) begin
                     if (count_reg == 0) begin
                         count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? {27'd0, transmission_num_cycles} : {27'd0, transmission_num_cycles_single};
@@ -265,10 +265,10 @@ module SPITransmitter #(
 
                     // the new data has to arrive before count=0, because then the data on the input is already sampled
                     if (count_reg == 1)
-                        next_word_nxt = 1; // ToDo: make better
+                        next_word_nxt = 1; // ToDo: make better (issue #10)
                 end
 
-                // ToDo: hacky - cannot explain why it needs to be here...
+                // ToDo: hacky - cannot explain why it needs to be here... (issue #10)
                 if (clock_tick_pos & count_reg == 0) begin
                     data_write_nxt = i_data_write;
                 end
