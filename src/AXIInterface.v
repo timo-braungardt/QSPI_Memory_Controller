@@ -118,12 +118,6 @@ module AXIInterface #(
         end
     end
 
-    assign o_last_word = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE) ? s_axi_wlast : s_axi_rlast;
-    assign o_write_enable = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE);
-    assign o_address = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE) ? write_addr_next : read_addr_next;
-    assign o_write_data = s_axi_wdata;
-    assign o_start_transaction = ((s_axi_awready && s_axi_awvalid) | (s_axi_arready && s_axi_arvalid));
-
     // Read FSM
     localparam [0:0] READ_STATE_IDLE = 1'd0;
     localparam [0:0] READ_STATE_BURST = 1'd1;
@@ -183,6 +177,12 @@ module AXIInterface #(
     assign s_axi_rresp = 2'b00;
     assign s_axi_rlast = s_axi_rlast_reg;//PIPELINE_OUTPUT ? s_axi_rlast_pipe_reg : s_axi_rlast_reg;
     assign s_axi_rvalid = PIPELINE_OUTPUT ? s_axi_rvalid_pipe_reg : s_axi_rvalid_reg;
+
+    assign o_last_word = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE) ? s_axi_wlast : s_axi_rlast;
+    assign o_write_enable = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE);
+    assign o_address = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE) ? write_addr_next : read_addr_next;
+    assign o_write_data = s_axi_wdata;
+    assign o_start_transaction = ((s_axi_awready && s_axi_awvalid) | (s_axi_arready && s_axi_arvalid));
 
 
     always @* begin
