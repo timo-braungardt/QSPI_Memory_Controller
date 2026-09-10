@@ -6,8 +6,7 @@ Module to convert a data word to the SPI protocoll.
 */
 
 module SPITransmitter #(
-    parameter ADDRESS_LENGTH = 24,
-    parameter DATA_WIDTH = 32
+    parameter ADDRESS_LENGTH = 24
 ) (
     input clk,
     input reset_neg,
@@ -19,13 +18,13 @@ module SPITransmitter #(
     input                       i_config_write_data,
     input                       i_config_write_address,
     input  [               2:0] i_config_quad_mode,
-    input  [(DATA_WIDTH/8)-1:0] i_num_bytes,    // 0 based indexing
     input                       i_last_word,
     input  [               4:0] i_config_dummy_cycles,
-    input  [    DATA_WIDTH-1:0] i_data_write,
-    output [    DATA_WIDTH-1:0] o_data_read,
+    input  [          BYTE-1:0] i_data_write,
+    output [          BYTE-1:0] o_data_read,
     output                      o_finish,
-    output                      o_next_word,
+    output                      o_need_next_byte,
+    output                      o_recieved_next_byte,
 
     // SPI Pins
     output o_bus_clock,
@@ -41,13 +40,13 @@ module SPITransmitter #(
     localparam integer OPCODE_LENGTH = 8;
     localparam BITS_PER_SHIFT = 4;
     localparam BYTE = 8;
-    localparam MAX_INDEX_BYTES = $clog2(DATA_WIDTH) - 1;
-    localparam DATA_SEL_MSB_QUAD = $clog2(DATA_WIDTH / BITS_PER_SHIFT) - 1;
-    localparam DATA_SEL_MSB_SINGLE = $clog2(DATA_WIDTH) - 1;
+    localparam MAX_INDEX_BYTES = $clog2(BYTE) - 1;
+    localparam DATA_SEL_MSB_QUAD = $clog2(BYTE / BITS_PER_SHIFT) - 1;
+    localparam DATA_SEL_MSB_SINGLE = $clog2(BYTE) - 1;
     localparam BYTE_SEL_LSB_SINGLE = $clog2(BYTE);
-    localparam BYTE_SEL_MSB_SINGLE = $clog2(DATA_WIDTH);
+    localparam BYTE_SEL_MSB_SINGLE = $clog2(BYTE);
     localparam BYTE_SEL_LSB_QUAD = $clog2(BYTE / BITS_PER_SHIFT);
-    localparam BYTE_SEL_MSB_QUAD = $clog2(DATA_WIDTH / BITS_PER_SHIFT);
+    localparam BYTE_SEL_MSB_QUAD = $clog2(BYTE / BITS_PER_SHIFT);
     localparam ADDRESS_SEL_MSB_QUAD = $clog2(ADDRESS_LENGTH / BITS_PER_SHIFT) - 1;
     localparam ADDRESS_SEL_MSB_SINGLE = $clog2(ADDRESS_LENGTH) - 1;
     localparam BUS_WIDTH = 4;
@@ -59,9 +58,9 @@ module SPITransmitter #(
     // Pin tristate stuff
     wire                      en_bus_clock;
     wire                      en_data_out;
-    reg     [BUS_WIDTH_MSB:0] data_out_reg;
-    reg     [BUS_WIDTH_MSB:0] data_out_nxt;
-    reg     [BUS_WIDTH_MSB:0] data_in;
+    reg     [       BYTE-1:0] data_out_reg;
+    reg     [       BYTE-1:0] data_out_nxt;
+    reg     [       BYTE-1:0] data_in;
 
     // Bus Clock
     reg                       clk_bus_nxt;
@@ -83,24 +82,16 @@ module SPITransmitter #(
     reg  [ OPCODE_LENGTH-1:0] opcode_reg;
     reg  [ADDRESS_LENGTH-1:0] address_nxt;
     reg  [ADDRESS_LENGTH-1:0] address_reg;
-    reg  [    DATA_WIDTH-1:0] data_write_nxt;
-    reg  [    DATA_WIDTH-1:0] data_write_reg;
-    reg  [(DATA_WIDTH/8)-1:0] num_bytes_nxt;
-    reg  [(DATA_WIDTH/8)-1:0] num_bytes_reg;
-    reg                       next_word_nxt;
-    reg                       next_word_reg;
-    reg     [ DATA_WIDTH-1:0] data_read_reg;
+    reg  [          BYTE-1:0] data_write_nxt;
+    reg  [          BYTE-1:0] data_write_reg;
+    reg  [          BYTE-1:0] data_read_reg;
+    reg                       need_next_byte_nxt;
+    reg                       need_next_byte_reg;
+    reg                       recieved_next_byte_nxt;
+    reg                       recieved_next_byte_reg;
+
     assign o_data_read = data_read_reg;
 
-    // ToDo: what should the size be? currently log(8 bits * 4 bytes) (issue #10)
-    wire [MAX_INDEX_BYTES:0] transmission_num_cycles_single;
-    assign transmission_num_cycles_single = (num_bytes_reg + 1) * 8 - 1;  // for 8 bits we need 8 cycles
-    wire [MAX_INDEX_BYTES:0] transmission_num_cycles;
-    assign transmission_num_cycles = (num_bytes_reg + 1) * 2 - 1;     // for 8 bits we need 2 cycles
-    wire [BYTE -1:0] data_write_selected_byte;
-    assign data_write_selected_byte = data_write_reg[count_reg[BYTE_SEL_MSB_SINGLE:BYTE_SEL_LSB_SINGLE]*8 +: 8];
-    wire [BYTE -1:0] data_write_selected_byte_quad;
-    assign data_write_selected_byte_quad = data_write_reg[count_reg[BYTE_SEL_MSB_QUAD:BYTE_SEL_LSB_QUAD]*8 +: 8];
 
     // states transmission FSM
     localparam NUM_STATES = 7;
@@ -125,8 +116,8 @@ module SPITransmitter #(
     assign is_output_quad_mode = (i_config_quad_mode[QUAD_MODE_OPCODE] && state_reg == SEND_OPCODE ||
                                   i_config_quad_mode[QUAD_MODE_ADDRESS] && state_reg == SEND_ADDRESS ||
                                   i_config_quad_mode[QUAD_MODE_DATA] && (state_reg == SEND_DATA));  // revieve is handled by the tristate, not necessary here
-    assign o_next_word = next_word_reg;
-
+    assign o_need_next_byte = (~need_next_byte_reg & need_next_byte_nxt);
+    assign o_recieved_next_byte = (~recieved_next_byte_reg & recieved_next_byte_nxt);
 
     always @(*) begin : clock_handler_logic
         clk_bus_nxt = clk_bus_reg;
@@ -166,9 +157,9 @@ module SPITransmitter #(
         opcode_nxt = opcode_reg;
         address_nxt = address_reg;
         data_write_nxt = data_write_reg;
-        num_bytes_nxt = num_bytes_reg;
         transmission_finished_nxt = 0;
-        next_word_nxt = 0;
+        recieved_next_byte_nxt <= 0;
+        need_next_byte_nxt <= 0;
 
         case (state_reg)
             IDLE: begin
@@ -178,7 +169,6 @@ module SPITransmitter #(
                     opcode_nxt = i_opcode;
                     address_nxt = i_address;
                     data_write_nxt = i_data_write;
-                    num_bytes_nxt = i_num_bytes;
                 end
             end
 
@@ -194,10 +184,10 @@ module SPITransmitter #(
                             count_nxt = {27'd0, i_config_dummy_cycles - 5'd1};
                             state_nxt = DUMMY_CYCLES;
                         end else if (i_config_write_data) begin
-                            count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? {27'd0, transmission_num_cycles} : {27'd0, transmission_num_cycles_single};
+                            count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? 27'(BYTE / BITS_PER_SHIFT -1) : 27'(BYTE-1);
                             state_nxt = SEND_DATA;
                         end else if (i_config_read_data) begin
-                            count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? {27'd0, transmission_num_cycles} : {27'd0, transmission_num_cycles_single};
+                            count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? 27'(BYTE / BITS_PER_SHIFT -1) : 27'(BYTE-1);
                             state_nxt = RECEIVE_DATA;
                         end else state_nxt = FINISH;
                     end
@@ -209,7 +199,7 @@ module SPITransmitter #(
                 if (clock_tick_neg) count_nxt = count_reg - 1;
 
                 if (count_reg == 0 && clock_tick_neg) begin
-                    count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? {27'd0, transmission_num_cycles} : {27'd0, transmission_num_cycles_single};
+                    count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? 27'(BYTE / BITS_PER_SHIFT -1) : 27'(BYTE-1);
                     if (i_config_dummy_cycles != 0) begin
                             count_nxt = {27'd0, i_config_dummy_cycles - 5'd1};
                         state_nxt = DUMMY_CYCLES;
@@ -224,7 +214,7 @@ module SPITransmitter #(
                 if (clock_tick_neg) count_nxt = count_reg - 1;
 
                 if (count_reg == 0 && clock_tick_neg) begin
-                    count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? {27'd0, transmission_num_cycles} : {27'd0, transmission_num_cycles_single};
+                    count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? 27'(BYTE / BITS_PER_SHIFT -1) : 27'(BYTE-1);
                     if (i_config_write_data) state_nxt = SEND_DATA;
                     else if (i_config_read_data) state_nxt = RECEIVE_DATA;
                     else
@@ -240,8 +230,8 @@ module SPITransmitter #(
                 if (clock_tick_pos) begin
                     transmission_finished_nxt = i_last_word;
                     if (count_reg == 0) begin
-                        count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? {27'd0, transmission_num_cycles} : {27'd0, transmission_num_cycles_single};
-                        next_word_nxt = 1;
+                        count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? 27'(BYTE / BITS_PER_SHIFT -1) : 27'(BYTE-1);
+                        recieved_next_byte_nxt <= 1;
                     end
                     else
                         count_nxt = count_reg - 1;
@@ -254,23 +244,19 @@ module SPITransmitter #(
 
             SEND_DATA: begin
                 transmission_finished_nxt = transmission_finished_reg;
-                num_bytes_nxt = i_num_bytes;    // ToDo: hacky (issue #10)
                 if (clock_tick_neg) begin
                     if (count_reg == 0) begin
-                        count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? {27'd0, transmission_num_cycles} : {27'd0, transmission_num_cycles_single};
+                        count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? 27'(BYTE / BITS_PER_SHIFT -1) : 27'(BYTE-1);
                         transmission_finished_nxt = i_last_word;
                     end
                     else
                         count_nxt = count_reg - 1;
-
-                    // the new data has to arrive before count=0, because then the data on the input is already sampled
-                    if (count_reg == 1)
-                        next_word_nxt = 1; // ToDo: make better (issue #10)
                 end
 
                 // ToDo: hacky - cannot explain why it needs to be here... (issue #10)
                 if (clock_tick_pos & count_reg == 0) begin
                     data_write_nxt = i_data_write;
+                    need_next_byte_nxt <= 1'b1;
                 end
 
                 if (count_reg == 0 & transmission_finished_reg & clock_tick_neg) begin
@@ -294,8 +280,8 @@ module SPITransmitter #(
             address_reg <= 0;
             opcode_reg <= 0;
             data_write_reg <= 0;
-            num_bytes_reg <= 0;
-            next_word_reg <= 0;
+            need_next_byte_reg <= 0;
+            recieved_next_byte_reg <= 0;
         end else begin
             state_reg <= state_nxt;
             count_reg <= count_nxt;
@@ -304,8 +290,8 @@ module SPITransmitter #(
             address_reg <= address_nxt;
             opcode_reg <= opcode_nxt;
             data_write_reg <= data_write_nxt;
-            num_bytes_reg <= num_bytes_nxt;
-            next_word_reg <= next_word_nxt;
+            need_next_byte_reg <= need_next_byte_nxt;
+            recieved_next_byte_reg <= recieved_next_byte_nxt;
         end
     end
 
@@ -353,12 +339,12 @@ module SPITransmitter #(
 
             SEND_DATA: begin
                 if (i_config_quad_mode[QUAD_MODE_DATA]) begin
-                    data_out_nxt[0] = data_write_selected_byte_quad[{index_data_send_quad_mode, 2'd0}];
-                    data_out_nxt[1] = data_write_selected_byte_quad[{index_data_send_quad_mode, 2'd1}];
-                    data_out_nxt[2] = data_write_selected_byte_quad[{index_data_send_quad_mode, 2'd2}];
-                    data_out_nxt[3] = data_write_selected_byte_quad[{index_data_send_quad_mode, 2'd3}];
+                    data_out_nxt[0] = data_write_nxt[{index_data_send_quad_mode, 2'd0}];
+                    data_out_nxt[1] = data_write_nxt[{index_data_send_quad_mode, 2'd1}];
+                    data_out_nxt[2] = data_write_nxt[{index_data_send_quad_mode, 2'd2}];
+                    data_out_nxt[3] = data_write_nxt[{index_data_send_quad_mode, 2'd3}];
                 end else begin
-                    data_out_nxt[0] = data_write_selected_byte[index_data_send_single_mode];
+                    data_out_nxt[0] = data_write_nxt[index_data_send_single_mode];
                 end
             end
 
