@@ -5,7 +5,7 @@ import random
 import cocotb
 from cocotb_tools.runner import get_runner
 from cocotb.clock import Clock
-from cocotb.triggers import Timer, First, ClockCycles, RisingEdge
+from cocotb.triggers import Timer, First, ClockCycles, RisingEdge, FallingEdge
 from cocotbext.spi import SpiBus
 from cocotbext.qspi import QSpiBus, QSpiConfig
 from HelperClasses import SpiFlashMemory, QSpiFlashMemory
@@ -32,13 +32,11 @@ async def trigger_go(dut):
     dut.start_transmission.value = 0
 
 
-def get_test_array():
-    if NUM_BYTES == 4:
-        return [0x12, 0x34, 0x56, 0x78]
-    elif NUM_BYTES == 8:
-        return [0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC, 0xDE, 0xFF]
-    else:
-        raise NotImplementedError(f"Test Data can only be created for 32 or 64 bit data width!")
+def generate_test_array(num_bytes):
+    array = bytearray()
+    for _ in range(num_bytes):
+        array.append(random.randrange(256))
+    return array
 
 
 def get_test_number(test_array):
@@ -48,21 +46,33 @@ def get_test_number(test_array):
     return number
 
 
-async def handle_burst(dut, subordinate, test_data):
+async def handle_write_burst(dut, subordinate, test_data):
     subordinate.num_bytes = len(test_data)
-    dut.i_num_bytes.value = NUM_BYTES -1
-    num_loops = len(test_data) // NUM_BYTES
-    last_num_bytes = len(test_data) - (NUM_BYTES * num_loops)
+    num_loops = len(test_data)
 
-    for i in range(num_loops):
-        if last_num_bytes == 0 and (num_loops - i) == 0:
+    for i in range(1, num_loops):
+        if (num_loops - i) == 0:
             dut.i_last_word.value = True
-        await RisingEdge(dut.o_next_word)
+        await RisingEdge(dut.o_need_next_byte)
+        dut.i_data_write.value = test_data[i]
     await RisingEdge(dut.clk)
     dut.i_last_word.value = True
-    if last_num_bytes != 0:
-        dut.i_num_bytes.value = last_num_bytes -1
     await wait_for_idle(dut)
+
+
+async def handle_read_burst(dut, subordinate):
+    num_bytes = len(subordinate.data)
+    recieved_data = []
+
+    for i in range(num_bytes):
+        if (num_bytes - i -1) == 0:
+            dut.i_last_word.value = True
+        await FallingEdge(dut.o_recieved_next_byte)     # falling edge because we do not trigger on the signal but poll the value later in the design
+        recieved_data.append(dut.o_data_read.value.to_unsigned())
+    await RisingEdge(dut.clk)
+    dut.i_last_word.value = True
+    await wait_for_idle(dut)
+    return recieved_data
 
 
 @cocotb.test()
@@ -240,7 +250,7 @@ async def read_test_qspi(dut):
 
 
 @cocotb.test()
-@cocotb.parametrize(num_bytes=range(NUM_BYTES*2, NUM_BYTES*3+1))
+@cocotb.parametrize(num_bytes=range(2, 5))
 async def write_test_burst_qspi(dut, num_bytes):
     qspi_subordinate = QSpiFlashMemory(
         QSpiBus(
@@ -264,7 +274,7 @@ async def write_test_burst_qspi(dut, num_bytes):
             is_quad_mode=True,
         ),
     )
-    test_data = [0x81] * num_bytes
+    test_data = generate_test_array(num_bytes)
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
     await reset_dut(dut)
@@ -272,8 +282,7 @@ async def write_test_burst_qspi(dut, num_bytes):
     dut.i_opcode.value = 0x02
     dut.i_address.value = 0x800001
     dut.i_last_word.value = False
-    dut.i_num_bytes.value = NUM_BYTES -1
-    dut.i_data_write.value = get_test_number(test_data[0:NUM_BYTES])
+    dut.i_data_write.value = test_data[0]
 
     dut.i_config_read_data.value = False
     dut.i_config_write_data.value = True
@@ -282,17 +291,17 @@ async def write_test_burst_qspi(dut, num_bytes):
     dut.i_config_dummy_cycles.value = 0
 
     qspi_subordinate.write_enable = True
+    qspi_subordinate.num_bytes = num_bytes
     await trigger_go(dut)
-    await handle_burst(dut, qspi_subordinate, test_data)
+    await handle_write_burst(dut, qspi_subordinate, test_data)
 
     assert qspi_subordinate.opcode == 0x02
     assert qspi_subordinate.address == 0x800001
     assert len(qspi_subordinate.data) == len(test_data)
-    assert qspi_subordinate.data == test_data
-
+    assert list(qspi_subordinate.data) == list(test_data)
 
 @cocotb.test()
-@cocotb.parametrize(num_bytes=range(NUM_BYTES*2, NUM_BYTES*3+1))
+@cocotb.parametrize(num_bytes=range(2, 5))
 async def read_test_burst_qspi(dut, num_bytes):
     qspi_subordinate = QSpiFlashMemory(
         QSpiBus(
@@ -316,7 +325,7 @@ async def read_test_burst_qspi(dut, num_bytes):
             is_quad_mode=True,
         ),
     )
-    test_data = [0x81] * num_bytes
+    test_data = generate_test_array(num_bytes)
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
     await reset_dut(dut)
@@ -333,11 +342,13 @@ async def read_test_burst_qspi(dut, num_bytes):
 
     qspi_subordinate.write_enable = False
     qspi_subordinate.data = test_data
+    qspi_subordinate.num_bytes = num_bytes
     await trigger_go(dut)
-    await handle_burst(dut, qspi_subordinate, test_data)
+    recieved_data = await handle_read_burst(dut, qspi_subordinate)
 
     assert qspi_subordinate.opcode == 0x03
     assert qspi_subordinate.address == 0x800001
+    assert recieved_data == list(test_data)
 
 
 def test_spi_transmitter():

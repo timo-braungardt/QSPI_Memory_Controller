@@ -117,7 +117,7 @@ module SPITransmitter #(
                                   i_config_quad_mode[QUAD_MODE_ADDRESS] && state_reg == SEND_ADDRESS ||
                                   i_config_quad_mode[QUAD_MODE_DATA] && (state_reg == SEND_DATA));  // revieve is handled by the tristate, not necessary here
     assign o_need_next_byte = (~need_next_byte_reg & need_next_byte_nxt);
-    assign o_recieved_next_byte = (~recieved_next_byte_reg & recieved_next_byte_nxt);
+    assign o_recieved_next_byte = recieved_next_byte_reg;
 
     always @(*) begin : clock_handler_logic
         clk_bus_nxt = clk_bus_reg;
