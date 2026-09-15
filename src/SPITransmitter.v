@@ -116,7 +116,7 @@ module SPITransmitter #(
     assign is_output_quad_mode = (i_config_quad_mode[QUAD_MODE_OPCODE] && state_reg == SEND_OPCODE ||
                                   i_config_quad_mode[QUAD_MODE_ADDRESS] && state_reg == SEND_ADDRESS ||
                                   i_config_quad_mode[QUAD_MODE_DATA] && (state_reg == SEND_DATA));  // revieve is handled by the tristate, not necessary here
-    assign o_need_next_byte = (~need_next_byte_reg & need_next_byte_nxt);
+    assign o_need_next_byte = (need_next_byte_reg);
     assign o_recieved_next_byte = recieved_next_byte_reg;
 
     always @(*) begin : clock_handler_logic
@@ -157,9 +157,9 @@ module SPITransmitter #(
         opcode_nxt = opcode_reg;
         address_nxt = address_reg;
         data_write_nxt = data_write_reg;
-        transmission_finished_nxt = 0;
-        recieved_next_byte_nxt = 0;
-        need_next_byte_nxt = 0;
+        transmission_finished_nxt = transmission_finished_reg;
+        recieved_next_byte_nxt = 0; // set to 0 because it is a strobe signal, only high for one clock cycle
+        need_next_byte_nxt = 0;     // set to 0 because it is a strobe signal, only high for one clock cycle
 
         case (state_reg)
             IDLE: begin
@@ -168,12 +168,14 @@ module SPITransmitter #(
                     count_nxt = (i_config_quad_mode[QUAD_MODE_OPCODE]) ? OPCODE_LENGTH / BITS_PER_SHIFT - 1 : OPCODE_LENGTH - 1;
                     opcode_nxt = i_opcode;
                     address_nxt = i_address;
+                    
                     data_write_nxt = i_data_write;
+                    need_next_byte_nxt = 1'b1;
+                    transmission_finished_nxt = i_last_word;
                 end
             end
 
             SEND_OPCODE: begin
-                transmission_finished_nxt = i_last_word;
                 if (clock_tick_neg) begin
                     count_nxt = count_reg - 1;
                     if (count_reg == 0) begin
@@ -195,7 +197,6 @@ module SPITransmitter #(
             end
 
             SEND_ADDRESS: begin
-                transmission_finished_nxt = i_last_word;
                 if (clock_tick_neg) count_nxt = count_reg - 1;
 
                 if (count_reg == 0 && clock_tick_neg) begin
@@ -210,7 +211,6 @@ module SPITransmitter #(
             end
 
             DUMMY_CYCLES: begin
-                transmission_finished_nxt = i_last_word;
                 if (clock_tick_neg) count_nxt = count_reg - 1;
 
                 if (count_reg == 0 && clock_tick_neg) begin
@@ -243,20 +243,15 @@ module SPITransmitter #(
             end
 
             SEND_DATA: begin
-                transmission_finished_nxt = transmission_finished_reg;
                 if (clock_tick_neg) begin
                     if (count_reg == 0) begin
                         count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? BYTE / BITS_PER_SHIFT -1 : BYTE-1;
+                        data_write_nxt = i_data_write;
+                        need_next_byte_nxt = 1'b1;
                         transmission_finished_nxt = i_last_word;
                     end
                     else
                         count_nxt = count_reg - 1;
-                end
-
-                // ToDo: hacky - cannot explain why it needs to be here... (issue #10)
-                if (clock_tick_pos & count_reg == 0) begin
-                    data_write_nxt = i_data_write;
-                    need_next_byte_nxt = 1'b1;
                 end
 
                 if (count_reg == 0 & transmission_finished_reg & clock_tick_neg) begin

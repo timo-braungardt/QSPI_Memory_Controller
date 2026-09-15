@@ -51,10 +51,10 @@ async def handle_write_burst(dut, subordinate, test_data):
     num_loops = len(test_data)
 
     for i in range(1, num_loops):
-        if (num_loops - i) == 0:
-            dut.i_last_word.value = True
         await RisingEdge(dut.o_need_next_byte)
         dut.i_data_write.value = test_data[i]
+        if (num_loops - i -1) == 0:
+            dut.i_last_word.value = True
     await RisingEdge(dut.clk)
     dut.i_last_word.value = True
     await wait_for_idle(dut)
