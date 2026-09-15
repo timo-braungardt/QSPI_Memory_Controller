@@ -158,8 +158,8 @@ module SPITransmitter #(
         address_nxt = address_reg;
         data_write_nxt = data_write_reg;
         transmission_finished_nxt = 0;
-        recieved_next_byte_nxt <= 0;
-        need_next_byte_nxt <= 0;
+        recieved_next_byte_nxt = 0;
+        need_next_byte_nxt = 0;
 
         case (state_reg)
             IDLE: begin
@@ -184,10 +184,10 @@ module SPITransmitter #(
                             count_nxt = {27'd0, i_config_dummy_cycles - 5'd1};
                             state_nxt = DUMMY_CYCLES;
                         end else if (i_config_write_data) begin
-                            count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? 27'(BYTE / BITS_PER_SHIFT -1) : 27'(BYTE-1);
+                            count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? BYTE / BITS_PER_SHIFT -1 : BYTE-1;
                             state_nxt = SEND_DATA;
                         end else if (i_config_read_data) begin
-                            count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? 27'(BYTE / BITS_PER_SHIFT -1) : 27'(BYTE-1);
+                            count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? BYTE / BITS_PER_SHIFT -1 : BYTE-1;
                             state_nxt = RECEIVE_DATA;
                         end else state_nxt = FINISH;
                     end
@@ -199,7 +199,7 @@ module SPITransmitter #(
                 if (clock_tick_neg) count_nxt = count_reg - 1;
 
                 if (count_reg == 0 && clock_tick_neg) begin
-                    count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? 27'(BYTE / BITS_PER_SHIFT -1) : 27'(BYTE-1);
+                    count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? BYTE / BITS_PER_SHIFT -1 : BYTE-1;
                     if (i_config_dummy_cycles != 0) begin
                             count_nxt = {27'd0, i_config_dummy_cycles - 5'd1};
                         state_nxt = DUMMY_CYCLES;
@@ -214,7 +214,7 @@ module SPITransmitter #(
                 if (clock_tick_neg) count_nxt = count_reg - 1;
 
                 if (count_reg == 0 && clock_tick_neg) begin
-                    count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? 27'(BYTE / BITS_PER_SHIFT -1) : 27'(BYTE-1);
+                    count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? BYTE / BITS_PER_SHIFT -1 : BYTE-1;
                     if (i_config_write_data) state_nxt = SEND_DATA;
                     else if (i_config_read_data) state_nxt = RECEIVE_DATA;
                     else
@@ -230,8 +230,8 @@ module SPITransmitter #(
                 if (clock_tick_pos) begin
                     transmission_finished_nxt = i_last_word;
                     if (count_reg == 0) begin
-                        count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? 27'(BYTE / BITS_PER_SHIFT -1) : 27'(BYTE-1);
-                        recieved_next_byte_nxt <= 1;
+                        count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? BYTE / BITS_PER_SHIFT -1 : BYTE-1;
+                        recieved_next_byte_nxt = 1;
                     end
                     else
                         count_nxt = count_reg - 1;
@@ -246,7 +246,7 @@ module SPITransmitter #(
                 transmission_finished_nxt = transmission_finished_reg;
                 if (clock_tick_neg) begin
                     if (count_reg == 0) begin
-                        count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? 27'(BYTE / BITS_PER_SHIFT -1) : 27'(BYTE-1);
+                        count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? BYTE / BITS_PER_SHIFT -1 : BYTE-1;
                         transmission_finished_nxt = i_last_word;
                     end
                     else
@@ -256,7 +256,7 @@ module SPITransmitter #(
                 // ToDo: hacky - cannot explain why it needs to be here... (issue #10)
                 if (clock_tick_pos & count_reg == 0) begin
                     data_write_nxt = i_data_write;
-                    need_next_byte_nxt <= 1'b1;
+                    need_next_byte_nxt = 1'b1;
                 end
 
                 if (count_reg == 0 & transmission_finished_reg & clock_tick_neg) begin
