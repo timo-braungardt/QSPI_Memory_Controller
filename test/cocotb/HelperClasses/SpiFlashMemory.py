@@ -90,7 +90,7 @@ class SpiFlashMemory(SpiSlaveBase):
                 raise RuntimeError("Write enable not set!")
 
             data = int(await self._recieve_data(8))
-            self.log.info(f"   recieved %x for register address %x", data, address)
+            self.log.info(f"   recieved %x for register address %x", data, self.address)
             if data == 0b00000010:
                 self.quad_enable_bit = True
 

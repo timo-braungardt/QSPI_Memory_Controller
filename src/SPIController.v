@@ -164,6 +164,12 @@ module SPIController #(
                     address_nxt = ADDRESS_LENGTH'(i_address);
                     opcode_nxt = (i_write_enable | config_is_config_operation) ? OPCODE_WRITE_ENABLE : (config_quad_mode == 3'b000) ? OPCODE_READ : OPCODE_READ_114;
                     control_state_nxt = (i_write_enable | config_is_config_operation) ? WRITE_ENABLE : READ;
+
+                    // ToDo: maybe this can be made more elegant (issue #10)
+                    if (config_is_config_operation) begin
+                        address_nxt = ADDRESS_LENGTH'(CONFIG_ADDRESS);
+                        config_data_nxt = {24'd0, CONFIG_QSPI_ENABLE};
+                    end
                 end
             end
 
@@ -181,11 +187,6 @@ module SPIController #(
                 if (delay_fsm == DELAY_CYCLES) begin
                     control_state_nxt = (config_is_config_operation) ? WRITE_CONFIG : WRITE;
                     opcode_nxt = (config_is_config_operation) ? OPCODE_WRITE_ANY_REG : OPCODE_WRITE;
-
-                    if (config_is_config_operation) begin
-                        address_nxt = ADDRESS_LENGTH'(CONFIG_ADDRESS);
-                        config_data_nxt = {24'd0, CONFIG_QSPI_ENABLE};
-                    end
                 end
             end
 
@@ -223,6 +224,7 @@ module SPIController #(
             config_is_config_operation <= 1'b0;
             config_dummy_cycles <= 5'd0;
             data_in_muxed_reg <= 0;
+            config_data_reg <= 0;
         end
     end
 
@@ -230,8 +232,7 @@ module SPIController #(
     always @(*) begin : data_logic
         byte_index_nxt = byte_index_reg;
         byte_count_nxt = byte_count_reg;
-        //data_in_muxed_nxt = (i_write_enable | config_is_config_operation) ? config_data_reg : i_data_write;   ToDo: reenable the configuration (issue #13)
-        data_in_muxed_nxt = i_data_write;
+        data_in_muxed_nxt = (config_is_config_operation) ? config_data_reg : i_data_write;
         last_word_nxt = last_word_reg;
         read_next_word_nxt = 0;
         write_next_word_nxt = 0;
@@ -252,11 +253,11 @@ module SPIController #(
             last_word_nxt = 1;
 
         if (control_state_reg == IDLE) begin
-            byte_count_nxt = i_num_bytes;
+            byte_count_nxt = (config_is_config_operation)? 0 : i_num_bytes;
             byte_index_nxt = 0;
         end
 
-        if (control_state_reg == WRITE | control_state_reg == READ) begin
+        if (control_state_reg == WRITE | control_state_reg == READ | control_state_reg == WRITE_CONFIG) begin
             if (spi_write_next_byte | spi_read_next_byte) begin
                 if (byte_index_reg == DATA_BYTES-1 | byte_count_reg == 0) begin
                     byte_index_nxt = 0;
@@ -267,7 +268,6 @@ module SPIController #(
                     byte_index_nxt = byte_index_reg +1;
 
                 byte_count_nxt = byte_count_reg -1;
-                data_in_muxed_nxt = i_data_write;
             end
         end
     end
