@@ -3,14 +3,21 @@
 SPI Controller
 
 Module to handle the SPI-Flash interface via the SPI transmitter.
-For example a write to flash requires to send an write enable opcode before the memory transaciton can start.
+What it does:
+ - prepare the correct opcode for the transmitter based on axi read/write
+ - send a write enable before sending a write command
+ - multiplex configuration bits instead of data to the transmitter
+ - multiplex the bytes to the transmitter based on the burst length
+ - counts how many bytes are transfered
 */
 
 module SPIController #(
     // Warining: the SPI flash chips start with a 24 bit address width.
     // ToDo: the automatic upgrade to 32bit address width is not yet implemented (issue #16)
     parameter ADDRESS_LENGTH = 24,
-    parameter DATA_WIDTH = 32
+    parameter DATA_WIDTH = 32,
+    parameter DATA_BYTES = DATA_WIDTH / 8,
+    parameter MAX_NUM_BYTES = $clog2(256)
 ) (
     input clk,
     input reset_neg,
@@ -19,7 +26,7 @@ module SPIController #(
     input  [ADDRESS_LENGTH-1:0] i_address,
     input                       i_write_enable,
     input                       i_last_word,
-    input  [(DATA_WIDTH/8)-1:0] i_num_bytes,    // 0 based indexing
+    input  [ MAX_NUM_BYTES-1:0] i_num_bytes,    // 0 based indexing
     input  [    DATA_WIDTH-1:0] i_data_write,
     output [    DATA_WIDTH-1:0] o_data_read,
     output                      o_busy,
@@ -38,6 +45,7 @@ module SPIController #(
     // constants
     localparam integer OPCODE_LENGTH = 8;
     localparam DELAY_CYCLES = 10;
+    localparam BYTE = 8;
 
     // Chip specific hardcoded constants
     localparam CONFIG_ADDRESS = 32'h00800002;
@@ -50,11 +58,21 @@ module SPIController #(
     reg  [ADDRESS_LENGTH-1:0] address_reg;
     reg  [    DATA_WIDTH-1:0] config_data_nxt;
     reg  [    DATA_WIDTH-1:0] config_data_reg;
-    wire [    DATA_WIDTH-1:0] data_in_muxed;         
+    reg [    DATA_WIDTH-1:0]  data_in_muxed_nxt;
+    reg [    DATA_WIDTH-1:0]  data_in_muxed_reg;
+    reg [DATA_WIDTH-1:0] data_read_reg;
     wire                      start_transmission;
     wire                      transmitter_finish;
-    reg HACKY_NEXT_WORD_EDGE_DETECT; // ToDo: make a better logic (issue #10)
-    wire spi_next_word;
+    wire spi_write_next_byte;
+    wire spi_read_next_byte;
+    reg [31 : 0] byte_count_nxt;
+    reg [31 : 0] byte_count_reg;
+    reg [DATA_BYTES-1 : 0] byte_index_nxt;
+    reg [DATA_BYTES-1 : 0] byte_index_reg;
+    reg [BYTE-1:0] byte_pointer;
+    wire [BYTE-1:0] read_byte;
+    reg last_word_nxt;
+    reg last_word_reg;
 
     // Config stuff - ToDo: this should be later configured using a second port (issue #16)
     wire                      config_write_address;
@@ -85,13 +103,11 @@ module SPIController #(
     //localparam [OPCODE_LENGTH -1 : 0] OPCODE_LONG_ADDRESS_ENABLE = 8'hB7;
 
     assign o_reset = 1'b0;
-    assign data_in_muxed = (control_state_reg == WRITE_CONFIG) ? config_data_reg : i_data_write;
-    assign o_next_word = (HACKY_NEXT_WORD_EDGE_DETECT == 0 & spi_next_word == 1);
+    assign o_next_word = (spi_write_next_byte == 1);
 
 
     SPITransmitter #(
-        .ADDRESS_LENGTH(ADDRESS_LENGTH),
-        .DATA_WIDTH(DATA_WIDTH)
+        .ADDRESS_LENGTH(ADDRESS_LENGTH)
     ) SPI_Transmitter (
         .clk(clk),
         .reset_neg(reset_neg),
@@ -103,13 +119,13 @@ module SPIController #(
         .i_config_write_data(config_write_data),
         .i_config_write_address(config_write_address),
         .i_config_quad_mode(config_quad_mode),
-        .i_num_bytes(i_num_bytes),
-        .i_last_word(i_last_word),
+        .i_last_word(last_word_reg),
         .i_config_dummy_cycles(config_dummy_cycles),    // ToDo: depending on the opcode, we need dummy cycles or not (issue #10)
-        .i_data_write(data_in_muxed),
-        .o_data_read(o_data_read),
+        .i_data_write(byte_pointer),
+        .o_data_read(read_byte),
         .o_finish(transmitter_finish),
-        .o_next_word(spi_next_word),
+        .o_need_next_byte(spi_write_next_byte),
+        .o_recieved_next_byte(spi_read_next_byte),
 
         // SPI Pins
         .o_bus_clock(o_bus_clock),
@@ -126,6 +142,7 @@ module SPIController #(
     assign config_write_data = (control_state_reg == WRITE || control_state_reg == WRITE_CONFIG);
     assign config_write_address = (control_state_reg == READ || control_state_reg == WRITE || control_state_reg == WRITE_CONFIG);
     assign o_busy = (control_state_reg != IDLE);
+    assign o_data_read = data_read_reg;
 
 
     integer delay_fsm;  // ToDo: make this more beautifull - the state machine probably needs multiple delays. (issue #10)
@@ -186,7 +203,7 @@ module SPIController #(
         control_state_reg <= control_state_nxt;
         delay_fsm <= 0;
         config_data_reg <= config_data_nxt;
-        HACKY_NEXT_WORD_EDGE_DETECT <= spi_next_word;
+        data_in_muxed_reg <= data_in_muxed_nxt;
 
         if (control_state_reg == WAIT) begin
             delay_fsm <= delay_fsm + 1;
@@ -199,7 +216,57 @@ module SPIController #(
             config_quad_mode <= 3'b000;
             config_is_config_operation <= 1'b0;
             config_dummy_cycles <= 5'd0;
-            HACKY_NEXT_WORD_EDGE_DETECT <= 0;
+            data_in_muxed_reg <= 0;
+        end
+    end
+
+
+    always @(*) begin : data_logic
+        byte_index_nxt = byte_index_reg;
+        byte_count_nxt = byte_count_reg;
+        //data_in_muxed_nxt = (i_write_enable | config_is_config_operation) ? config_data_reg : i_data_write;   ToDo: reenable the configuration (issue #13)
+        data_in_muxed_nxt = i_data_write;
+        last_word_nxt = last_word_reg;
+
+        // select which byte is transfered to the transmitter
+        byte_pointer = data_in_muxed_reg[byte_index_reg*8 +: 8];
+
+        // to get the first data byte
+        if (go & byte_count_reg == 0)
+            last_word_nxt = i_last_word;
+
+        if (control_state_reg != IDLE & byte_count_reg == 0)
+            last_word_nxt = 1;
+
+        if (control_state_reg == IDLE)
+            byte_count_nxt = i_num_bytes;
+
+        if (control_state_reg == WRITE | control_state_reg == READ) begin
+            if (spi_write_next_byte | spi_read_next_byte) begin
+                byte_index_nxt = byte_index_reg +1;
+                byte_count_nxt = byte_count_reg -1;
+                data_in_muxed_nxt = i_data_write;
+            end
+        end
+    end
+
+
+    always @(posedge clk) begin : data_register
+        data_in_muxed_reg <= data_in_muxed_nxt;
+        byte_count_reg <= byte_count_nxt;
+        byte_index_reg <= byte_index_nxt;
+        last_word_reg <= last_word_nxt;
+
+        if (spi_read_next_byte) begin
+            data_read_reg[byte_index_reg*8 +: 8] <= read_byte;
+        end
+
+        if (!reset_neg) begin
+            data_in_muxed_reg <= 0;
+            byte_count_reg <= 0;
+            byte_index_reg <= 0;
+            last_word_reg <= 0;
+            data_read_reg <= 0;
         end
     end
 
