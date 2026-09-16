@@ -48,11 +48,17 @@ async def handle_write_burst(dut, subordinate, test_data):
         timeout = Timer(8, unit="us")
         trigger = await First(RisingEdge(dut.o_next_word), timeout)
         assert trigger != timeout
+        if i == num_loops-2:
+            dut.i_last_word.value = True
+
         dut.i_data_write.value = test_data.get_test_number_word(i * DATA_WIDTH_BYTES)
         
-    await RisingEdge(dut.clk)
-    dut.i_last_word.value = True
-    dut.i_num_bytes.value = last_num_bytes -1
+    if last_num_bytes != 0:
+        timeout = Timer(100, unit="us")
+        trigger = await First(RisingEdge(dut.o_next_word), timeout)
+        assert trigger != timeout
+        dut.i_data_write.value = test_data.get_test_number_word(num_loops*DATA_WIDTH_BYTES, last_num_bytes)
+
     await wait_for_idle(dut)
 
 
