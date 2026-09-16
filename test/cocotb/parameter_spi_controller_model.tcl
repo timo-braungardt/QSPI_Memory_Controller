@@ -5,7 +5,7 @@ add wave sim:/SPIController_wrapper/chip_select_neg;
 add wave sim:/SPIController_wrapper/bus_clock;
 add wave sim:/SPIController_wrapper/Controller/opcode_reg;
 add wave sim:/SPIController_wrapper/Controller/address_reg;
-add wave sim:/SPIController_wrapper/Controller/data_in_reg;
+add wave sim:/SPIController_wrapper/Controller/data_in_muxed_reg;
 add wave sim:/SPIController_wrapper/Controller/o_data_read;
 add wave sim:/SPIController_wrapper/Controller/control_state_reg;
 add wave sim:/SPIController_wrapper/Controller/SPI_Transmitter/state_reg;
