@@ -48,16 +48,18 @@ async def handle_write_burst(dut, subordinate, test_data):
         timeout = Timer(8, unit="us")
         trigger = await First(RisingEdge(dut.o_next_word), timeout)
         assert trigger != timeout
-        if i == num_loops-2:
+        if i == num_loops - 2:
             dut.i_last_word.value = True
 
         dut.i_data_write.value = test_data.get_test_number_word(i * DATA_WIDTH_BYTES)
-        
+
     if last_num_bytes != 0:
         timeout = Timer(100, unit="us")
         trigger = await First(RisingEdge(dut.o_next_word), timeout)
         assert trigger != timeout
-        dut.i_data_write.value = test_data.get_test_number_word(num_loops*DATA_WIDTH_BYTES, last_num_bytes)
+        dut.i_data_write.value = test_data.get_test_number_word(
+            num_loops * DATA_WIDTH_BYTES, last_num_bytes
+        )
 
     await wait_for_idle(dut)
 
@@ -72,17 +74,19 @@ async def handle_read_burst(dut, subordinate, test_data):
         timeout = Timer(100, unit="us")
         trigger = await First(FallingEdge(dut.o_recieved_next_word), timeout)
         assert trigger != timeout
-        if i == num_loops-2:
+        if i == num_loops - 2:
             dut.i_last_word.value = True
 
-        assert dut.o_data_read.value == test_data.get_test_number_word(i*DATA_WIDTH_BYTES)
-        dut.data_read_reg.value = 0     # ToDo: the other bytes have to be masked (issue #18)
+        assert dut.o_data_read.value == test_data.get_test_number_word(i * DATA_WIDTH_BYTES)
+        dut.data_read_reg.value = 0  # ToDo: the other bytes have to be masked (issue #18)
 
     if last_num_bytes != 0:
         timeout = Timer(100, unit="us")
         trigger = await First(FallingEdge(dut.o_recieved_next_word), timeout)
         assert trigger != timeout
-        assert dut.o_data_read.value == test_data.get_test_number_word(num_loops*DATA_WIDTH_BYTES, last_num_bytes)
+        assert dut.o_data_read.value == test_data.get_test_number_word(
+            num_loops * DATA_WIDTH_BYTES, last_num_bytes
+        )
 
     await wait_for_idle(dut)
 
@@ -123,7 +127,7 @@ async def spi_transmission_test(dut):
 
 
 @cocotb.test()
-@cocotb.parametrize(num_bytes=range(1, DATA_WIDTH_BYTES +1))
+@cocotb.parametrize(num_bytes=range(1, DATA_WIDTH_BYTES + 1))
 async def spi_read_test(dut, num_bytes):
     spi_subordinate = SpiFlashMemory(
         SpiBus(
@@ -145,7 +149,7 @@ async def spi_read_test(dut, num_bytes):
     dut.i_address.value = 20
     dut.i_write_enable.value = False
     dut.i_last_word.value = True
-    dut.i_num_bytes.value = num_bytes -1
+    dut.i_num_bytes.value = num_bytes - 1
 
     spi_subordinate.num_bytes = num_bytes
     spi_subordinate.data = test_data.get_test_array()
@@ -162,7 +166,7 @@ async def spi_read_test(dut, num_bytes):
 
 
 @cocotb.test()
-@cocotb.parametrize(num_bytes=range(1, DATA_WIDTH_BYTES +1))
+@cocotb.parametrize(num_bytes=range(1, DATA_WIDTH_BYTES + 1))
 async def spi_write_test(dut, num_bytes):
     spi_subordinate = SpiFlashMemory(
         SpiBus(
@@ -185,7 +189,7 @@ async def spi_write_test(dut, num_bytes):
     dut.i_data_write.value = test_data.get_test_number()
     dut.i_write_enable.value = True
     dut.i_last_word.value = True
-    dut.i_num_bytes.value = num_bytes -1
+    dut.i_num_bytes.value = num_bytes - 1
 
     spi_subordinate.num_bytes = num_bytes
 
@@ -228,7 +232,7 @@ async def spi_endianness_test(dut, num_bytes):
     dut.i_data_write.value = test_data.get_test_number()
     dut.i_write_enable.value = True
     dut.i_last_word.value = True
-    dut.i_num_bytes.value = num_bytes -1
+    dut.i_num_bytes.value = num_bytes - 1
 
     spi_subordinate.num_bytes = num_bytes
 
@@ -260,17 +264,17 @@ async def spi_endianness_test(dut, num_bytes):
 
 
 @cocotb.test()
-@cocotb.parametrize(num_bytes=range(DATA_WIDTH_BYTES, DATA_WIDTH_BYTES*2))
+@cocotb.parametrize(num_bytes=range(DATA_WIDTH_BYTES, DATA_WIDTH_BYTES * 2))
 async def write_test_burst_qspi(dut, num_bytes):
     spi_subordinate = SpiFlashMemory(
-            SpiBus(
-                entity=dut,
-                sclk_name="o_bus_clock",
-                mosi_name="io_data0_manager_serial_out",
-                miso_name="io_data1_manager_serial_in",
-                cs_name="o_chip_select_neg",
-            )
+        SpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_name="io_data0_manager_serial_out",
+            miso_name="io_data1_manager_serial_in",
+            cs_name="o_chip_select_neg",
         )
+    )
     test_data = DummyData(num_bytes, DATA_WIDTH_BYTES)
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
@@ -279,7 +283,7 @@ async def write_test_burst_qspi(dut, num_bytes):
     dut.i_address.value = 0x800001
     dut.i_write_enable.value = True
     dut.i_last_word.value = False
-    dut.i_num_bytes.value = num_bytes -1
+    dut.i_num_bytes.value = num_bytes - 1
     dut.i_data_write.value = test_data.get_test_number_word(0)
 
     dut.config_quad_mode.value = False
@@ -302,17 +306,17 @@ async def write_test_burst_qspi(dut, num_bytes):
 
 
 @cocotb.test()
-@cocotb.parametrize(num_bytes=range(DATA_WIDTH_BYTES, DATA_WIDTH_BYTES*2))
+@cocotb.parametrize(num_bytes=range(DATA_WIDTH_BYTES, DATA_WIDTH_BYTES * 2))
 async def read_test_burst_qspi(dut, num_bytes):
     spi_subordinate = SpiFlashMemory(
-            SpiBus(
-                entity=dut,
-                sclk_name="o_bus_clock",
-                mosi_name="io_data0_manager_serial_out",
-                miso_name="io_data1_manager_serial_in",
-                cs_name="o_chip_select_neg",
-            )
+        SpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_name="io_data0_manager_serial_out",
+            miso_name="io_data1_manager_serial_in",
+            cs_name="o_chip_select_neg",
         )
+    )
     test_data = DummyData(num_bytes, DATA_WIDTH_BYTES)
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
@@ -321,7 +325,7 @@ async def read_test_burst_qspi(dut, num_bytes):
     dut.i_address.value = 0x800001
     dut.i_write_enable.value = False
     dut.i_last_word.value = False
-    dut.i_num_bytes.value = num_bytes -1
+    dut.i_num_bytes.value = num_bytes - 1
 
     dut.config_quad_mode.value = False
 
@@ -430,7 +434,13 @@ def test_spi_controller(data_width):
         waves=True,
         parameters=parameters,
     )
-    runner.test(hdl_toplevel="SPIController", test_module="test_spi_controller", parameters=parameters, waves=True, extra_env=extra_env)
+    runner.test(
+        hdl_toplevel="SPIController",
+        test_module="test_spi_controller",
+        parameters=parameters,
+        waves=True,
+        extra_env=extra_env,
+    )
 
 
 if __name__ == "__main__":

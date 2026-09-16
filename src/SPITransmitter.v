@@ -56,39 +56,39 @@ module SPITransmitter #(
     localparam QUAD_MODE_DATA = 0;
 
     // Pin tristate stuff
-    wire                      en_bus_clock;
-    wire                      en_data_out;
-    reg     [       BYTE-1:0] data_out_reg;
-    reg     [       BYTE-1:0] data_out_nxt;
-    reg     [       BYTE-1:0] data_in;
+    wire                         en_bus_clock;
+    wire                         en_data_out;
+    reg     [          BYTE-1:0] data_out_reg;
+    reg     [          BYTE-1:0] data_out_nxt;
+    reg     [          BYTE-1:0] data_in;
 
     // Bus Clock
-    reg                       clk_bus_nxt;
-    integer                   clock_count_nxt;
-            // this FSM cannot interrupt a burstock_count_nxt;
+    reg                          clk_bus_nxt;
+    integer                      clock_count_nxt;
+    // this FSM cannot interrupt a burstock_count_nxt;
 
-    reg                       clk_bus_reg;
-    integer                   clock_count_reg;
+    reg                          clk_bus_reg;
+    integer                      clock_count_reg;
 
     // Logic stuff
-    wire                      is_output_quad_mode;
-    integer                   count_reg;
-    integer                   count_nxt;
-    wire                      clock_tick_pos;
-    wire                      clock_tick_neg;
-    reg                       transmission_finished_nxt;
-    reg                       transmission_finished_reg;
-    reg  [ OPCODE_LENGTH-1:0] opcode_nxt;
-    reg  [ OPCODE_LENGTH-1:0] opcode_reg;
-    reg  [ADDRESS_LENGTH-1:0] address_nxt;
-    reg  [ADDRESS_LENGTH-1:0] address_reg;
-    reg  [          BYTE-1:0] data_write_nxt;
-    reg  [          BYTE-1:0] data_write_reg;
-    reg  [          BYTE-1:0] data_read_reg;
-    reg                       need_next_byte_nxt;
-    reg                       need_next_byte_reg;
-    reg                       recieved_next_byte_nxt;
-    reg                       recieved_next_byte_reg;
+    wire                         is_output_quad_mode;
+    integer                      count_reg;
+    integer                      count_nxt;
+    wire                         clock_tick_pos;
+    wire                         clock_tick_neg;
+    reg                          transmission_finished_nxt;
+    reg                          transmission_finished_reg;
+    reg     [ OPCODE_LENGTH-1:0] opcode_nxt;
+    reg     [ OPCODE_LENGTH-1:0] opcode_reg;
+    reg     [ADDRESS_LENGTH-1:0] address_nxt;
+    reg     [ADDRESS_LENGTH-1:0] address_reg;
+    reg     [          BYTE-1:0] data_write_nxt;
+    reg     [          BYTE-1:0] data_write_reg;
+    reg     [          BYTE-1:0] data_read_reg;
+    reg                          need_next_byte_nxt;
+    reg                          need_next_byte_reg;
+    reg                          recieved_next_byte_nxt;
+    reg                          recieved_next_byte_reg;
 
     assign o_data_read = data_read_reg;
 
@@ -104,15 +104,15 @@ module SPITransmitter #(
     localparam [INDEX_STATES_MSB:0] RECEIVE_DATA = 5;
     localparam [INDEX_STATES_MSB:0] FINISH = 6;
 
-    reg [INDEX_STATES_MSB:0]  state_reg;
-    reg [INDEX_STATES_MSB:0]  state_nxt;
+    reg [INDEX_STATES_MSB:0] state_reg;
+    reg [INDEX_STATES_MSB:0] state_nxt;
 
-    assign en_bus_clock   = (state_reg != IDLE);
+    assign en_bus_clock = (state_reg != IDLE);
     assign clock_tick_pos = (clock_count_reg == 0 && ~clk_bus_reg);
     assign clock_tick_neg = (clock_count_reg == 0 && clk_bus_reg);
-    assign en_data_out    = (state_reg != IDLE && state_reg != RECEIVE_DATA && state_reg != FINISH);
+    assign en_data_out = (state_reg != IDLE && state_reg != RECEIVE_DATA && state_reg != FINISH);
 
-    assign o_bus_clock    = (en_bus_clock) ? clk_bus_reg : 1'b0;
+    assign o_bus_clock = (en_bus_clock) ? clk_bus_reg : 1'b0;
     assign is_output_quad_mode = (i_config_quad_mode[QUAD_MODE_OPCODE] && state_reg == SEND_OPCODE ||
                                   i_config_quad_mode[QUAD_MODE_ADDRESS] && state_reg == SEND_ADDRESS ||
                                   i_config_quad_mode[QUAD_MODE_DATA] && (state_reg == SEND_DATA));  // revieve is handled by the tristate, not necessary here
@@ -168,12 +168,12 @@ module SPITransmitter #(
                     count_nxt = (i_config_quad_mode[QUAD_MODE_OPCODE]) ? OPCODE_LENGTH / BITS_PER_SHIFT - 1 : OPCODE_LENGTH - 1;
                     opcode_nxt = i_opcode;
                     address_nxt = i_address;
-                    
+
                     if (~i_config_read_data) begin
                         data_write_nxt = i_data_write;
                         need_next_byte_nxt = 1'b1;
                     end
-                    
+
                     transmission_finished_nxt = i_last_word;
                 end
             end
@@ -205,7 +205,7 @@ module SPITransmitter #(
                 if (count_reg == 0 && clock_tick_neg) begin
                     count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? BYTE / BITS_PER_SHIFT -1 : BYTE-1;
                     if (i_config_dummy_cycles != 0) begin
-                            count_nxt = {27'd0, i_config_dummy_cycles - 5'd1};
+                        count_nxt = {27'd0, i_config_dummy_cycles - 5'd1};
                         state_nxt = DUMMY_CYCLES;
                     end else if (i_config_write_data) state_nxt = SEND_DATA;
                     else if (i_config_read_data) state_nxt = RECEIVE_DATA;
@@ -235,9 +235,7 @@ module SPITransmitter #(
                     if (count_reg == 0) begin
                         count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? BYTE / BITS_PER_SHIFT -1 : BYTE-1;
                         recieved_next_byte_nxt = 1;
-                    end
-                    else
-                        count_nxt = count_reg - 1;
+                    end else count_nxt = count_reg - 1;
                 end
 
                 if (count_reg == 0 & transmission_finished_reg & clock_tick_pos) begin
@@ -252,9 +250,7 @@ module SPITransmitter #(
                         data_write_nxt = i_data_write;
                         need_next_byte_nxt = 1'b1;
                         transmission_finished_nxt = i_last_word;
-                    end
-                    else
-                        count_nxt = count_reg - 1;
+                    end else count_nxt = count_reg - 1;
                 end
 
                 if (count_reg == 0 & transmission_finished_reg & clock_tick_neg) begin
@@ -294,7 +290,7 @@ module SPITransmitter #(
     end
 
 
-    assign io_data0_manager_serial_out  = (~en_data_out) ? 1'bZ : data_out_reg[0];
+    assign io_data0_manager_serial_out = (~en_data_out) ? 1'bZ : data_out_reg[0];
     assign io_data1_manager_serial_in = (~en_data_out) ? 1'bZ : (is_output_quad_mode) ? data_out_reg[1] : 1'bZ;
     assign io_data2 = (~en_data_out) ? 1'bZ : (is_output_quad_mode) ? data_out_reg[2] : 1'bZ;
     assign io_data3 = (~en_data_out) ? 1'bZ : (is_output_quad_mode) ? data_out_reg[3] : 1'bZ;
@@ -346,17 +342,17 @@ module SPITransmitter #(
                 end
             end
 
-            default:;
+            default: ;
         endcase
     end
 
 
-    wire [DATA_SEL_MSB_QUAD:0] index_data_recieve_quad_mode = count_reg[DATA_SEL_MSB_QUAD:0];
+    wire [  DATA_SEL_MSB_QUAD:0] index_data_recieve_quad_mode = count_reg[DATA_SEL_MSB_QUAD:0];
     wire [DATA_SEL_MSB_SINGLE:0] index_data_recieve_single_mode = count_reg[DATA_SEL_MSB_SINGLE:0];
 
     always @(posedge clk) begin : data_register
         if (!reset_neg) begin
-            data_out_reg <= 0;
+            data_out_reg  <= 0;
             data_read_reg <= 0;
         end else begin
             data_out_reg <= data_out_nxt;

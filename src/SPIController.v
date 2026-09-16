@@ -26,7 +26,7 @@ module SPIController #(
     input  [ADDRESS_LENGTH-1:0] i_address,
     input                       i_write_enable,
     input                       i_last_word,
-    input  [ MAX_NUM_BYTES-1:0] i_num_bytes,    // 0 based indexing
+    input  [ MAX_NUM_BYTES-1:0] i_num_bytes,          // 0 based indexing
     input  [    DATA_WIDTH-1:0] i_data_write,
     output [    DATA_WIDTH-1:0] o_data_read,
     output                      o_busy,
@@ -54,39 +54,39 @@ module SPIController #(
     localparam CONFIG_QSPI_ENABLE = 8'b00000010;
 
     // Logic stuff
-    reg  [ OPCODE_LENGTH-1:0] opcode_nxt;
-    reg  [ OPCODE_LENGTH-1:0] opcode_reg;
-    reg  [ADDRESS_LENGTH-1:0] address_nxt;
-    reg  [ADDRESS_LENGTH-1:0] address_reg;
-    reg  [    DATA_WIDTH-1:0] config_data_nxt;
-    reg  [    DATA_WIDTH-1:0] config_data_reg;
-    reg [    DATA_WIDTH-1:0]  data_in_muxed_nxt;
-    reg [    DATA_WIDTH-1:0]  data_in_muxed_reg;
-    reg [DATA_WIDTH-1:0] data_read_reg;
-    wire                      start_transmission;
-    wire                      transmitter_finish;
-    wire spi_write_next_byte;
-    wire spi_read_next_byte;
-    reg write_next_word_nxt;
-    reg write_next_word_reg;
-    reg read_next_word_nxt;
-    reg read_next_word_reg;
-    reg [ARBITRARY_WIDTH-1 : 0] byte_count_nxt;
-    reg [ARBITRARY_WIDTH-1 : 0] byte_count_reg;
-    reg [DATA_BYTES-1 : 0] byte_index_nxt;
-    reg [DATA_BYTES-1 : 0] byte_index_reg;
-    reg [BYTE-1:0] byte_pointer;
-    wire [BYTE-1:0] read_byte;
-    reg last_word_nxt;
-    reg last_word_reg;
+    reg  [    OPCODE_LENGTH-1:0] opcode_nxt;
+    reg  [    OPCODE_LENGTH-1:0] opcode_reg;
+    reg  [   ADDRESS_LENGTH-1:0] address_nxt;
+    reg  [   ADDRESS_LENGTH-1:0] address_reg;
+    reg  [       DATA_WIDTH-1:0] config_data_nxt;
+    reg  [       DATA_WIDTH-1:0] config_data_reg;
+    reg  [       DATA_WIDTH-1:0] data_in_muxed_nxt;
+    reg  [       DATA_WIDTH-1:0] data_in_muxed_reg;
+    reg  [       DATA_WIDTH-1:0] data_read_reg;
+    wire                         start_transmission;
+    wire                         transmitter_finish;
+    wire                         spi_write_next_byte;
+    wire                         spi_read_next_byte;
+    reg                          write_next_word_nxt;
+    reg                          write_next_word_reg;
+    reg                          read_next_word_nxt;
+    reg                          read_next_word_reg;
+    reg  [ARBITRARY_WIDTH-1 : 0] byte_count_nxt;
+    reg  [ARBITRARY_WIDTH-1 : 0] byte_count_reg;
+    reg  [     DATA_BYTES-1 : 0] byte_index_nxt;
+    reg  [     DATA_BYTES-1 : 0] byte_index_reg;
+    reg  [             BYTE-1:0] byte_pointer;
+    wire [             BYTE-1:0] read_byte;
+    reg                          last_word_nxt;
+    reg                          last_word_reg;
 
     // Config stuff - ToDo: this should be later configured using a second port (issue #16)
-    wire                      config_write_address;
-    wire                      config_write_data;
-    wire                      config_read_data;
-    reg  [               2:0] config_quad_mode;
-    reg  [               4:0] config_dummy_cycles;
-    reg                       config_is_config_operation;
+    wire                         config_write_address;
+    wire                         config_write_data;
+    wire                         config_read_data;
+    reg  [                  2:0] config_quad_mode;
+    reg  [                  4:0] config_dummy_cycles;
+    reg                          config_is_config_operation;
 
     // states control FSM
     localparam NUM_STATES = 6;
@@ -239,19 +239,16 @@ module SPIController #(
         write_next_word_nxt = 0;
 
         // select which byte is transfered to the transmitter
-        byte_pointer = data_in_muxed_reg[byte_index_reg*8 +: 8];
+        byte_pointer = data_in_muxed_reg[byte_index_reg*8+:8];
 
         // to get the first data byte
         if (control_state_reg == IDLE) begin
-            if (go & byte_count_reg == 0)
-                last_word_nxt = i_last_word;
-            else
-                last_word_nxt = 0;
+            if (go & byte_count_reg == 0) last_word_nxt = i_last_word;
+            else last_word_nxt = 0;
 
         end
 
-        if (control_state_reg != IDLE & byte_count_reg == 0)
-            last_word_nxt = 1;
+        if (control_state_reg != IDLE & byte_count_reg == 0) last_word_nxt = 1;
 
         if (control_state_reg == IDLE) begin
             byte_count_nxt = (config_is_config_operation)? 0 : {{(ARBITRARY_WIDTH-MAX_NUM_BYTES){1'b0}}, i_num_bytes};
@@ -260,15 +257,13 @@ module SPIController #(
 
         if (control_state_reg == WRITE | control_state_reg == READ | control_state_reg == WRITE_CONFIG) begin
             if (spi_write_next_byte | spi_read_next_byte) begin
-                if (byte_index_reg == DATA_BYTES'(DATA_BYTES-1) | byte_count_reg == 0) begin
+                if (byte_index_reg == DATA_BYTES'(DATA_BYTES - 1) | byte_count_reg == 0) begin
                     byte_index_nxt = 0;
                     read_next_word_nxt = 1;
                     write_next_word_nxt = 1;
-                end
-                else
-                    byte_index_nxt = byte_index_reg +1;
+                end else byte_index_nxt = byte_index_reg + 1;
 
-                byte_count_nxt = byte_count_reg -1;
+                byte_count_nxt = byte_count_reg - 1;
             end
         end
     end
@@ -285,7 +280,7 @@ module SPIController #(
         write_next_word_reg <= write_next_word_nxt;
 
         if (spi_read_next_byte) begin
-            data_read_reg[byte_index_reg*8 +: 8] <= read_byte;
+            data_read_reg[byte_index_reg*8+:8] <= read_byte;
         end
 
         if (!reset_neg) begin
