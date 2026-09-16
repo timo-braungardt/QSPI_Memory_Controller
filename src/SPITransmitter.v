@@ -6,7 +6,8 @@ Module to convert a data word to the SPI protocoll.
 */
 
 module SPITransmitter #(
-    parameter ADDRESS_LENGTH = 24
+    parameter ADDRESS_LENGTH = 24,
+    parameter BYTE = 8
 ) (
     input clk,
     input reset_neg,
@@ -39,7 +40,6 @@ module SPITransmitter #(
     localparam integer TIMER_COUNT = 2;     // ToDo: make it register based so its not baked into hardware (issue #16)
     localparam integer OPCODE_LENGTH = 8;
     localparam BITS_PER_SHIFT = 4;
-    localparam BYTE = 8;
     localparam MAX_INDEX_BYTES = $clog2(BYTE) - 1;
     localparam DATA_SEL_MSB_QUAD = $clog2(BYTE / BITS_PER_SHIFT) - 1;
     localparam DATA_SEL_MSB_SINGLE = $clog2(BYTE) - 1;

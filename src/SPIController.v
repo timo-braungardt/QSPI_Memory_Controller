@@ -47,6 +47,7 @@ module SPIController #(
     localparam integer OPCODE_LENGTH = 8;
     localparam DELAY_CYCLES = 10;
     localparam BYTE = 8;
+    localparam ARBITRARY_WIDTH = 32;
 
     // Chip specific hardcoded constants
     localparam CONFIG_ADDRESS = 32'h00800002;
@@ -70,8 +71,8 @@ module SPIController #(
     reg write_next_word_reg;
     reg read_next_word_nxt;
     reg read_next_word_reg;
-    reg [31 : 0] byte_count_nxt;
-    reg [31 : 0] byte_count_reg;
+    reg [ARBITRARY_WIDTH-1 : 0] byte_count_nxt;
+    reg [ARBITRARY_WIDTH-1 : 0] byte_count_reg;
     reg [DATA_BYTES-1 : 0] byte_index_nxt;
     reg [DATA_BYTES-1 : 0] byte_index_reg;
     reg [BYTE-1:0] byte_pointer;
@@ -253,13 +254,13 @@ module SPIController #(
             last_word_nxt = 1;
 
         if (control_state_reg == IDLE) begin
-            byte_count_nxt = (config_is_config_operation)? 0 : i_num_bytes;
+            byte_count_nxt = (config_is_config_operation)? 0 : {{(ARBITRARY_WIDTH-MAX_NUM_BYTES){1'b0}}, i_num_bytes};
             byte_index_nxt = 0;
         end
 
         if (control_state_reg == WRITE | control_state_reg == READ | control_state_reg == WRITE_CONFIG) begin
             if (spi_write_next_byte | spi_read_next_byte) begin
-                if (byte_index_reg == DATA_BYTES-1 | byte_count_reg == 0) begin
+                if (byte_index_reg == DATA_BYTES'(DATA_BYTES-1) | byte_count_reg == 0) begin
                     byte_index_nxt = 0;
                     read_next_word_nxt = 1;
                     write_next_word_nxt = 1;
