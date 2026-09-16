@@ -31,6 +31,7 @@ module SPIController #(
     output [    DATA_WIDTH-1:0] o_data_read,
     output                      o_busy,
     output                      o_next_word,
+    output                      o_recieved_next_word,
 
     // SPI Pins
     output o_bus_clock,
@@ -65,6 +66,8 @@ module SPIController #(
     wire                      transmitter_finish;
     wire spi_write_next_byte;
     wire spi_read_next_byte;
+    reg read_next_word_nxt;
+    reg read_next_word_reg;
     reg [31 : 0] byte_count_nxt;
     reg [31 : 0] byte_count_reg;
     reg [DATA_BYTES-1 : 0] byte_index_nxt;
@@ -104,6 +107,7 @@ module SPIController #(
 
     assign o_reset = 1'b0;
     assign o_next_word = (spi_write_next_byte == 1);
+    assign o_recieved_next_word = read_next_word_reg;
 
 
     SPITransmitter #(
@@ -227,23 +231,37 @@ module SPIController #(
         //data_in_muxed_nxt = (i_write_enable | config_is_config_operation) ? config_data_reg : i_data_write;   ToDo: reenable the configuration (issue #13)
         data_in_muxed_nxt = i_data_write;
         last_word_nxt = last_word_reg;
+        read_next_word_nxt = 0;
 
         // select which byte is transfered to the transmitter
         byte_pointer = data_in_muxed_reg[byte_index_reg*8 +: 8];
 
         // to get the first data byte
-        if (go & byte_count_reg == 0)
-            last_word_nxt = i_last_word;
+        if (control_state_reg == IDLE) begin
+            if (go & byte_count_reg == 0)
+                last_word_nxt = i_last_word;
+            else
+                last_word_nxt = 0;
+
+        end
 
         if (control_state_reg != IDLE & byte_count_reg == 0)
             last_word_nxt = 1;
 
-        if (control_state_reg == IDLE)
+        if (control_state_reg == IDLE) begin
             byte_count_nxt = i_num_bytes;
+            byte_index_nxt = 0;
+        end
 
         if (control_state_reg == WRITE | control_state_reg == READ) begin
             if (spi_write_next_byte | spi_read_next_byte) begin
-                byte_index_nxt = byte_index_reg +1;
+                if (byte_index_reg == DATA_BYTES-1) begin
+                    byte_index_nxt = 0;
+                    read_next_word_nxt = 1;
+                end
+                else
+                    byte_index_nxt = byte_index_reg +1;
+
                 byte_count_nxt = byte_count_reg -1;
                 data_in_muxed_nxt = i_data_write;
             end
@@ -256,6 +274,7 @@ module SPIController #(
         byte_count_reg <= byte_count_nxt;
         byte_index_reg <= byte_index_nxt;
         last_word_reg <= last_word_nxt;
+        read_next_word_reg <= read_next_word_nxt;
 
         if (spi_read_next_byte) begin
             data_read_reg[byte_index_reg*8 +: 8] <= read_byte;
@@ -267,6 +286,7 @@ module SPIController #(
             byte_index_reg <= 0;
             last_word_reg <= 0;
             data_read_reg <= 0;
+            read_next_word_reg <= 0;
         end
     end
 

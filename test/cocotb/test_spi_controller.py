@@ -24,7 +24,9 @@ async def reset_dut(dut):
 
 async def wait_for_idle(dut):
     if dut.o_chip_select_neg.value == False:
-        await dut.o_chip_select_neg.value_change
+        timeout = Timer(100, unit="us")
+        trigger = await First(dut.o_chip_select_neg.value_change, timeout)
+        assert trigger != timeout
 
 
 async def trigger_go(dut):
@@ -37,15 +39,38 @@ async def trigger_go(dut):
 
 
 async def handle_burst(dut, subordinate, test_data):
-    subordinate.num_bytes = len(test_data)
-    dut.i_num_bytes.value = NUM_BYTES -1
-    num_loops = len(test_data) // NUM_BYTES
-    last_num_bytes = len(test_data) - (NUM_BYTES * num_loops)
+    subordinate.num_bytes = test_data.num_bytes
+    dut.i_num_bytes.value = test_data.num_bytes
+    num_loops = test_data.num_bytes // DATA_WIDTH_BYTES
+    last_num_bytes = test_data.num_bytes - (DATA_WIDTH_BYTES * num_loops)
 
     for i in range(num_loops):
-        await RisingEdge(dut.o_next_word)
-        index = (i + 1)* NUM_BYTES
-        dut.i_data_write.value = get_test_number(test_data[index: index+NUM_BYTES])
+        timeout = Timer(100, unit="us")
+        trigger = await First(RisingEdge(dut.o_next_word), timeout)
+        assert trigger != timeout
+
+        dut.i_data_write.value = test_data.get_test_number_word(i * DATA_WIDTH_BYTES)
+    await RisingEdge(dut.clk)
+    dut.i_last_word.value = True
+    dut.i_num_bytes.value = last_num_bytes -1
+    await wait_for_idle(dut)
+
+
+async def handle_read_burst(dut, subordinate, test_data):
+    subordinate.num_bytes = test_data.num_bytes
+    dut.i_num_bytes.value = test_data.num_bytes
+    num_loops = test_data.num_bytes // DATA_WIDTH_BYTES
+    last_num_bytes = test_data.num_bytes - (DATA_WIDTH_BYTES * num_loops)
+
+    for i in range(num_loops):
+        timeout = Timer(8, unit="us")
+        trigger = await First(FallingEdge(dut.o_recieved_next_word), timeout)
+        assert trigger != timeout
+        if i == num_loops-2:
+            dut.i_last_word.value = True
+
+        assert dut.o_data_read.value == test_data.get_test_number_word(i*DATA_WIDTH_BYTES)
+
     await RisingEdge(dut.clk)
     dut.i_last_word.value = True
     dut.i_num_bytes.value = last_num_bytes -1
