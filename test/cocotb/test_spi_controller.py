@@ -12,7 +12,7 @@ from cocotbext.spi import SpiBus
 from HelperClasses import SpiFlashMemory, DummyData
 
 DATA_WIDTH = int(os.environ.get("PARAM_DATA_WIDTH", 32))
-NUM_BYTES = DATA_WIDTH // 8
+DATA_WIDTH_BYTES = DATA_WIDTH // 8
 
 
 async def reset_dut(dut):
@@ -171,7 +171,7 @@ async def spi_write_test(dut, num_bytes):
 
 
 @cocotb.test()
-@cocotb.parametrize(num_bytes=range(NUM_BYTES*2, NUM_BYTES*3+1))
+@cocotb.parametrize(num_bytes=range(DATA_WIDTH_BYTES*2, DATA_WIDTH_BYTES*3+1))
 async def write_test_burst_qspi(dut, num_bytes):
     spi_subordinate = SpiFlashMemory(
             SpiBus(
@@ -208,7 +208,7 @@ async def write_test_burst_qspi(dut, num_bytes):
 
 
 @cocotb.test()
-@cocotb.parametrize(num_bytes=range(NUM_BYTES*2, NUM_BYTES*3+1))
+@cocotb.parametrize(num_bytes=range(DATA_WIDTH_BYTES, DATA_WIDTH_BYTES*2))
 async def read_test_burst_qspi(dut, num_bytes):
     spi_subordinate = SpiFlashMemory(
             SpiBus(
