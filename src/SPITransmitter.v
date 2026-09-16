@@ -169,8 +169,11 @@ module SPITransmitter #(
                     opcode_nxt = i_opcode;
                     address_nxt = i_address;
                     
-                    data_write_nxt = i_data_write;
-                    need_next_byte_nxt = 1'b1;
+                    if (~i_config_read_data) begin
+                        data_write_nxt = i_data_write;
+                        need_next_byte_nxt = 1'b1;
+                    end
+                    
                     transmission_finished_nxt = i_last_word;
                 end
             end
