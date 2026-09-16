@@ -193,6 +193,60 @@ async def spi_write_test(dut, num_bytes):
     assert spi_subordinate.data == test_data.get_test_array()
 
 
+@cocotb.test()
+@cocotb.parametrize(num_bytes=[3])
+async def spi_endianness_test(dut, num_bytes):
+    spi_subordinate = SpiFlashMemory(
+        SpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_name="io_data0_manager_serial_out",
+            miso_name="io_data1_manager_serial_in",
+            cs_name="o_chip_select_neg",
+        )
+    )
+    test_data = DummyData(num_bytes)
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await reset_dut(dut)
+
+    dut.config_quad_mode.value = False
+
+    # write data
+    dut.i_address.value = 21
+    dut.i_data_write.value = test_data.get_test_number()
+    dut.i_write_enable.value = True
+    dut.i_last_word.value = True
+    dut.i_num_bytes.value = num_bytes -1
+
+    spi_subordinate.num_bytes = num_bytes
+
+    assert not spi_subordinate.write_enable
+    await trigger_go(dut)
+    timeout = Timer(100, unit="us")
+    trigger = await First(RisingEdge(dut.o_chip_select_neg), timeout)
+    assert trigger != timeout
+    trigger = await First(RisingEdge(dut.o_chip_select_neg), timeout)
+    assert trigger != timeout
+
+    assert spi_subordinate.opcode == SpiFlashMemory.program
+    assert spi_subordinate.address == 21
+    assert spi_subordinate.write_enable
+    assert spi_subordinate.data == test_data.get_test_array()
+
+    # read back data
+    dut.i_write_enable.value = False
+
+    await trigger_go(dut)
+    timeout = Timer(100, unit="us")
+    trigger = await First(RisingEdge(dut.o_chip_select_neg), timeout)
+    assert trigger != timeout
+
+    [opcode, address] = await spi_subordinate.get_content()
+    assert opcode == SpiFlashMemory.read
+    assert address == 21
+    assert dut.o_data_read.value == test_data.get_test_number()
 
 
 @cocotb.test()
