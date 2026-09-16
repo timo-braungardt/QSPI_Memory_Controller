@@ -51,3 +51,24 @@ def test_endianness_get_word():
     big_endian_next = 0x04050607
     assert data.get_test_number_word(0) == big_endian
     assert data.get_test_number_word(4) == big_endian_next
+
+
+def test_endianness_get_word_unalligned():
+    data = DummyData(8)
+    data._array = range(8)
+
+    data.is_little_endian = True
+    little_endian = 0x03020100
+    little_endian_next = 0x07060504
+    assert data.get_test_number_word(0) == little_endian
+    assert data.get_test_number_word(4) == little_endian_next
+    assert data.get_test_number_word(4, 2) == 0x0504
+    assert data.get_test_number_word(5, 3) == 0x070605
+
+    data.is_little_endian = False
+    big_endian = 0x00010203
+    big_endian_next = 0x04050607
+    assert data.get_test_number_word(0) == big_endian
+    assert data.get_test_number_word(4) == big_endian_next
+    assert data.get_test_number_word(4, 2) == 0x0405
+    assert data.get_test_number_word(5, 3) == 0x050607

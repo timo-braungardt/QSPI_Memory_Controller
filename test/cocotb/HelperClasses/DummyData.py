@@ -38,7 +38,7 @@ class DummyData:
         start = address
         end = address + width
         if self.is_little_endian:
-            for i in self._array[end - 1 :: -1][: self.word_width]:
+            for i in self._array[end - 1 :: -1][: width]:
                 number = (number << 8) + i
         else:
             for i in self._array[start:end]:
