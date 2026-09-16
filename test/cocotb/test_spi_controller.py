@@ -23,9 +23,9 @@ async def reset_dut(dut):
 
 
 async def wait_for_idle(dut):
-    if dut.o_chip_select_neg.value == False:
+    if dut.o_busy.value == True:
         timeout = Timer(100, unit="us")
-        trigger = await First(dut.o_chip_select_neg.value_change, timeout)
+        trigger = await First(dut.o_busy.value_change, timeout)
         assert trigger != timeout
 
 
@@ -38,18 +38,18 @@ async def trigger_go(dut):
     dut.go.value = 0
 
 
-async def handle_burst(dut, subordinate, test_data):
+async def handle_write_burst(dut, subordinate, test_data):
     subordinate.num_bytes = test_data.num_bytes
     dut.i_num_bytes.value = test_data.num_bytes
     num_loops = test_data.num_bytes // DATA_WIDTH_BYTES
     last_num_bytes = test_data.num_bytes - (DATA_WIDTH_BYTES * num_loops)
 
-    for i in range(num_loops):
-        timeout = Timer(100, unit="us")
+    for i in range(1, num_loops):
+        timeout = Timer(8, unit="us")
         trigger = await First(RisingEdge(dut.o_next_word), timeout)
         assert trigger != timeout
-
         dut.i_data_write.value = test_data.get_test_number_word(i * DATA_WIDTH_BYTES)
+        
     await RisingEdge(dut.clk)
     dut.i_last_word.value = True
     dut.i_num_bytes.value = last_num_bytes -1
@@ -63,17 +63,21 @@ async def handle_read_burst(dut, subordinate, test_data):
     last_num_bytes = test_data.num_bytes - (DATA_WIDTH_BYTES * num_loops)
 
     for i in range(num_loops):
-        timeout = Timer(8, unit="us")
+        timeout = Timer(100, unit="us")
         trigger = await First(FallingEdge(dut.o_recieved_next_word), timeout)
         assert trigger != timeout
         if i == num_loops-2:
             dut.i_last_word.value = True
 
         assert dut.o_data_read.value == test_data.get_test_number_word(i*DATA_WIDTH_BYTES)
+        dut.data_read_reg.value = 0     # ToDo: the other bytes have to be masked (issue #18)
 
-    await RisingEdge(dut.clk)
-    dut.i_last_word.value = True
-    dut.i_num_bytes.value = last_num_bytes -1
+    if last_num_bytes != 0:
+        timeout = Timer(100, unit="us")
+        trigger = await First(FallingEdge(dut.o_recieved_next_word), timeout)
+        assert trigger != timeout
+        assert dut.o_data_read.value == test_data.get_test_number_word(num_loops*DATA_WIDTH_BYTES, last_num_bytes)
+
     await wait_for_idle(dut)
 
 
@@ -250,7 +254,7 @@ async def spi_endianness_test(dut, num_bytes):
 
 
 @cocotb.test()
-@cocotb.parametrize(num_bytes=range(DATA_WIDTH_BYTES*2, DATA_WIDTH_BYTES*3+1))
+@cocotb.parametrize(num_bytes=range(DATA_WIDTH_BYTES, DATA_WIDTH_BYTES*2))
 async def write_test_burst_qspi(dut, num_bytes):
     spi_subordinate = SpiFlashMemory(
             SpiBus(
@@ -275,7 +279,12 @@ async def write_test_burst_qspi(dut, num_bytes):
     dut.config_quad_mode.value = False
 
     await trigger_go(dut)
-    await handle_burst(dut, spi_subordinate, test_data)
+    # write enable
+    timeout = Timer(100, unit="us")
+    trigger = await First(RisingEdge(dut.o_chip_select_neg), timeout)
+    assert trigger != timeout
+    # the write command
+    await handle_write_burst(dut, spi_subordinate, test_data)
 
     assert spi_subordinate.opcode == SpiFlashMemory.program
     assert spi_subordinate.write_enable
