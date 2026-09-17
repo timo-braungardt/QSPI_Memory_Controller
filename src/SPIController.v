@@ -211,7 +211,6 @@ module SPIController #(
         control_state_reg <= control_state_nxt;
         delay_fsm <= 0;
         config_data_reg <= config_data_nxt;
-        data_in_muxed_reg <= data_in_muxed_nxt;
 
         if (control_state_reg == WAIT) begin
             delay_fsm <= delay_fsm + 1;
@@ -224,7 +223,6 @@ module SPIController #(
             config_quad_mode <= 3'b000;
             config_is_config_operation <= 1'b0;
             config_dummy_cycles <= 5'd0;
-            data_in_muxed_reg <= 0;
             config_data_reg <= 0;
         end
     end
