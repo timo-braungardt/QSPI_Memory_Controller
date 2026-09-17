@@ -333,12 +333,12 @@ module SPITransmitter #(
 
             SEND_DATA: begin
                 if (i_config_quad_mode[QUAD_MODE_DATA]) begin
-                    data_out_nxt[0] = data_write_nxt[{index_data_send_quad_mode, 2'd0}];
-                    data_out_nxt[1] = data_write_nxt[{index_data_send_quad_mode, 2'd1}];
-                    data_out_nxt[2] = data_write_nxt[{index_data_send_quad_mode, 2'd2}];
-                    data_out_nxt[3] = data_write_nxt[{index_data_send_quad_mode, 2'd3}];
+                    data_out_nxt[0] = data_write_reg[{index_data_send_quad_mode, 2'd0}];
+                    data_out_nxt[1] = data_write_reg[{index_data_send_quad_mode, 2'd1}];
+                    data_out_nxt[2] = data_write_reg[{index_data_send_quad_mode, 2'd2}];
+                    data_out_nxt[3] = data_write_reg[{index_data_send_quad_mode, 2'd3}];
                 end else begin
-                    data_out_nxt[0] = data_write_nxt[index_data_send_single_mode];
+                    data_out_nxt[0] = data_write_reg[index_data_send_single_mode];
                 end
             end
 
