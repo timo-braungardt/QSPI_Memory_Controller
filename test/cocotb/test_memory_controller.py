@@ -62,7 +62,7 @@ def generate_test_array(num_bytes):
 # the transmitter state machine runns on the slow clock but the outputs are routed to the axi interface
 # it is fixed now by an edge detection on the next word signal - but this is shitty, this should be implemented better
 @cocotb.test()
-@cocotb.parametrize(num_bytes=range(1, NUM_BYTES*2+1))
+@cocotb.parametrize(num_bytes=range(1, NUM_BYTES+1))
 async def write_test(dut, num_bytes):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
@@ -103,8 +103,89 @@ async def write_test(dut, num_bytes):
 
 
 @cocotb.test()
-@cocotb.parametrize(num_bytes=range(1, NUM_BYTES*2+1))
+@cocotb.parametrize(num_bytes=range(1, NUM_BYTES+1))
 async def read_test(dut, num_bytes):
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    spi_subordinate = SpiFlashMemory(
+        SpiBus(
+            entity=dut,
+            sclk_name="o_spi_bus_clock",
+            mosi_name="io_spi_data0_manager_serial_out",
+            miso_name="io_spi_data1_manager_serial_in",
+            cs_name="o_spi_chip_select_neg",
+        )
+    )
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
+
+    addr = 0x1000
+    test_data = generate_test_array(num_bytes)
+    # pad the test data because of the endianness problem ToDo: fix endianness  (issue #13)
+    missing_bytes = 4 - (num_bytes % 4)
+    subordinate_data = test_data[:] # copy by value
+    subordinate_data.extend([255] * missing_bytes)
+    spi_subordinate.num_bytes = num_bytes + missing_bytes
+    spi_subordinate.data = swap_endian_32(subordinate_data)
+
+    # step: read
+    timeout = Timer(100, unit="us")
+    read_task = cocotb.start_soon(axi_master.read(addr, num_bytes))
+    trigger = await First(read_task, timeout)
+    assert trigger != timeout
+    if dut.spi_busy.value == True:
+        timeout = Timer(100, unit="us")
+        await First(FallingEdge(dut.spi_busy), timeout)
+    assert spi_subordinate.opcode == SpiFlashMemory.read
+    assert spi_subordinate.address == 0x1000
+    data = read_task.result()
+    assert list(data.data) == list(test_data)
+
+
+@cocotb.test()
+@cocotb.parametrize(num_bytes=[NUM_BYTES+2, NUM_BYTES*3, NUM_BYTES*3+1])
+async def write_burst_test(dut, num_bytes):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await Timer(50, unit="ns")
+
+
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    spi_subordinate = SpiFlashMemory(
+        SpiBus(
+            entity=dut,
+            sclk_name="o_spi_bus_clock",
+            mosi_name="io_spi_data0_manager_serial_out",
+            miso_name="io_spi_data1_manager_serial_in",
+            cs_name="o_spi_chip_select_neg",
+        )
+    )
+
+    await reset_dut(dut)
+
+    addr = 0x1000
+    length = 4
+    test_data = generate_test_array(num_bytes)
+    spi_subordinate.num_bytes = num_bytes
+
+    # step: write
+    timeout = Timer(100, unit="us")
+    write_task = cocotb.start_soon(axi_master.write(addr, test_data))
+    trigger = await First(write_task, timeout)
+    assert trigger != timeout
+    if dut.spi_busy.value == True:
+        await FallingEdge(dut.spi_busy)
+    assert spi_subordinate.opcode == SpiFlashMemory.program
+    assert spi_subordinate.address == 0x1000
+    assert len(spi_subordinate.data) == len(test_data)
+    little_endian_data = swap_endian_32(spi_subordinate.data)
+    assert little_endian_data == list(test_data)
+
+
+@cocotb.test()
+@cocotb.parametrize(num_bytes=[NUM_BYTES+2, NUM_BYTES*3, NUM_BYTES*3+1])
+async def read_burst_test(dut, num_bytes):
     axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
     spi_subordinate = SpiFlashMemory(
         SpiBus(
