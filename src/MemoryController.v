@@ -9,8 +9,8 @@ module MemoryController #(
     parameter ADDR_WIDTH = 24,
     parameter DATA_WIDTH = 32,
     parameter STRB_WIDTH = (DATA_WIDTH / 8),
-    parameter ID_WIDTH   = 8
-
+    parameter ID_WIDTH   = 8,
+    parameter MAX_NUM_BYTES = $clog2(256)
 ) (
     input clk,
     input reset,
@@ -68,6 +68,7 @@ module MemoryController #(
 
     wire spi_busy;
     wire spi_next_word;
+    wire spi_recieved_next_word;
     wire [ADDR_WIDTH-1:0]  axi_address;
     wire [DATA_WIDTH-1:0] axi_data_read;
     wire [DATA_WIDTH-1:0] axi_data_write;
@@ -104,7 +105,8 @@ module MemoryController #(
 
     SPIController #(
         .ADDRESS_LENGTH(ADDR_WIDTH),
-        .DATA_WIDTH(DATA_WIDTH)
+        .DATA_WIDTH(DATA_WIDTH),
+        .MAX_NUM_BYTES(MAX_NUM_BYTES)
     ) SPI_Controller (
         .clk(clk),
         .reset_neg(!reset),
@@ -118,6 +120,7 @@ module MemoryController #(
         .o_data_read(axi_data_read),
         .o_busy(spi_busy),
         .o_next_word(spi_next_word),
+        .o_recieved_next_word(spi_recieved_next_word),
 
         // SPI Pins
         .o_bus_clock(o_spi_bus_clock),
