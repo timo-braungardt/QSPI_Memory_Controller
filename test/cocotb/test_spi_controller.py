@@ -300,8 +300,6 @@ async def write_test_burst_qspi(dut, num_bytes):
     assert spi_subordinate.write_enable
     assert spi_subordinate.address == 0x800001
     assert len(spi_subordinate.data) == test_data.num_bytes
-    print(spi_subordinate.data)
-    print(test_data)
     assert spi_subordinate.data == test_data.get_test_array()
 
 

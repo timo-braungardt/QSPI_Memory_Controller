@@ -156,7 +156,6 @@ module SPIController #(
     always @(*) begin : control_logic
         address_nxt = address_reg;
         opcode_nxt = opcode_reg;
-        config_data_nxt = config_data_reg;
         control_state_nxt = control_state_reg;
 
         case (control_state_reg)
@@ -169,7 +168,6 @@ module SPIController #(
                     // ToDo: maybe this can be made more elegant (issue #10)
                     if (config_is_config_operation) begin
                         address_nxt = ADDRESS_LENGTH'(CONFIG_ADDRESS);
-                        config_data_nxt = {24'd0, CONFIG_QSPI_ENABLE};
                     end
                 end
             end
@@ -210,7 +208,6 @@ module SPIController #(
         opcode_reg <= opcode_nxt;
         control_state_reg <= control_state_nxt;
         delay_fsm <= 0;
-        config_data_reg <= config_data_nxt;
 
         if (control_state_reg == WAIT) begin
             delay_fsm <= delay_fsm + 1;
@@ -231,36 +228,37 @@ module SPIController #(
     always @(*) begin : data_logic
         byte_index_nxt = byte_index_reg;
         byte_count_nxt = byte_count_reg;
-        data_in_muxed_nxt = (config_is_config_operation) ? config_data_reg : i_data_write;
+        data_in_muxed_nxt = data_in_muxed_reg;
         last_word_nxt = last_word_reg;
         read_next_word_nxt = 0;
         write_next_word_nxt = 0;
+        config_data_nxt = config_data_reg;
 
         // select which byte is transfered to the transmitter
         byte_pointer = data_in_muxed_reg[byte_index_reg*8+:8];
 
         // to get the first data byte
         if (control_state_reg == IDLE) begin
-            if (go & byte_count_reg == 0) last_word_nxt = i_last_word;
-            else last_word_nxt = 0;
-
+            if (go) begin
+                data_in_muxed_nxt = (config_is_config_operation) ? config_data_reg : i_data_write;
+                byte_count_nxt = (config_is_config_operation)? 0 : {{(ARBITRARY_WIDTH-MAX_NUM_BYTES){1'b0}}, i_num_bytes};
+                byte_index_nxt = 0;
+                last_word_nxt = 0;
+            end
         end
 
         if (control_state_reg != IDLE & byte_count_reg == 0) last_word_nxt = 1;
 
-        if (control_state_reg == IDLE) begin
-            byte_count_nxt = (config_is_config_operation)? 0 : {{(ARBITRARY_WIDTH-MAX_NUM_BYTES){1'b0}}, i_num_bytes};
-            byte_index_nxt = 0;
-        end
-
         if (control_state_reg == WRITE | control_state_reg == READ | control_state_reg == WRITE_CONFIG) begin
             if (spi_write_next_byte | spi_read_next_byte) begin
+                if (byte_index_reg == DATA_BYTES'(DATA_BYTES - 2))
+                    write_next_word_nxt = 1;
                 if (byte_index_reg == DATA_BYTES'(DATA_BYTES - 1) | byte_count_reg == 0) begin
                     byte_index_nxt = 0;
                     read_next_word_nxt = 1;
-                    write_next_word_nxt = 1;
                 end else byte_index_nxt = byte_index_reg + 1;
 
+                data_in_muxed_nxt = (config_is_config_operation) ? config_data_reg : i_data_write;
                 byte_count_nxt = byte_count_reg - 1;
             end
         end
@@ -276,6 +274,7 @@ module SPIController #(
         last_word_reg <= last_word_nxt;
         read_next_word_reg <= read_next_word_nxt;
         write_next_word_reg <= write_next_word_nxt;
+        config_data_reg <= config_data_nxt;
 
         if (spi_read_next_byte) begin
             data_read_reg[byte_index_reg*8+:8] <= read_byte;
@@ -289,6 +288,9 @@ module SPIController #(
             data_read_reg <= 0;
             read_next_word_reg <= 0;
             write_next_word_reg <= 0;
+            config_data_reg <= {24'd0, CONFIG_QSPI_ENABLE};  // this is set only on reset - it should be more configurable (issue #16)
+            // problem is, that on the go signal, the transmitter is started. So on the next clock edge it will sample the data.
+            // if the config_data_nxt is set to the correct value, then it arrives a cycle late.
         end
     end
 
