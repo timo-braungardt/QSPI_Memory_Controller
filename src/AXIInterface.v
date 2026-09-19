@@ -49,7 +49,8 @@ module AXIInterface #(
     input wire rst_neg,
 
     // Control Interface Pins
-    input  wire                  i_ready,
+    input  wire                  i_write_word_ready,
+    input  wire                  i_read_word_ready,
     input  wire                  i_busy,
     output wire                  o_last_word,
     output wire                  o_write_enable,
@@ -215,14 +216,14 @@ module AXIInterface #(
                     write_burst_next = s_axi_awburst;
 
                     s_axi_awready_next = 1'b0;
-                    s_axi_wready_next = i_ready;    // ToDo: this could be a problem, when the spi is not ready yet (issue #14)
+                    s_axi_wready_next = i_write_word_ready;    // ToDo: this could be a problem, when the spi is not ready yet (issue #14)
                     write_state_next = WRITE_STATE_BURST;
                 end else begin
                     write_state_next = WRITE_STATE_IDLE;
                 end
             end
             WRITE_STATE_BURST: begin
-                s_axi_wready_next = i_ready;
+                s_axi_wready_next = i_write_word_ready;
 
                 if (s_axi_wready && s_axi_wvalid) begin
                     mem_wr_en = 1'b1;
@@ -329,9 +330,9 @@ module AXIInterface #(
             end
             READ_STATE_BURST: begin
                 s_axi_rlast_next = (read_count_reg == 0);
-                if (s_axi_rready & i_ready) begin
+                if (s_axi_rready & i_read_word_ready) begin
                     mem_rd_en = 1'b1;
-                    s_axi_rvalid_next = i_ready;
+                    s_axi_rvalid_next = i_read_word_ready;
                     s_axi_rid_next = read_id_reg;
                     if (read_burst_reg != 2'b00) begin
                         read_addr_next = read_addr_reg + (1 << read_size_reg);
