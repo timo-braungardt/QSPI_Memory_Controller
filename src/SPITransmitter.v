@@ -40,17 +40,12 @@ module SPITransmitter #(
     localparam integer TIMER_COUNT = 2;     // ToDo: make it register based so its not baked into hardware (issue #16)
     localparam integer OPCODE_LENGTH = 8;
     localparam BITS_PER_SHIFT = 4;
-    localparam MAX_INDEX_BYTES = $clog2(BYTE) - 1;
     localparam DATA_SEL_MSB_QUAD = $clog2(BYTE / BITS_PER_SHIFT) - 1;
     localparam DATA_SEL_MSB_SINGLE = $clog2(BYTE) - 1;
     localparam BYTE_SEL_LSB_SINGLE = $clog2(BYTE);
-    localparam BYTE_SEL_MSB_SINGLE = $clog2(BYTE);
     localparam BYTE_SEL_LSB_QUAD = $clog2(BYTE / BITS_PER_SHIFT);
-    localparam BYTE_SEL_MSB_QUAD = $clog2(BYTE / BITS_PER_SHIFT);
     localparam ADDRESS_SEL_MSB_QUAD = $clog2(ADDRESS_LENGTH / BITS_PER_SHIFT) - 1;
     localparam ADDRESS_SEL_MSB_SINGLE = $clog2(ADDRESS_LENGTH) - 1;
-    localparam BUS_WIDTH = 4;
-    localparam BUS_WIDTH_MSB = BUS_WIDTH - 1;
     localparam QUAD_MODE_OPCODE = 2;
     localparam QUAD_MODE_ADDRESS = 1;
     localparam QUAD_MODE_DATA = 0;
