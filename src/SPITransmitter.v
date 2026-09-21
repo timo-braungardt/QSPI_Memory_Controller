@@ -235,8 +235,7 @@ module SPITransmitter #(
 
             SEND_DATA: begin
                 if (clock_tick_neg) begin
-                    if (count_reg == 1)
-                        request_next_byte_nxt = 1'b1;
+                    if (count_reg == 1) request_next_byte_nxt = 1'b1;
 
                     if (count_reg == 0) begin
                         count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? BYTE / BITS_PER_SHIFT -1 : BYTE-1;

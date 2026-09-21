@@ -251,8 +251,8 @@ module SPIController #(
 
         if (control_state_reg == WRITE | control_state_reg == READ | control_state_reg == WRITE_CONFIG) begin
             if (spi_write_next_byte | spi_read_next_byte) begin
-                if (byte_index_reg == DATA_BYTES'(DATA_BYTES - 2))
-                    write_next_word_nxt = 1;
+                if (byte_index_reg == DATA_BYTES'(DATA_BYTES - 2)) write_next_word_nxt = 1;
+
                 if (byte_index_reg == DATA_BYTES'(DATA_BYTES - 1) | byte_count_reg == 0) begin
                     byte_index_nxt = 0;
                     read_next_word_nxt = 1;
@@ -288,7 +288,9 @@ module SPIController #(
             data_read_reg <= 0;
             read_next_word_reg <= 0;
             write_next_word_reg <= 0;
-            config_data_reg <= {24'd0, CONFIG_QSPI_ENABLE};  // this is set only on reset - it should be more configurable (issue #16)
+            config_data_reg <= {
+                24'd0, CONFIG_QSPI_ENABLE
+            };  // this is set only on reset - it should be more configurable (issue #16)
             // problem is, that on the go signal, the transmitter is started. So on the next clock edge it will sample the data.
             // if the config_data_nxt is set to the correct value, then it arrives a cycle late.
         end

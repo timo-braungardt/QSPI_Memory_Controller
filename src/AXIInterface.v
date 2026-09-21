@@ -60,16 +60,16 @@ module AXIInterface #(
     input  wire [DATA_WIDTH-1:0] i_read_data,
 
     // AXI Pins
-    input  wire [  ID_WIDTH-1:0] s_axi_awid,    // write address channel
-    input  wire [ADDR_WIDTH-1:0] s_axi_awaddr,
-    input  wire [           7:0] s_axi_awlen,   // length of the transaction in words
-    input  wire [           2:0] s_axi_awsize,  // number of bytes per transfer (1, 2, 4, 8, 16, 32, 64, 128)
-    input  wire [           1:0] s_axi_awburst,
-    input  wire                  s_axi_awlock,
-    input  wire [           3:0] s_axi_awcache,
-    input  wire [           2:0] s_axi_awprot,
-    input  wire                  s_axi_awvalid,
-    output wire                  s_axi_awready,
+    input wire [ID_WIDTH-1:0] s_axi_awid,  // write address channel
+    input wire [ADDR_WIDTH-1:0] s_axi_awaddr,
+    input wire [7:0] s_axi_awlen,  // length of the transaction in words
+    input wire [2:0] s_axi_awsize,  // number of bytes per transfer (1, 2, 4, 8, 16, 32, 64, 128)
+    input wire [1:0] s_axi_awburst,
+    input wire s_axi_awlock,
+    input wire [3:0] s_axi_awcache,
+    input wire [2:0] s_axi_awprot,
+    input wire s_axi_awvalid,
+    output wire s_axi_awready,
 
     input  wire [DATA_WIDTH-1:0] s_axi_wdata,   // write data channel
     input  wire [STRB_WIDTH-1:0] s_axi_wstrb,   // data strobe for bitmasking
@@ -77,10 +77,10 @@ module AXIInterface #(
     input  wire                  s_axi_wvalid,
     output wire                  s_axi_wready,
 
-    output wire [  ID_WIDTH-1:0] s_axi_bid,     // write response channel
-    output wire [           1:0] s_axi_bresp,
-    output wire                  s_axi_bvalid,
-    input  wire                  s_axi_bready,
+    output wire [ID_WIDTH-1:0] s_axi_bid,     // write response channel
+    output wire [         1:0] s_axi_bresp,
+    output wire                s_axi_bvalid,
+    input  wire                s_axi_bready,
 
     input  wire [  ID_WIDTH-1:0] s_axi_arid,     // read address channel
     input  wire [ADDR_WIDTH-1:0] s_axi_araddr,
@@ -123,7 +123,7 @@ module AXIInterface #(
     localparam [0:0] READ_STATE_IDLE = 1'd0;
     localparam [0:0] READ_STATE_BURST = 1'd1;
 
-    reg [0:0] read_state_reg; 
+    reg [0:0] read_state_reg;
     reg [0:0] read_state_next;
 
     // Write FSM

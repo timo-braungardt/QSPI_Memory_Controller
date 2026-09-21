@@ -9,7 +9,7 @@ module MemoryController #(
     parameter ADDR_WIDTH = 24,
     parameter DATA_WIDTH = 32,
     parameter STRB_WIDTH = (DATA_WIDTH / 8),
-    parameter ID_WIDTH   = 8,
+    parameter ID_WIDTH = 8,
     parameter MAX_NUM_BYTES = $clog2(256)
 ) (
     input clk,
@@ -69,13 +69,13 @@ module MemoryController #(
     wire spi_busy;
     wire spi_next_word;
     wire spi_recieved_next_word;
-    wire [ADDR_WIDTH-1:0]  axi_address;
+    wire [ADDR_WIDTH-1:0] axi_address;
     wire [DATA_WIDTH-1:0] axi_data_read;
     wire [DATA_WIDTH-1:0] axi_data_write;
     wire [2:0] axi_write_width;
-    wire  [MAX_NUM_BYTES-1:0] spi_number_bytes_write;
-    wire  [MAX_NUM_BYTES-1:0] spi_number_bytes_read;
-    wire  [MAX_NUM_BYTES-1:0] spi_number_bytes_muxed;
+    wire [MAX_NUM_BYTES-1:0] spi_number_bytes_write;
+    wire [MAX_NUM_BYTES-1:0] spi_number_bytes_read;
+    wire [MAX_NUM_BYTES-1:0] spi_number_bytes_muxed;
     wire axi_write_enable;
     wire axi_last_word;
     wire axi_start_transaction;
@@ -91,12 +91,12 @@ module MemoryController #(
     assign num_write_bytes = num_write_beats << s_axi_awsize;
     assign spi_number_bytes_write = (MAX_NUM_BYTES)'(num_write_bytes - 1);
 
-    assign num_read_beats  = s_axi_arlen + 8'd1;
+    assign num_read_beats = s_axi_arlen + 8'd1;
     assign num_write_bytes = num_read_beats << s_axi_arsize;
-    assign spi_number_bytes_read =  (MAX_NUM_BYTES)'(num_read_bytes - 1);
+    assign spi_number_bytes_read = (MAX_NUM_BYTES)'(num_read_bytes - 1);
 
     assign spi_number_bytes_muxed = (axi_write_enable) ? spi_number_bytes_write : spi_number_bytes_read;
-                                            
+
 
     SPIController #(
         .ADDRESS_LENGTH(ADDR_WIDTH),

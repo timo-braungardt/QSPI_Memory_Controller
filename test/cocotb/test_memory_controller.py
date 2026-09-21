@@ -33,11 +33,12 @@ async def wait_for_idle(dut):
 # the transmitter state machine runns on the slow clock but the outputs are routed to the axi interface
 # it is fixed now by an edge detection on the next word signal - but this is shitty, this should be implemented better
 @cocotb.test()
-@cocotb.parametrize(num_bytes=range(1, NUM_BYTES+1))
+@cocotb.parametrize(num_bytes=range(1, NUM_BYTES + 1))
 async def write_test(dut, num_bytes):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
-    await reset_dut(dut) # the reset is here, because otherwise the axi manager loggs too many resets
+    # the reset is here, because otherwise the axi manager loggs too many resets
+    await reset_dut(dut)
 
     axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
     spi_subordinate = SpiFlashMemory(
@@ -68,7 +69,7 @@ async def write_test(dut, num_bytes):
 
 
 @cocotb.test()
-@cocotb.parametrize(num_bytes=range(1, NUM_BYTES+1))
+@cocotb.parametrize(num_bytes=range(1, NUM_BYTES + 1))
 async def read_test(dut, num_bytes):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
@@ -105,11 +106,12 @@ async def read_test(dut, num_bytes):
 
 
 @cocotb.test()
-@cocotb.parametrize(num_bytes=[NUM_BYTES+2, NUM_BYTES*3, NUM_BYTES*3+1])
+@cocotb.parametrize(num_bytes=[NUM_BYTES + 2, NUM_BYTES * 3, NUM_BYTES * 3 + 1])
 async def write_burst_test(dut, num_bytes):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
-    await reset_dut(dut) # the reset is here, because otherwise the axi manager loggs too many resets
+    # the reset is here, because otherwise the axi manager loggs too many resets
+    await reset_dut(dut)
 
     axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
     spi_subordinate = SpiFlashMemory(
@@ -141,7 +143,7 @@ async def write_burst_test(dut, num_bytes):
 
 
 @cocotb.test()
-@cocotb.parametrize(num_bytes=[NUM_BYTES+2, NUM_BYTES*3, NUM_BYTES*3+1])
+@cocotb.parametrize(num_bytes=[NUM_BYTES + 2, NUM_BYTES * 3, NUM_BYTES * 3 + 1])
 async def read_burst_test(dut, num_bytes):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())

@@ -53,7 +53,7 @@ async def handle_write_burst(dut, subordinate, test_data):
     for i in range(1, num_loops):
         await RisingEdge(dut.o_need_next_byte)
         dut.i_data_write.value = test_data[i]
-        if (num_loops - i -1) == 0:
+        if (num_loops - i - 1) == 0:
             dut.i_last_word.value = True
     await RisingEdge(dut.clk)
     dut.i_last_word.value = True
@@ -65,9 +65,10 @@ async def handle_read_burst(dut, subordinate):
     recieved_data = []
 
     for i in range(num_bytes):
-        if (num_bytes - i -1) == 0:
+        if (num_bytes - i - 1) == 0:
             dut.i_last_word.value = True
-        await FallingEdge(dut.o_recieved_next_byte)     # falling edge because we do not trigger on the signal but poll the value later in the design
+        # falling edge because we do not trigger on the signal but poll the value later in the design
+        await FallingEdge(dut.o_recieved_next_byte)
         recieved_data.append(dut.o_data_read.value.to_unsigned())
     await RisingEdge(dut.clk)
     dut.i_last_word.value = True
@@ -203,27 +204,27 @@ async def write_test_qspi(dut):
 @cocotb.test()
 async def read_test_qspi(dut):
     qspi_subordinate = QSpiFlashMemory(
-            QSpiBus(
-                entity=dut,
-                sclk_name="o_bus_clock",
-                mosi_d0_name="io_data0_manager_serial_out",
-                miso_d1_name="io_data1_manager_serial_in",
-                d2_name="io_data2",
-                d3_name="io_data3",
-                cs_name="o_chip_select_neg",
-            ),
-            QSpiConfig(
-                word_width=8,
-                sclk_freq=20e6,
-                cpol=0,
-                cpha=0,
-                msb_first=True,
-                frame_spacing_ns=10,
-                ignore_rx_value=None,
-                cs_active_low=True,
-                is_quad_mode=True,
-            ),
-        )
+        QSpiBus(
+            entity=dut,
+            sclk_name="o_bus_clock",
+            mosi_d0_name="io_data0_manager_serial_out",
+            miso_d1_name="io_data1_manager_serial_in",
+            d2_name="io_data2",
+            d3_name="io_data3",
+            cs_name="o_chip_select_neg",
+        ),
+        QSpiConfig(
+            word_width=8,
+            sclk_freq=20e6,
+            cpol=0,
+            cpha=0,
+            msb_first=True,
+            frame_spacing_ns=10,
+            ignore_rx_value=None,
+            cs_active_low=True,
+            is_quad_mode=True,
+        ),
+    )
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
     await reset_dut(dut)
@@ -299,6 +300,7 @@ async def write_test_burst_qspi(dut, num_bytes):
     assert qspi_subordinate.address == 0x800001
     assert len(qspi_subordinate.data) == len(test_data)
     assert list(qspi_subordinate.data) == list(test_data)
+
 
 @cocotb.test()
 @cocotb.parametrize(num_bytes=range(2, 5))

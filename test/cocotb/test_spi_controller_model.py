@@ -10,7 +10,8 @@ from cocotb.types import Logic, LogicArray
 from unittest import SkipTest
 
 
-T_pp_typ = Timer(480, unit="us")    # program time typical from the datasheet
+T_pp_typ = Timer(480, unit="us")  # program time typical from the datasheet
+
 
 async def reset_model(dut):
     dut.reset_neg.value = 0
