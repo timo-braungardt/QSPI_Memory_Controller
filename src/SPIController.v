@@ -220,7 +220,6 @@ module SPIController #(
             config_quad_mode <= 3'b000;
             config_is_config_operation <= 1'b0;
             config_dummy_cycles <= 5'd0;
-            config_data_reg <= 0;
         end
     end
 
