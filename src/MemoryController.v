@@ -9,8 +9,8 @@ module MemoryController #(
     parameter ADDR_WIDTH = 24,
     parameter DATA_WIDTH = 32,
     parameter STRB_WIDTH = (DATA_WIDTH / 8),
-    parameter ID_WIDTH   = 8
-
+    parameter ID_WIDTH = 8,
+    parameter MAX_NUM_BYTES = $clog2(256)
 ) (
     input clk,
     input reset,
@@ -68,43 +68,40 @@ module MemoryController #(
 
     wire spi_busy;
     wire spi_next_word;
-    wire [ADDR_WIDTH-1:0]  axi_address;
+    wire spi_recieved_next_word;
+    wire [ADDR_WIDTH-1:0] axi_address;
     wire [DATA_WIDTH-1:0] axi_data_read;
     wire [DATA_WIDTH-1:0] axi_data_write;
     wire [2:0] axi_write_width;
-    reg  [DATA_WIDTH/8-1:0] spi_number_bytes;
+    wire [MAX_NUM_BYTES-1:0] spi_number_bytes_write;
+    wire [MAX_NUM_BYTES-1:0] spi_number_bytes_read;
+    wire [MAX_NUM_BYTES-1:0] spi_number_bytes_muxed;
     wire axi_write_enable;
     wire axi_last_word;
     wire axi_start_transaction;
 
-    /*
-    assign spi_number_bytes =   (DATA_WIDTH/8)'((s_axi_awsize == 3'd0) ?  0 :
-                                                (s_axi_awsize == 3'd1) ?  1 :
-                                                (s_axi_awsize == 3'd2) ?  3 :
-                                                (s_axi_awsize == 3'd3) ?  7 :
-                                                (s_axi_awsize == 3'd4) ? 15 :
-                                                (s_axi_awsize == 3'd5) ? 31 :
-                                                (s_axi_awsize == 3'd6) ? 63 : 127);
-                                                */
+    wire [7:0] num_read_beats;
+    wire [7:0] num_write_beats;
+    wire [MAX_NUM_BYTES-1:0] num_read_bytes;
+    wire [MAX_NUM_BYTES-1:0] num_write_bytes;
+
     // ToDo: arbitrary byte masking is not possible (yet?) with flash (issue #10)
     // ToDo: make it for arbitrary data width (issue #10)
-    always @(*) begin
-        if (axi_write_enable) begin
-            spi_number_bytes =   (s_axi_wstrb == 4'b0001) ? 0 :
-                                (s_axi_wstrb == 4'b0011) ? 1 :
-                                (s_axi_wstrb == 4'b0111) ? 2 : 3;
-        end 
-        else begin
-            spi_number_bytes =  (s_axi_arsize == 3'b000) ? 0 :
-                                (s_axi_arsize == 3'b001) ? 1 :
-                                (s_axi_arsize == 3'b010) ? 3 : 7;
-        end
-    end
+    assign num_write_beats = s_axi_awlen + 8'd1;
+    assign num_write_bytes = num_write_beats << s_axi_awsize;
+    assign spi_number_bytes_write = (MAX_NUM_BYTES)'(num_write_bytes - 1);
+
+    assign num_read_beats = s_axi_arlen + 8'd1;
+    assign num_read_bytes = num_read_beats << s_axi_arsize;
+    assign spi_number_bytes_read = (MAX_NUM_BYTES)'(num_read_bytes - 1);
+
+    assign spi_number_bytes_muxed = (axi_write_enable) ? spi_number_bytes_write : spi_number_bytes_read;
 
 
     SPIController #(
         .ADDRESS_LENGTH(ADDR_WIDTH),
-        .DATA_WIDTH(DATA_WIDTH)
+        .DATA_WIDTH(DATA_WIDTH),
+        .MAX_NUM_BYTES(MAX_NUM_BYTES)
     ) SPI_Controller (
         .clk(clk),
         .reset_neg(!reset),
@@ -113,11 +110,12 @@ module MemoryController #(
         .i_address(axi_address),
         .i_write_enable(axi_write_enable),
         .i_last_word(axi_last_word),
-        .i_num_bytes(spi_number_bytes),
+        .i_num_bytes(spi_number_bytes_muxed),
         .i_data_write(axi_data_write),
         .o_data_read(axi_data_read),
         .o_busy(spi_busy),
         .o_next_word(spi_next_word),
+        .o_recieved_next_word(spi_recieved_next_word),
 
         // SPI Pins
         .o_bus_clock(o_spi_bus_clock),
@@ -140,7 +138,8 @@ module MemoryController #(
         .rst_neg(!reset),
 
         // Control Interface Pins
-        .i_ready(spi_next_word),
+        .i_write_word_ready(spi_next_word),
+        .i_read_word_ready(spi_recieved_next_word),
         .i_busy(spi_busy),
         .o_last_word(axi_last_word),
         .o_write_enable(axi_write_enable),

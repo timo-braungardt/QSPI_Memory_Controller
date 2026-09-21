@@ -56,7 +56,7 @@ class QSpiFlashMemory(QSpiSubordinateBase):
 
             for i in range(self.num_bytes):
                 data = int(await self._quad_recieve(8))
-                self.log.info(f"   recieved {data}")
+                self.log.info("   recieved %x", data)
                 self.data.append(data)
 
         await frame_end

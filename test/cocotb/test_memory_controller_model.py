@@ -10,13 +10,13 @@ from cocotb.clock import Clock
 from collections import deque
 from cocotbext.axi import AxiBus, AxiMaster
 from cocotbext.spi import SpiBus
-from HelperClasses import SpiFlashMemory
+from HelperClasses import DummyData
 from unittest import SkipTest
 
 DATA_WIDTH = int(os.environ.get("PARAM_DATA_WIDTH", 32))
 NUM_BYTES = DATA_WIDTH // 8
 
-T_pp_typ = Timer(480, unit="us")    # program time typical from the datasheet
+T_pp_typ = Timer(480, unit="us")  # program time typical from the datasheet
 
 
 async def reset_model(dut):
@@ -35,13 +35,6 @@ async def wait_for_idle(dut):
     assert trigger != timeout
 
 
-def generate_test_array(num_bytes):
-    array = bytearray()
-    for _ in range(num_bytes):
-        array.append(random.randrange(256))
-    return array
-
-
 @cocotb.test()
 @cocotb.parametrize(params=[(4, 0x0100), (16, 0x0200), (128, 0x0300)])
 async def readwrite_alligned_test(dut, params):
@@ -53,11 +46,11 @@ async def readwrite_alligned_test(dut, params):
     await reset_model(dut)
 
     num_bytes, addr = params
-    test_data = generate_test_array(num_bytes)
+    test_data = DummyData(num_bytes)
 
     # step: write
     timeout = Timer(200, unit="us")
-    write_task = cocotb.start_soon(axi_master.write(addr, test_data))
+    write_task = cocotb.start_soon(axi_master.write(addr, test_data.get_test_array()))
     trigger = await First(write_task, timeout)
     assert trigger != timeout
     if dut.Controller.spi_busy.value == True:
@@ -67,18 +60,16 @@ async def readwrite_alligned_test(dut, params):
 
     # step: read
     timeout = Timer(200, unit="us")
-    read_task = cocotb.start_soon(axi_master.read(addr, num_bytes))
+    read_task = cocotb.start_soon(axi_master.read(addr, test_data.num_bytes))
     trigger = await First(read_task, timeout)
     assert trigger != timeout
     if dut.Controller.spi_busy.value == True:
         timeout = Timer(100, unit="us")
         await First(FallingEdge(dut.Controller.spi_busy), timeout)
     data = read_task.result()
-    assert list(data.data) == list(test_data)
+    assert list(data.data) == test_data.get_test_array()
 
 
-# ToDo: At the moment it is expected that the unalligned access does not work due to the endian missmatch
-# issue #13
 @cocotb.test()
 @cocotb.parametrize(params=[(3, 0x0180), (15, 0x0280)])
 async def readwrite_unalligned_test(dut, params):
@@ -90,11 +81,11 @@ async def readwrite_unalligned_test(dut, params):
     await reset_model(dut)
 
     num_bytes, addr = params
-    test_data = generate_test_array(num_bytes)
+    test_data = DummyData(num_bytes)
 
     # step: write
     timeout = Timer(100, unit="us")
-    write_task = cocotb.start_soon(axi_master.write(addr, test_data))
+    write_task = cocotb.start_soon(axi_master.write(addr, test_data.get_test_array()))
     trigger = await First(write_task, timeout)
     assert trigger != timeout
     if dut.Controller.spi_busy.value == True:
@@ -104,14 +95,14 @@ async def readwrite_unalligned_test(dut, params):
 
     # step: read
     timeout = Timer(100, unit="us")
-    read_task = cocotb.start_soon(axi_master.read(addr, num_bytes))
+    read_task = cocotb.start_soon(axi_master.read(addr, test_data.num_bytes))
     trigger = await First(read_task, timeout)
     assert trigger != timeout
     if dut.Controller.spi_busy.value == True:
         timeout = Timer(100, unit="us")
         await First(FallingEdge(dut.Controller.spi_busy), timeout)
     data = read_task.result()
-    assert list(data.data) == list(test_data)
+    assert list(data.data) == test_data.get_test_array()
 
 
 def test_memory_controller_model(wave=False):

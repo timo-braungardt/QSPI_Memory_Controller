@@ -49,7 +49,8 @@ module AXIInterface #(
     input wire rst_neg,
 
     // Control Interface Pins
-    input  wire                  i_ready,
+    input  wire                  i_write_word_ready,
+    input  wire                  i_read_word_ready,
     input  wire                  i_busy,
     output wire                  o_last_word,
     output wire                  o_write_enable,
@@ -59,16 +60,16 @@ module AXIInterface #(
     input  wire [DATA_WIDTH-1:0] i_read_data,
 
     // AXI Pins
-    input  wire [  ID_WIDTH-1:0] s_axi_awid,    // write address channel
-    input  wire [ADDR_WIDTH-1:0] s_axi_awaddr,
-    input  wire [           7:0] s_axi_awlen,   // length of the transaction in words
-    input  wire [           2:0] s_axi_awsize,  // number of bytes per transfer (1, 2, 4, 8, 16, 32, 64, 128)
-    input  wire [           1:0] s_axi_awburst,
-    input  wire                  s_axi_awlock,
-    input  wire [           3:0] s_axi_awcache,
-    input  wire [           2:0] s_axi_awprot,
-    input  wire                  s_axi_awvalid,
-    output wire                  s_axi_awready,
+    input wire [ID_WIDTH-1:0] s_axi_awid,  // write address channel
+    input wire [ADDR_WIDTH-1:0] s_axi_awaddr,
+    input wire [7:0] s_axi_awlen,  // length of the transaction in words
+    input wire [2:0] s_axi_awsize,  // number of bytes per transfer (1, 2, 4, 8, 16, 32, 64, 128)
+    input wire [1:0] s_axi_awburst,
+    input wire s_axi_awlock,
+    input wire [3:0] s_axi_awcache,
+    input wire [2:0] s_axi_awprot,
+    input wire s_axi_awvalid,
+    output wire s_axi_awready,
 
     input  wire [DATA_WIDTH-1:0] s_axi_wdata,   // write data channel
     input  wire [STRB_WIDTH-1:0] s_axi_wstrb,   // data strobe for bitmasking
@@ -76,10 +77,10 @@ module AXIInterface #(
     input  wire                  s_axi_wvalid,
     output wire                  s_axi_wready,
 
-    output wire [  ID_WIDTH-1:0] s_axi_bid,     // write response channel
-    output wire [           1:0] s_axi_bresp,
-    output wire                  s_axi_bvalid,
-    input  wire                  s_axi_bready,
+    output wire [ID_WIDTH-1:0] s_axi_bid,     // write response channel
+    output wire [         1:0] s_axi_bresp,
+    output wire                s_axi_bvalid,
+    input  wire                s_axi_bready,
 
     input  wire [  ID_WIDTH-1:0] s_axi_arid,     // read address channel
     input  wire [ADDR_WIDTH-1:0] s_axi_araddr,
@@ -122,7 +123,7 @@ module AXIInterface #(
     localparam [0:0] READ_STATE_IDLE = 1'd0;
     localparam [0:0] READ_STATE_BURST = 1'd1;
 
-    reg [0:0] read_state_reg; 
+    reg [0:0] read_state_reg;
     reg [0:0] read_state_next;
 
     // Write FSM
@@ -215,14 +216,14 @@ module AXIInterface #(
                     write_burst_next = s_axi_awburst;
 
                     s_axi_awready_next = 1'b0;
-                    s_axi_wready_next = i_ready;    // ToDo: this could be a problem, when the spi is not ready yet (issue #14)
+                    s_axi_wready_next = i_write_word_ready;    // ToDo: this could be a problem, when the spi is not ready yet (issue #14)
                     write_state_next = WRITE_STATE_BURST;
                 end else begin
                     write_state_next = WRITE_STATE_IDLE;
                 end
             end
             WRITE_STATE_BURST: begin
-                s_axi_wready_next = i_ready;
+                s_axi_wready_next = i_write_word_ready;
 
                 if (s_axi_wready && s_axi_wvalid) begin
                     mem_wr_en = 1'b1;
@@ -329,9 +330,9 @@ module AXIInterface #(
             end
             READ_STATE_BURST: begin
                 s_axi_rlast_next = (read_count_reg == 0);
-                if (s_axi_rready & i_ready) begin
+                if (s_axi_rready & i_read_word_ready) begin
                     mem_rd_en = 1'b1;
-                    s_axi_rvalid_next = i_ready;
+                    s_axi_rvalid_next = i_read_word_ready;
                     s_axi_rid_next = read_id_reg;
                     if (read_burst_reg != 2'b00) begin
                         read_addr_next = read_addr_reg + (1 << read_size_reg);

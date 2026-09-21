@@ -82,7 +82,7 @@ class SpiFlashMemory(SpiSlaveBase):
 
             for i in range(self.num_bytes):
                 data = int(await self._recieve_data(8))
-                self.log.info(f"   recieved {data}")
+                self.log.info("   recieved %x", data)
                 self.data.append(data)
 
         if self.opcode == SpiFlashMemory.write_any_address:
@@ -90,7 +90,7 @@ class SpiFlashMemory(SpiSlaveBase):
                 raise RuntimeError("Write enable not set!")
 
             data = int(await self._recieve_data(8))
-            self.log.info(f"   recieved {data} for register address {self.address}")
+            self.log.info(f"   recieved %x for register address %x", data, self.address)
             if data == 0b00000010:
                 self.quad_enable_bit = True
 

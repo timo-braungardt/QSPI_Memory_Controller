@@ -10,7 +10,8 @@ from cocotb.types import Logic, LogicArray
 from unittest import SkipTest
 
 
-T_pp_typ = Timer(480, unit="us")    # program time typical from the datasheet
+T_pp_typ = Timer(480, unit="us")  # program time typical from the datasheet
+
 
 async def reset_model(dut):
     dut.reset_neg.value = 0
@@ -49,7 +50,7 @@ async def read_test(dut):
     dut.i_data_write.value = 0x12
     dut.i_write_enable.value = True
     dut.i_last_word.value = True
-    dut.i_num_bytes.value = 0b000
+    dut.num_bytes.value = 0
 
     await trigger_go(dut)
     await wait_for_idle(dut)
@@ -78,7 +79,7 @@ async def qspi_enable_test(dut):
     dut.Controller.config_is_config_operation.value = True
     dut.Controller.config_quad_mode.value = 0b000
     dut.i_last_word.value = True
-    dut.i_num_bytes.value = 0b000
+    dut.num_bytes.value = 0
 
     # step: set QUADIT bit in config register 1
     await trigger_go(dut)
@@ -100,7 +101,7 @@ async def qspi_read_test(dut):
     dut.Controller.config_is_config_operation.value = True
     dut.Controller.config_quad_mode.value = 0b000
     dut.i_last_word.value = True
-    dut.i_num_bytes.value = 0b000
+    dut.num_bytes.value = 0
 
     # step: set QUADIT bit in config register 1
     await trigger_go(dut)

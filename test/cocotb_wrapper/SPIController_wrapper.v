@@ -14,6 +14,8 @@ module SPIController_wrapper #(
     reg [DATA_WIDTH-1:0] i_data_write;
     reg [DATA_WIDTH-1:0] o_data_read;
     reg i_write_enable;
+    reg i_last_word;
+    integer num_bytes;
 
     wire [3:0] data;
     wire bus_clock, chip_select_neg;
@@ -28,7 +30,7 @@ module SPIController_wrapper #(
 
         .i_address(i_address),
         .i_write_enable(i_write_enable),
-        .i_num_bytes(i_num_bytes),
+        .i_num_bytes(num_bytes),
         .i_last_word(i_last_word),
         .i_data_write(i_data_write),
         .o_data_read(o_data_read),
