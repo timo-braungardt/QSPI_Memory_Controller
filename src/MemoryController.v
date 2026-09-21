@@ -92,7 +92,7 @@ module MemoryController #(
     assign spi_number_bytes_write = (MAX_NUM_BYTES)'(num_write_bytes - 1);
 
     assign num_read_beats = s_axi_arlen + 8'd1;
-    assign num_write_bytes = num_read_beats << s_axi_arsize;
+    assign num_read_bytes = num_read_beats << s_axi_arsize;
     assign spi_number_bytes_read = (MAX_NUM_BYTES)'(num_read_bytes - 1);
 
     assign spi_number_bytes_muxed = (axi_write_enable) ? spi_number_bytes_write : spi_number_bytes_read;
