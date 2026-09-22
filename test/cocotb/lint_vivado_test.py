@@ -11,6 +11,9 @@ lint_vivado_test.py
 
 This script allows pytest to run the vivado lint on the project groups
 defined in the lint_groups_config.yml
+
+When run with pytest the output will be in the console,
+when run with python, the vivado editor will be opened.
 """
 
 
@@ -51,7 +54,7 @@ YAML_TOPS = get_tops(parse_yaml(FILE_YAML))
 
 
 @pytest.mark.parametrize("group", YAML_TOPS)
-def test_vivado_linting(group):
+def test_vivado_linting(group, gui=False):
     # check if vivado is in path
     vivado_path = which("vivado")
     if vivado_path is None:
@@ -64,17 +67,29 @@ def test_vivado_linting(group):
 
     parsedYaml = parse_yaml(FILE_YAML)
 
-    cmd = [
-        vivado_path,
-        "-mode",
-        "batch",
-        "-source",
-        str(file_tcl_script),
-        "-nolog",
-        "-nojournal",
-        "-tclargs",
-        group,
-    ] + get_files(parsedYaml, group)
+    cmd = []
+    if not gui:
+        cmd = [
+            vivado_path,
+            "-mode",
+            "batch",
+            "-source",
+            str(file_tcl_script),
+            "-nolog",
+            "-nojournal",
+            "-tclargs",
+            group,
+        ] + get_files(parsedYaml, group)
+    else:
+        cmd = [
+            vivado_path,
+            "-source",
+            str(file_tcl_script),
+            "-nolog",
+            "-nojournal",
+            "-tclargs",
+            group,
+        ] + get_files(parsedYaml, group)
 
     result = subprocess.run(cmd)
     assert result.returncode == 0
@@ -82,4 +97,4 @@ def test_vivado_linting(group):
 
 if __name__ == "__main__":
     for top in YAML_TOPS:
-        test_vivado_linting(top)
+        test_vivado_linting(top, True)
