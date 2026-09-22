@@ -7,7 +7,7 @@ from cocotb.clock import Clock
 from cocotb.triggers import Timer, RisingEdge
 from cocotbext.spi import SpiSlaveBase, SpiBus, SpiConfig
 from cocotbext.axi import AxiBus, AxiMaster
-from HelperClasses import SpiFlashMemory
+from HelperClasses import SpiFlashFiFo
 
 
 @cocotb.test()
@@ -26,7 +26,7 @@ async def transmission_test(dut):
     await RisingEdge(dut.clk)
 
     axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.rst)
-    spi_subordinate = SpiFlashMemory(
+    spi_subordinate = SpiFlashFiFo(
         SpiBus(
             entity=dut,
             sclk_name="s_spi_clock",

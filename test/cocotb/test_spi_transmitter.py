@@ -8,7 +8,7 @@ from cocotb.clock import Clock
 from cocotb.triggers import Timer, First, ClockCycles, RisingEdge, FallingEdge
 from cocotbext.spi import SpiBus
 from cocotbext.qspi import QSpiBus, QSpiConfig
-from HelperClasses import SpiFlashMemory, QSpiFlashMemory
+from HelperClasses import SpiFlashFiFo, QSpiFlashFiFo
 
 
 async def reset_dut(dut):
@@ -78,7 +78,7 @@ async def handle_read_burst(dut, subordinate):
 
 @cocotb.test()
 async def write_test_spi(dut):
-    spi_subordinate = SpiFlashMemory(
+    spi_subordinate = SpiFlashFiFo(
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -116,7 +116,7 @@ async def write_test_spi(dut):
 
 @cocotb.test()
 async def read_test_spi(dut):
-    spi_subordinate = SpiFlashMemory(
+    spi_subordinate = SpiFlashFiFo(
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -153,7 +153,7 @@ async def read_test_spi(dut):
 
 @cocotb.test()
 async def write_test_qspi(dut):
-    qspi_subordinate = QSpiFlashMemory(
+    qspi_subordinate = QSpiFlashFiFo(
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -203,7 +203,7 @@ async def write_test_qspi(dut):
 
 @cocotb.test()
 async def read_test_qspi(dut):
-    qspi_subordinate = QSpiFlashMemory(
+    qspi_subordinate = QSpiFlashFiFo(
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -253,7 +253,7 @@ async def read_test_qspi(dut):
 @cocotb.test()
 @cocotb.parametrize(num_bytes=range(2, 5))
 async def write_test_burst_qspi(dut, num_bytes):
-    qspi_subordinate = QSpiFlashMemory(
+    qspi_subordinate = QSpiFlashFiFo(
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -305,7 +305,7 @@ async def write_test_burst_qspi(dut, num_bytes):
 @cocotb.test()
 @cocotb.parametrize(num_bytes=range(2, 5))
 async def read_test_burst_qspi(dut, num_bytes):
-    qspi_subordinate = QSpiFlashMemory(
+    qspi_subordinate = QSpiFlashFiFo(
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",

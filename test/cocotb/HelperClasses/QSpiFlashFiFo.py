@@ -3,7 +3,7 @@ import logging
 from cocotbext.qspi import QSpiSubordinateBase, QSpiBus, QSpiConfig
 
 
-class QSpiFlashMemory(QSpiSubordinateBase):
+class QSpiFlashFiFo(QSpiSubordinateBase):
     write_enable = 0x06
     program = 0x02
     read = 0x03
@@ -30,10 +30,10 @@ class QSpiFlashMemory(QSpiSubordinateBase):
         self.idle.clear()
         self.opcode = int(await self._quad_recieve(8))
         self.log.info("   opcode:  %x", self.opcode)
-        if self.opcode == QSpiFlashMemory.write_enable:
+        if self.opcode == QSpiFlashFiFo.write_enable:
             self.write_enable = True
             self.log.info("   writing enabled")
-        elif self.opcode == QSpiFlashMemory.long_address_enable:
+        elif self.opcode == QSpiFlashFiFo.long_address_enable:
             self.address_width = 32
             self.log.info("   address length now 32 bit")
         else:
@@ -41,7 +41,7 @@ class QSpiFlashMemory(QSpiSubordinateBase):
             self.log.info("   address: %d", self.address)
 
         # Manager ordered a read
-        if self.opcode == QSpiFlashMemory.read:
+        if self.opcode == QSpiFlashFiFo.read:
             for i in range(self.num_bytes):
                 data = 0
                 if len(self.data) >= self.num_bytes:
@@ -50,7 +50,7 @@ class QSpiFlashMemory(QSpiSubordinateBase):
                 self.log.info("   sending %x", data)
 
         # Manager ordered a program
-        if self.opcode == QSpiFlashMemory.program:
+        if self.opcode == QSpiFlashFiFo.program:
             if not self.write_enable:
                 raise RuntimeError("Write enable not set!")
 

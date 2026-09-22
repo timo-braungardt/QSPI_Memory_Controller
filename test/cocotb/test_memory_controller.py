@@ -10,7 +10,7 @@ from cocotb.clock import Clock
 from collections import deque
 from cocotbext.axi import AxiBus, AxiMaster
 from cocotbext.spi import SpiBus
-from HelperClasses import SpiFlashMemory, DummyData
+from HelperClasses import SpiFlashFiFo, DummyData
 
 DATA_WIDTH = int(os.environ.get("PARAM_DATA_WIDTH", 32))
 NUM_BYTES = DATA_WIDTH // 8
@@ -41,7 +41,7 @@ async def write_test(dut, num_bytes):
     await reset_dut(dut)
 
     axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
-    spi_subordinate = SpiFlashMemory(
+    spi_subordinate = SpiFlashFiFo(
         SpiBus(
             entity=dut,
             sclk_name="o_spi_bus_clock",
@@ -62,7 +62,7 @@ async def write_test(dut, num_bytes):
     assert trigger != timeout
     if dut.spi_busy.value == True:
         await FallingEdge(dut.spi_busy)
-    assert spi_subordinate.opcode == SpiFlashMemory.program
+    assert spi_subordinate.opcode == SpiFlashFiFo.program
     assert spi_subordinate.address == 0x1000
     assert len(spi_subordinate.data) == test_data.num_bytes
     assert spi_subordinate.data == test_data.get_test_array()
@@ -76,7 +76,7 @@ async def read_test(dut, num_bytes):
     await reset_dut(dut)
 
     axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
-    spi_subordinate = SpiFlashMemory(
+    spi_subordinate = SpiFlashFiFo(
         SpiBus(
             entity=dut,
             sclk_name="o_spi_bus_clock",
@@ -99,7 +99,7 @@ async def read_test(dut, num_bytes):
     if dut.spi_busy.value == True:
         timeout = Timer(100, unit="us")
         await First(FallingEdge(dut.spi_busy), timeout)
-    assert spi_subordinate.opcode == SpiFlashMemory.read
+    assert spi_subordinate.opcode == SpiFlashFiFo.read
     assert spi_subordinate.address == 0x1000
     data = read_task.result()
     assert list(data.data) == test_data.get_test_array()
@@ -114,7 +114,7 @@ async def write_burst_test(dut, num_bytes):
     await reset_dut(dut)
 
     axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
-    spi_subordinate = SpiFlashMemory(
+    spi_subordinate = SpiFlashFiFo(
         SpiBus(
             entity=dut,
             sclk_name="o_spi_bus_clock",
@@ -136,7 +136,7 @@ async def write_burst_test(dut, num_bytes):
     assert trigger != timeout
     if dut.spi_busy.value == True:
         await FallingEdge(dut.spi_busy)
-    assert spi_subordinate.opcode == SpiFlashMemory.program
+    assert spi_subordinate.opcode == SpiFlashFiFo.program
     assert spi_subordinate.address == 0x1000
     assert len(spi_subordinate.data) == test_data.num_bytes
     assert spi_subordinate.data == test_data.get_test_array()
@@ -150,7 +150,7 @@ async def read_burst_test(dut, num_bytes):
     await reset_dut(dut)
 
     axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
-    spi_subordinate = SpiFlashMemory(
+    spi_subordinate = SpiFlashFiFo(
         SpiBus(
             entity=dut,
             sclk_name="o_spi_bus_clock",
@@ -173,7 +173,7 @@ async def read_burst_test(dut, num_bytes):
     if dut.spi_busy.value == True:
         timeout = Timer(100, unit="us")
         await First(FallingEdge(dut.spi_busy), timeout)
-    assert spi_subordinate.opcode == SpiFlashMemory.read
+    assert spi_subordinate.opcode == SpiFlashFiFo.read
     assert spi_subordinate.address == 0x1000
     data = read_task.result()
     assert list(data.data) == test_data.get_test_array()

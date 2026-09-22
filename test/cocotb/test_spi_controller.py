@@ -9,7 +9,7 @@ from cocotb.triggers import Timer, First, ClockCycles, RisingEdge, FallingEdge
 from cocotb.clock import Clock
 from collections import deque
 from cocotbext.spi import SpiBus
-from HelperClasses import SpiFlashMemory, DummyData
+from HelperClasses import SpiFlashFiFo, DummyData
 
 DATA_WIDTH = int(os.environ.get("PARAM_DATA_WIDTH", 32))
 DATA_WIDTH_BYTES = DATA_WIDTH // 8
@@ -93,7 +93,7 @@ async def handle_read_burst(dut, subordinate, test_data):
 
 @cocotb.test()
 async def spi_transmission_test(dut):
-    spi_subordinate = SpiFlashMemory(
+    spi_subordinate = SpiFlashFiFo(
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -129,7 +129,7 @@ async def spi_transmission_test(dut):
 @cocotb.test()
 @cocotb.parametrize(num_bytes=range(1, DATA_WIDTH_BYTES + 1))
 async def spi_read_test(dut, num_bytes):
-    spi_subordinate = SpiFlashMemory(
+    spi_subordinate = SpiFlashFiFo(
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -160,7 +160,7 @@ async def spi_read_test(dut, num_bytes):
     assert trigger != timeout
 
     [opcode, address] = await spi_subordinate.get_content()
-    assert opcode == SpiFlashMemory.read
+    assert opcode == SpiFlashFiFo.read
     assert address == 20
     assert dut.o_data_read.value == test_data.get_test_number()
 
@@ -168,7 +168,7 @@ async def spi_read_test(dut, num_bytes):
 @cocotb.test()
 @cocotb.parametrize(num_bytes=range(1, DATA_WIDTH_BYTES + 1))
 async def spi_write_test(dut, num_bytes):
-    spi_subordinate = SpiFlashMemory(
+    spi_subordinate = SpiFlashFiFo(
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -201,7 +201,7 @@ async def spi_write_test(dut, num_bytes):
     trigger = await First(RisingEdge(dut.o_chip_select_neg), timeout)
     assert trigger != timeout
 
-    assert spi_subordinate.opcode == SpiFlashMemory.program
+    assert spi_subordinate.opcode == SpiFlashFiFo.program
     assert spi_subordinate.address == 21
     assert spi_subordinate.write_enable
     assert spi_subordinate.data == test_data.get_test_array()
@@ -210,7 +210,7 @@ async def spi_write_test(dut, num_bytes):
 @cocotb.test()
 @cocotb.parametrize(num_bytes=[3])
 async def spi_endianness_test(dut, num_bytes):
-    spi_subordinate = SpiFlashMemory(
+    spi_subordinate = SpiFlashFiFo(
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -244,7 +244,7 @@ async def spi_endianness_test(dut, num_bytes):
     trigger = await First(RisingEdge(dut.o_chip_select_neg), timeout)
     assert trigger != timeout
 
-    assert spi_subordinate.opcode == SpiFlashMemory.program
+    assert spi_subordinate.opcode == SpiFlashFiFo.program
     assert spi_subordinate.address == 21
     assert spi_subordinate.write_enable
     assert spi_subordinate.data == test_data.get_test_array()
@@ -258,7 +258,7 @@ async def spi_endianness_test(dut, num_bytes):
     assert trigger != timeout
 
     [opcode, address] = await spi_subordinate.get_content()
-    assert opcode == SpiFlashMemory.read
+    assert opcode == SpiFlashFiFo.read
     assert address == 21
     assert dut.o_data_read.value == test_data.get_test_number()
 
@@ -266,7 +266,7 @@ async def spi_endianness_test(dut, num_bytes):
 @cocotb.test()
 @cocotb.parametrize(num_bytes=range(DATA_WIDTH_BYTES, DATA_WIDTH_BYTES * 2))
 async def write_test_burst_qspi(dut, num_bytes):
-    spi_subordinate = SpiFlashMemory(
+    spi_subordinate = SpiFlashFiFo(
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -296,7 +296,7 @@ async def write_test_burst_qspi(dut, num_bytes):
     # the write command
     await handle_write_burst(dut, spi_subordinate, test_data)
 
-    assert spi_subordinate.opcode == SpiFlashMemory.program
+    assert spi_subordinate.opcode == SpiFlashFiFo.program
     assert spi_subordinate.write_enable
     assert spi_subordinate.address == 0x800001
     assert len(spi_subordinate.data) == test_data.num_bytes
@@ -306,7 +306,7 @@ async def write_test_burst_qspi(dut, num_bytes):
 @cocotb.test()
 @cocotb.parametrize(num_bytes=range(DATA_WIDTH_BYTES, DATA_WIDTH_BYTES * 2))
 async def read_test_burst_qspi(dut, num_bytes):
-    spi_subordinate = SpiFlashMemory(
+    spi_subordinate = SpiFlashFiFo(
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -331,13 +331,13 @@ async def read_test_burst_qspi(dut, num_bytes):
     await trigger_go(dut)
     await handle_read_burst(dut, spi_subordinate, test_data)
 
-    assert spi_subordinate.opcode == SpiFlashMemory.read
+    assert spi_subordinate.opcode == SpiFlashFiFo.read
     assert spi_subordinate.address == 0x800001
 
 
 @cocotb.test()
 async def spi_dummy_cycles_test(dut):
-    spi_subordinate = SpiFlashMemory(
+    spi_subordinate = SpiFlashFiFo(
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -369,14 +369,14 @@ async def spi_dummy_cycles_test(dut):
     assert trigger != timeout
 
     [opcode, address] = await spi_subordinate.get_content()
-    assert opcode == SpiFlashMemory.read
+    assert opcode == SpiFlashFiFo.read
     assert address == 20
     assert dut.o_data_read.value == 0x34
 
 
 @cocotb.test()
 async def qspi_enable_test(dut):
-    spi_subordinate = SpiFlashMemory(
+    spi_subordinate = SpiFlashFiFo(
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",

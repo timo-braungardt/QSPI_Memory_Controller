@@ -1,3 +1,3 @@
-from .SpiFlashMemory import SpiFlashMemory
-from .QSpiFlashMemory import QSpiFlashMemory
+from .SpiFlashFiFo import SpiFlashFiFo
+from .QSpiFlashFiFo import QSpiFlashFiFo
 from .DummyData import DummyData

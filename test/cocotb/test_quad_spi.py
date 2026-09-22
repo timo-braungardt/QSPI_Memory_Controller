@@ -6,7 +6,7 @@ from cocotb_tools.runner import get_runner
 from cocotb.triggers import Timer, First, ClockCycles
 from cocotb.clock import Clock
 from cocotbext.qspi import QSpiBus, QSpiConfig
-from HelperClasses import QSpiFlashMemory
+from HelperClasses import QSpiFlashFiFo
 
 
 async def reset_dut(dut):
@@ -18,7 +18,7 @@ async def reset_dut(dut):
 
 @cocotb.test()
 async def transmission_test(dut):
-    qspi_subordinate = QSpiFlashMemory(
+    qspi_subordinate = QSpiFlashFiFo(
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -70,7 +70,7 @@ async def transmission_test(dut):
 @cocotb.test()
 async def read_test(dut):
 
-    qspi_subordinate = QSpiFlashMemory(
+    qspi_subordinate = QSpiFlashFiFo(
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -126,7 +126,7 @@ async def read_test(dut):
 @cocotb.test()
 async def write_test(dut):
 
-    qspi_subordinate = QSpiFlashMemory(
+    qspi_subordinate = QSpiFlashFiFo(
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",

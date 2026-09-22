@@ -8,7 +8,7 @@ from cocotb.clock import Clock
 from collections import deque
 from cocotbext.qspi import QSpiBus, QSpiConfig
 from cocotbext.spi import SpiBus
-from HelperClasses import SpiFlashMemory, QSpiFlashMemory
+from HelperClasses import SpiFlashFiFo, QSpiFlashFiFo
 
 async def reset_dut(dut):
     dut.reset.value = 1
@@ -19,7 +19,7 @@ async def reset_dut(dut):
 
 @cocotb.test()
 async def qspi_transmission_test(dut):
-    qspi_subordinate = QSpiFlashMemory(
+    qspi_subordinate = QSpiFlashFiFo(
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -74,7 +74,7 @@ async def qspi_transmission_test(dut):
 @cocotb.test()
 async def qspi_read_test(dut):
 
-    qspi_subordinate = QSpiFlashMemory(
+    qspi_subordinate = QSpiFlashFiFo(
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -133,7 +133,7 @@ async def qspi_read_test(dut):
 @cocotb.test()
 async def qspi_write_test(dut):
 
-    qspi_subordinate = QSpiFlashMemory(
+    qspi_subordinate = QSpiFlashFiFo(
         QSpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -224,7 +224,7 @@ async def trigger_go(dut):
 
 @cocotb.test()
 async def spi_transmission_test(dut):
-    spi_subordinate = SpiFlashMemory(
+    spi_subordinate = SpiFlashFiFo(
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -260,7 +260,7 @@ async def spi_transmission_test(dut):
 async def spi_timing_read_test(dut):
     timeout = Timer(100, unit="us")
 
-    spi_subordinate = SpiFlashMemory(
+    spi_subordinate = SpiFlashFiFo(
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -277,7 +277,7 @@ async def spi_timing_read_test(dut):
 
     dut.is_quad_mode.value = 0b000
 
-    dut.opcode.value = SpiFlashMemory.read
+    dut.opcode.value = SpiFlashFiFo.read
     dut.address.value = 0x000000
 
     dut.write_address.value = 0b1
@@ -303,7 +303,7 @@ async def spi_timing_read_test(dut):
 async def spi_timing_write_test(dut):
     timeout = Timer(100, unit="us")
 
-    spi_subordinate = SpiFlashMemory(
+    spi_subordinate = SpiFlashFiFo(
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -320,7 +320,7 @@ async def spi_timing_write_test(dut):
 
     dut.is_quad_mode.value = 0b000
 
-    dut.opcode.value = SpiFlashMemory.program
+    dut.opcode.value = SpiFlashFiFo.program
     dut.address.value = 0x000000
 
     dut.write_address.value = 0b1
@@ -347,7 +347,7 @@ async def spi_timing_write_test(dut):
 
 @cocotb.test()
 async def spi_read_test(dut):
-    spi_subordinate = SpiFlashMemory(
+    spi_subordinate = SpiFlashFiFo(
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -364,7 +364,7 @@ async def spi_read_test(dut):
 
     dut.is_quad_mode.value = 0b000
 
-    dut.opcode.value = SpiFlashMemory.read
+    dut.opcode.value = SpiFlashFiFo.read
     dut.address.value = 20
 
     dut.write_address.value = 0b1
@@ -379,7 +379,7 @@ async def spi_read_test(dut):
     await dut.o_chip_select_neg.value_change
     [opcode, address] = await spi_subordinate.get_content()
 
-    assert opcode == SpiFlashMemory.read
+    assert opcode == SpiFlashFiFo.read
     assert address == 20
 
     assert dut.buffer[0].value.to_unsigned() == 0x12
@@ -391,7 +391,7 @@ async def spi_read_test(dut):
 @cocotb.test()
 async def spi_write_test(dut):
 
-    spi_subordinate = SpiFlashMemory(
+    spi_subordinate = SpiFlashFiFo(
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -408,7 +408,7 @@ async def spi_write_test(dut):
 
     dut.is_quad_mode.value = 0b000
 
-    dut.opcode.value = SpiFlashMemory.write_enable
+    dut.opcode.value = SpiFlashFiFo.write_enable
 
     dut.write_address.value = 0b0
     dut.write_data.value = 0b0
@@ -420,10 +420,10 @@ async def spi_write_test(dut):
     await ClockCycles(dut.clk, 2, rising=True)
     await dut.o_chip_select_neg.value_change
 
-    assert spi_subordinate.opcode == SpiFlashMemory.write_enable
+    assert spi_subordinate.opcode == SpiFlashFiFo.write_enable
     assert spi_subordinate.write_enable
 
-    dut.opcode.value = SpiFlashMemory.program
+    dut.opcode.value = SpiFlashFiFo.program
     dut.address.value = 21
 
     dut.write_address.value = 0b1
@@ -439,7 +439,7 @@ async def spi_write_test(dut):
     await ClockCycles(dut.clk, 2, rising=True)
     await dut.o_chip_select_neg.value_change
 
-    assert spi_subordinate.opcode == SpiFlashMemory.program
+    assert spi_subordinate.opcode == SpiFlashFiFo.program
     assert spi_subordinate.address == 21
     assert spi_subordinate.write_enable
     assert spi_subordinate.data == [0x80, 0x01]

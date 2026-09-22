@@ -4,7 +4,7 @@ from cocotbext.spi import SpiSlaveBase, SpiBus, SpiConfig
 from cocotb.triggers import FallingEdge, First, RisingEdge, Timer
 
 
-class SpiFlashMemory(SpiSlaveBase):
+class SpiFlashFiFo(SpiSlaveBase):
     write_enable = 0x06
     program = 0x02
     read = 0x03
@@ -56,10 +56,10 @@ class SpiFlashMemory(SpiSlaveBase):
         self.idle.clear()
         self.opcode = int(await self._recieve_data(8))
         self.log.info("   opcode:  %x", self.opcode)
-        if self.opcode == SpiFlashMemory.write_enable:
+        if self.opcode == SpiFlashFiFo.write_enable:
             self.write_enable = True
             self.log.info("   writing enabled")
-        elif self.opcode == SpiFlashMemory.long_address_enable:
+        elif self.opcode == SpiFlashFiFo.long_address_enable:
             self.address_width = 32
             self.log.info("   address length now 32 bit")
         else:
@@ -67,7 +67,7 @@ class SpiFlashMemory(SpiSlaveBase):
             self.log.info("   address: %d", self.address)
 
         # Manager ordered a read
-        if self.opcode == SpiFlashMemory.read:
+        if self.opcode == SpiFlashFiFo.read:
             for i in range(self.num_bytes):
                 data = 0
                 if len(self.data) >= self.num_bytes:
@@ -76,7 +76,7 @@ class SpiFlashMemory(SpiSlaveBase):
                 self.log.info("   sending %x", data)
 
         # Manager ordered a program
-        if self.opcode == SpiFlashMemory.program:
+        if self.opcode == SpiFlashFiFo.program:
             if not self.write_enable:
                 raise RuntimeError("Write enable not set!")
 
@@ -85,7 +85,7 @@ class SpiFlashMemory(SpiSlaveBase):
                 self.log.info("   recieved %x", data)
                 self.data.append(data)
 
-        if self.opcode == SpiFlashMemory.write_any_address:
+        if self.opcode == SpiFlashFiFo.write_any_address:
             if not self.write_enable:
                 raise RuntimeError("Write enable not set!")
 
