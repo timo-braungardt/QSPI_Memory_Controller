@@ -105,6 +105,42 @@ async def readwrite_unalligned_test(dut, params):
     assert list(data.data) == test_data.get_test_array()
 
 
+@cocotb.test()
+async def endianness_test(dut):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await Timer(50, unit="ns")
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    await reset_model(dut)
+
+    addr = 0x0140
+    offset = 3
+    test_data = DummyData(4)
+    test_data._array = [0, 1, 2, 3, 4, 5, 6, 7]
+
+    # step: write
+    timeout = Timer(200, unit="us")
+    write_task = cocotb.start_soon(axi_master.write(addr, test_data.get_test_array()))
+    trigger = await First(write_task, timeout)
+    assert trigger != timeout
+    if dut.Controller.spi_busy.value == True:
+        await FallingEdge(dut.Controller.spi_busy)
+
+    await T_pp_typ
+
+    # step: read
+    timeout = Timer(200, unit="us")
+    read_task = cocotb.start_soon(axi_master.read_byte(addr + offset))
+    trigger = await First(read_task, timeout)
+    assert trigger != timeout
+    if dut.Controller.spi_busy.value == True:
+        timeout = Timer(100, unit="us")
+        await First(FallingEdge(dut.Controller.spi_busy), timeout)
+    data = read_task.result()
+    assert data == test_data.get_test_number_word(offset, 1)
+
+
 def test_memory_controller_model(wave=False):
     """
     Integration test of all modules in memory controller.

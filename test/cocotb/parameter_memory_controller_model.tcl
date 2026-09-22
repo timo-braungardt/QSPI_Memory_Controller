@@ -10,7 +10,6 @@ add wave sim:/Memory_Controller_wrapper/bus_clock;
 add wave sim:/Memory_Controller_wrapper/Controller/SPI_Controller/SPI_Transmitter/state_reg;
 add wave sim:/Memory_Controller_wrapper/Controller/SPI_Controller/SPI_Transmitter/count_reg;
 add wave sim:/Memory_Controller_wrapper/Memory/data_out;
-add wave sim:/Memory_Controller_wrapper/Controller/SPI_Controller/SPI_Transmitter/data_write_selected_byte;
 add wave sim:/Memory_Controller_wrapper/Memory/Instruct;
 add wave sim:/Memory_Controller_wrapper/Memory/PoweredUp;
 add wave sim:/Memory_Controller_wrapper/Controller/SPI_Controller/o_data_read;
