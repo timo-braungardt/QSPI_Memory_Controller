@@ -247,7 +247,7 @@ async def spi_endianness_test(dut, num_bytes):
     assert spi_subordinate.opcode == SpiFlashMemory.program
     assert spi_subordinate.address == 0x20
     assert spi_subordinate.write_enable
-    assert spi_subordinate.data[0x20:0x20+num_bytes] == test_data.get_test_array()
+    assert spi_subordinate.data[0x20 : 0x20 + num_bytes] == test_data.get_test_array()
 
     # read back data
     dut.i_write_enable.value = False
