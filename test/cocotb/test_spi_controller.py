@@ -9,7 +9,7 @@ from cocotb.triggers import Timer, First, ClockCycles, RisingEdge, FallingEdge
 from cocotb.clock import Clock
 from collections import deque
 from cocotbext.spi import SpiBus
-from HelperClasses import SpiFlashFiFo, DummyData
+from HelperClasses import SpiFlashFiFo, SpiFlashMemory, DummyData
 
 DATA_WIDTH = int(os.environ.get("PARAM_DATA_WIDTH", 32))
 DATA_WIDTH_BYTES = DATA_WIDTH // 8
@@ -208,9 +208,9 @@ async def spi_write_test(dut, num_bytes):
 
 
 @cocotb.test()
-@cocotb.parametrize(num_bytes=[3])
+@cocotb.parametrize(num_bytes=[4])
 async def spi_endianness_test(dut, num_bytes):
-    spi_subordinate = SpiFlashFiFo(
+    spi_subordinate = SpiFlashMemory(
         SpiBus(
             entity=dut,
             sclk_name="o_bus_clock",
@@ -228,7 +228,7 @@ async def spi_endianness_test(dut, num_bytes):
     dut.config_quad_mode.value = False
 
     # write data
-    dut.i_address.value = 21
+    dut.i_address.value = 0x20
     dut.i_data_write.value = test_data.get_test_number()
     dut.i_write_enable.value = True
     dut.i_last_word.value = True
@@ -244,13 +244,16 @@ async def spi_endianness_test(dut, num_bytes):
     trigger = await First(RisingEdge(dut.o_chip_select_neg), timeout)
     assert trigger != timeout
 
-    assert spi_subordinate.opcode == SpiFlashFiFo.program
-    assert spi_subordinate.address == 21
+    assert spi_subordinate.opcode == SpiFlashMemory.program
+    assert spi_subordinate.address == 0x20
     assert spi_subordinate.write_enable
-    assert spi_subordinate.data == test_data.get_test_array()
+    assert spi_subordinate.data[0x20:0x20+num_bytes] == test_data.get_test_array()
 
     # read back data
     dut.i_write_enable.value = False
+    dut.i_address.value = 0x21
+    dut.i_num_bytes.value = 1
+    spi_subordinate.num_bytes = 2
 
     await trigger_go(dut)
     timeout = Timer(100, unit="us")
@@ -258,9 +261,9 @@ async def spi_endianness_test(dut, num_bytes):
     assert trigger != timeout
 
     [opcode, address] = await spi_subordinate.get_content()
-    assert opcode == SpiFlashFiFo.read
-    assert address == 21
-    assert dut.o_data_read.value == test_data.get_test_number()
+    assert opcode == SpiFlashMemory.read
+    assert address == dut.i_address.value
+    assert dut.o_data_read.value.to_unsigned() == test_data.get_test_number_word(1, 2)
 
 
 @cocotb.test()
