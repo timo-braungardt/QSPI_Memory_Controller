@@ -84,6 +84,9 @@ class SpiFlashMemory(SpiSlaveBase):
         if self.opcode == SpiFlashMemory.program:
             if not self.write_enable:
                 raise RuntimeError("Write enable not set!")
+            
+            if (self.address + self.num_bytes) > self._memory_size:
+                raise RuntimeError("Access out of memory array")
 
             for i in range(self.num_bytes):
                 data = int(await self._recieve_data(8))
