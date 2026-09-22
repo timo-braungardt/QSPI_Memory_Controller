@@ -85,6 +85,7 @@ class SpiFlashFiFo(SpiSlaveBase):
                 self.log.info("   recieved %x", data)
                 self.data.append(data)
 
+        # Manager ordered a write to config registers
         if self.opcode == SpiFlashFiFo.write_any_address:
             if not self.write_enable:
                 raise RuntimeError("Write enable not set!")
