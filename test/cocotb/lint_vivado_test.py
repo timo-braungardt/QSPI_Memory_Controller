@@ -5,17 +5,23 @@ from shutil import which
 import subprocess
 import pytest
 
+"""
+lint_vivado_test.py
 
-VIVADO_PATH = ""
-FILE_TCL_SCRIPT = ""
-FILE_YAML_GROUP = ""
+This script allows pytest to run the vivado lint on the project groups
+defined in the lint_groups_config.yml
+"""
+
+
+FILE_YAML = Path("../../lint_groups_config.yml")
+YAML_TOPS = ""
 PATH_TO_SRC_FOLDER = "../../"
 
 
 def parse_yaml(yaml_path):
     with open(yaml_path, "r") as f:
         file_content = yaml.safe_load(f)
-    
+
     groups = file_content.get("groups")
     for group in groups:
         for i in range(len(group["files"])):
@@ -26,7 +32,7 @@ def parse_yaml(yaml_path):
 def get_tops(groups):
     arr = []
     for group in groups:
-            arr.append(group["top"])
+        arr.append(group["top"])
     print(arr)
     return arr
 
@@ -37,40 +43,42 @@ def get_files(groups, top):
             return group["files"]
 
 
-
-# check if yaml file is there
-FILE_YAML_GROUP = Path("../../lint_groups_config.yml")
-if not FILE_YAML_GROUP.exists():
-    raise Exception(f"Group yaml not found!")
-YAML_GROUP = parse_yaml(FILE_YAML_GROUP)
-YAML_TOP = get_tops(YAML_GROUP)
+# This code generates the testcases for pytest
+if not FILE_YAML.exists():
+    raise Exception(f"Group yaml file not found!")
+YAML_TOPS = get_tops(parse_yaml(FILE_YAML))
 
 
-@pytest.mark.parametrize("group", YAML_TOP )
+@pytest.mark.parametrize("group", YAML_TOPS)
 def test_vivado_linting(group):
-    print(group)
     # check if vivado is in path
-    VIVADO_PATH = which("vivado")
-    if VIVADO_PATH is None:
+    vivado_path = which("vivado")
+    if vivado_path is None:
         raise SkipTest(f"Vivado not found!")
 
     # check if tcl script is there
-    FILE_TCL_SCRIPT = Path("./lint_vivado_script.tcl")
-    if not FILE_TCL_SCRIPT.exists():
+    file_tcl_script = Path("./lint_vivado_script.tcl")
+    if not file_tcl_script.exists():
         raise Exception(f"tcl script not found!")
-    
+
+    parsedYaml = parse_yaml(FILE_YAML)
+
     cmd = [
-        VIVADO_PATH,
-        "-mode", "batch",
-        "-source", str(FILE_TCL_SCRIPT),
+        vivado_path,
+        "-mode",
+        "batch",
+        "-source",
+        str(file_tcl_script),
         "-nolog",
         "-nojournal",
-        "-tclargs", group,
-    ] + get_files(YAML_GROUP, group)
-    
+        "-tclargs",
+        group,
+    ] + get_files(parsedYaml, group)
+
     result = subprocess.run(cmd)
     assert result.returncode == 0
 
 
 if __name__ == "__main__":
-    test_vivado_linting(get_tops(YAML_GROUP))
+    for top in YAML_TOPS:
+        test_vivado_linting(top)
