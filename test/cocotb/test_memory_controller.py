@@ -10,7 +10,7 @@ from cocotb.clock import Clock
 from collections import deque
 from cocotbext.axi import AxiBus, AxiMaster
 from cocotbext.spi import SpiBus
-from HelperClasses import SpiFlashFiFo, DummyData
+from HelperClasses import SpiFlashFiFo, DummyData, SpiFlashMemory
 
 DATA_WIDTH = int(os.environ.get("PARAM_DATA_WIDTH", 32))
 NUM_BYTES = DATA_WIDTH // 8
@@ -177,6 +177,47 @@ async def read_burst_test(dut, num_bytes):
     assert spi_subordinate.address == 0x1000
     data = read_task.result()
     assert list(data.data) == test_data.get_test_array()
+
+
+@cocotb.test()
+async def endianness_test(dut):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_dut(dut)
+
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    spi_subordinate = SpiFlashMemory(
+        SpiBus(
+            entity=dut,
+            sclk_name="o_spi_bus_clock",
+            mosi_name="io_spi_data0_manager_serial_out",
+            miso_name="io_spi_data1_manager_serial_in",
+            cs_name="o_spi_chip_select_neg",
+        )
+    )
+
+    addr = 0x0140
+    offset = 2
+    test_data = DummyData(4)
+
+    # step: write
+    timeout = Timer(200, unit="us")
+    write_task = cocotb.start_soon(axi_master.write(addr, test_data.get_test_array()))
+    trigger = await First(write_task, timeout)
+    assert trigger != timeout
+    if dut.spi_busy.value == True:
+        await FallingEdge(dut.spi_busy)
+
+    # step: read
+    timeout = Timer(200, unit="us")
+    read_task = cocotb.start_soon(axi_master.read(addr + offset, 1))
+    trigger = await First(read_task, timeout)
+    assert trigger != timeout
+    if dut.spi_busy.value == True:
+        timeout = Timer(100, unit="us")
+        await First(FallingEdge(dut.spi_busy), timeout)
+    data = read_task.result()
+    assert int.from_bytes(data.data) == test_data.get_test_array()[offset]
 
 
 def test_memory_controller():
