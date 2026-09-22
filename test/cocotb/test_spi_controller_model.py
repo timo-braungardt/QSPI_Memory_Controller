@@ -8,6 +8,7 @@ from cocotb.triggers import Timer, First, FallingEdge, RisingEdge, ClockCycles
 from cocotb.clock import Clock
 from cocotb.types import Logic, LogicArray
 from unittest import SkipTest
+from HelperClasses import DummyData
 
 
 T_pp_typ = Timer(480, unit="us")  # program time typical from the datasheet
@@ -128,6 +129,40 @@ async def qspi_read_test(dut):
     await wait_for_idle(dut)
 
     assert dut.o_data_read.value == 0x34
+
+
+@cocotb.test()
+async def endianness_test(dut):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+    await reset_model(dut)
+
+    addr = 0x0140
+    offset = 1
+    test_data = DummyData(4)
+
+    # step: write
+    dut.Controller.config_quad_mode.value = 0b000
+    dut.i_address.value = addr
+    dut.i_data_write.value = test_data.get_test_number()
+    dut.i_write_enable.value = True
+    dut.i_last_word.value = True
+    dut.num_bytes.value = test_data.num_bytes - 1
+
+    await trigger_go(dut)
+    await wait_for_idle(dut)
+
+    # step: read
+    await Timer(480, unit="us")  # T_PP typ in the datasheet
+
+    dut.i_address.value = addr + offset
+    dut.i_write_enable.value = False
+    dut.num_bytes.value = 0
+
+    await trigger_go(dut)
+    await wait_for_idle(dut)
+
+    assert dut.o_data_read.value.to_unsigned() == test_data.get_test_number_word(offset, 1)
 
 
 def test_spi_controller_model(wave=False):

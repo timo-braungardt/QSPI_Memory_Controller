@@ -2,7 +2,7 @@
 
 module SPIController_wrapper #(
     parameter ADDRESS_LENGTH = 24,
-    parameter DATA_WIDTH = 8
+    parameter DATA_WIDTH = 32
 );
 
     reg clk;
