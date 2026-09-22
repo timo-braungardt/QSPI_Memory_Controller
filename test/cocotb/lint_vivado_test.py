@@ -4,6 +4,7 @@ import yaml
 from shutil import which
 import subprocess
 import pytest
+from unittest import SkipTest
 
 """
 lint_vivado_test.py
@@ -45,7 +46,7 @@ def get_files(groups, top):
 
 # This code generates the testcases for pytest
 if not FILE_YAML.exists():
-    raise Exception(f"Group yaml file not found!")
+    raise SkipTest(f"Group yaml file not found!")
 YAML_TOPS = get_tops(parse_yaml(FILE_YAML))
 
 
