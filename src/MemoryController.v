@@ -65,11 +65,14 @@ module MemoryController #(
     output wire                  s_axi_rvalid,
     input  wire                  s_axi_rready
 );
+    localparam ADDRESS_CUTOFF = $clog2(STRB_WIDTH);
 
     wire spi_busy;
     wire spi_next_word;
     wire spi_recieved_next_word;
     wire [ADDR_WIDTH-1:0] axi_address;
+    wire [ADDR_WIDTH-1:0] spi_address;
+    wire [ADDRESS_CUTOFF-1 : 0] byte_address;
     wire [DATA_WIDTH-1:0] axi_data_read;
     wire [DATA_WIDTH-1:0] axi_data_write;
     wire [2:0] axi_write_width;
@@ -97,6 +100,8 @@ module MemoryController #(
 
     assign spi_number_bytes_muxed = (axi_write_enable) ? spi_number_bytes_write : spi_number_bytes_read;
 
+    assign spi_address = {axi_address[ADDR_WIDTH-1 : ADDRESS_CUTOFF], (ADDRESS_CUTOFF)'(0)};
+    assign byte_address = axi_address[ADDRESS_CUTOFF -1 : 0];
 
     SPIController #(
         .ADDRESS_LENGTH(ADDR_WIDTH),
@@ -107,7 +112,7 @@ module MemoryController #(
         .reset_neg(!reset),
         .go(axi_start_transaction),
 
-        .i_address(axi_address),
+        .i_address(spi_address),
         .i_write_enable(axi_write_enable),
         .i_last_word(axi_last_word),
         .i_num_bytes(spi_number_bytes_muxed),
