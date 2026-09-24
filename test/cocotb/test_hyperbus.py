@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import cocotb
 from cocotb_tools.runner import get_runner
-from cocotb.triggers import ClockCycles
+from cocotb.triggers import ClockCycles, RisingEdge
 from cocotb.clock import Clock
 from cocotb.types import LogicArray
 from HelperClasses import HyperbusRam
@@ -12,6 +12,15 @@ async def reset_dut(dut):
     await ClockCycles(dut.clk, 1, rising=True)
     dut.reset.value = 0
     await ClockCycles(dut.clk, 1, rising=True)
+
+
+async def trigger_go(dut):
+    dut.go.value = 0
+    await ClockCycles(dut.clk, 5, rising=True)
+    dut.go.value = 1
+    await ClockCycles(dut.clk, 1, rising=True)
+    dut.go.value = 0
+    await ClockCycles(dut.clk, 2, rising=True)
 
 
 @cocotb.test()
@@ -28,13 +37,8 @@ async def transmission_test(dut):
     dut.address.value = 0x8000000D
     dut.num_bits.value = 8
 
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
-    dut.go.value = 1
-    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.o_chip_select_neg.value_change
+    await trigger_go(dut)
+    await RisingEdge(dut.o_chip_select_neg)
 
     assert memory_model.addr == 0x8000000D
     assert memory_model.is_read == True
@@ -59,13 +63,8 @@ async def read_test(dut):
     for i in range(8):
         memory_model.mem[i] = i + 1
 
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
-    dut.go.value = 1
-    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.o_chip_select_neg.value_change
+    await trigger_go(dut)
+    await RisingEdge(dut.o_chip_select_neg)
 
     assert memory_model.addr == 0x00000000
     assert memory_model.is_read == True
@@ -96,13 +95,8 @@ async def write_test(dut):
     for i in range(8):
         dut.buffer[i].value = i + 1
 
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 5, rising=True)
-    dut.go.value = 1
-    await cocotb.triggers.ClockCycles(dut.clk, 1, rising=True)
-    dut.go.value = 0
-    await cocotb.triggers.ClockCycles(dut.clk, 2, rising=True)
-    await dut.o_chip_select_neg.value_change
+    await trigger_go(dut)
+    await RisingEdge(dut.o_chip_select_neg)
 
     assert memory_model.addr == 0x00000000
     assert memory_model.is_read == False
