@@ -3,6 +3,11 @@
 OctalSPI
 
 Implementation of the octal spi interface.
+
+The bus clock is half the speed of the input clock.
+Data is shifted out at every clock cycle.
+The data is shifted out at the same time as the bus clock, therefore buffer have to be inserted on the outputs of the data line.
+The data input does not have to be buffered. It can be sampled at the system clock edges.
 */
 
 module OctalSPI (
