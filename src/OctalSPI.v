@@ -12,7 +12,7 @@ The data input does not have to be buffered. It can be sampled at the system clo
 
 module OctalSPI (
     input clk,
-    input reset,
+    input reset_neg,
     input go,
 
     // OctalSPI Pins
@@ -134,7 +134,7 @@ module OctalSPI (
 
 
     always @(posedge clk) begin : clock_register
-        if (reset) begin
+        if (~reset_neg) begin
             bus_clock_reg <= 0;
         end else begin
             bus_clock_reg <= bus_clock_nxt;
@@ -222,7 +222,7 @@ module OctalSPI (
 
 
     always @(posedge clk) begin : state_machine_register
-        if (reset) begin
+        if (~reset_neg) begin
             state_reg <= IDLE;
             count_reg <= 0;
             buffer_count_reg <= 0;
@@ -261,7 +261,7 @@ module OctalSPI (
 
 
     always @(posedge clk) begin : data_register
-        if (reset) begin
+        if (~reset_neg) begin
             data_out_reg <= 0;
         end else begin
             data_out_reg <= data_out_nxt;
@@ -276,7 +276,7 @@ module OctalSPI (
 
 
     always @(posedge clk) begin : configuration_register
-        if (reset) begin
+        if (~reset_neg) begin
             is_read <= 0;
             is_register_space <= 0;
             is_linear_burst <= 0;
