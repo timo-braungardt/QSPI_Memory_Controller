@@ -145,7 +145,7 @@ module OctalSPI (
     integer i;
     always @(*) begin : state_machine_logic
         state_nxt = state_reg;
-        count_nxt = ADDRESS_CYCLES -1;
+        count_nxt = ADDRESS_CYCLES - 1;
         buffer_count_nxt = buffer_count_reg;
         has_latency_nxt = has_latency_reg;
 
@@ -159,18 +159,17 @@ module OctalSPI (
                     state_nxt = SEND_COMMAND_ADDRESS;
                     count_nxt = count_nxt - 1;
                     for (i = 0; i < BUS_WIDTH; i = i + 1)
-                        data_out_nxt[i] = command_address[{count_reg[2:0], i[2:0]}];
+                    data_out_nxt[i] = command_address[{count_reg[2:0], i[2:0]}];
                 end
             end
 
             SEND_COMMAND_ADDRESS: begin
-                has_latency_nxt = 1'b1; // ToDo: always set latency to long latency (issue #15)
+                has_latency_nxt = 1'b1;  // ToDo: always set latency to long latency (issue #15)
                 count_nxt = count_reg - 1;
 
                 if (count_reg == 0) begin
                     buffer_count_nxt = 0;
-                    if (has_latency_reg)
-                        count_nxt = NUM_LONG_LATENCY_CYCLES + latency_offset;
+                    if (has_latency_reg) count_nxt = NUM_LONG_LATENCY_CYCLES + latency_offset;
                     else count_nxt = NUM_SHORT_LATENCY_CYCLES + latency_offset;
 
                     state_nxt = WAIT_LATENCY;
@@ -214,7 +213,7 @@ module OctalSPI (
                 end
             end
 
-            CS_HIGH: state_nxt <= CS_HIGH2;
+            CS_HIGH:  state_nxt <= CS_HIGH2;
             CS_HIGH2: state_nxt <= IDLE;
 
             default: state_nxt = IDLE;
@@ -247,7 +246,7 @@ module OctalSPI (
         case (state_reg)
             SEND_COMMAND_ADDRESS: begin
                 for (i = 0; i < BUS_WIDTH; i = i + 1)
-                    data_out_nxt[i] = command_address[{count_reg[2:0], i[2:0]}];
+                data_out_nxt[i] = command_address[{count_reg[2:0], i[2:0]}];
             end
 
             SEND_DATA: begin
@@ -263,7 +262,7 @@ module OctalSPI (
 
     always @(posedge clk) begin : data_register
         if (reset) begin
-            data_out_reg  <= 0;
+            data_out_reg <= 0;
         end else begin
             data_out_reg <= data_out_nxt;
 

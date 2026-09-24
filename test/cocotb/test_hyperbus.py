@@ -7,6 +7,7 @@ from cocotb.clock import Clock
 from cocotb.types import LogicArray
 from HelperClasses import HyperbusRam
 
+
 async def reset_dut(dut):
     dut.reset.value = 1
     await ClockCycles(dut.clk, 1, rising=True)
