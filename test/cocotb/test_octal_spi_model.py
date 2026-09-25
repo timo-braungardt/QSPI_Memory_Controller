@@ -94,7 +94,7 @@ async def read_write_test(dut):
     config_transaction(dut, OPCODE.write, address=0x001000, data=test_data.get_test_number())
     await trigger_go(dut)
     await wait_for_idle(dut)
-    
+
     await T_rwr
 
     config_transaction(dut, OPCODE.read, address=0x001000, data=test_data.get_test_number())

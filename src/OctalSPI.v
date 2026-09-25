@@ -66,11 +66,11 @@ module OctalSPI #(
     endgenerate
 
     // Bus Clock
-    reg                          bus_clock_reg;
+    reg bus_clock_reg;
     reg                          bus_clock_p2_reg;  // the bus clock has to be shifted a bit to guarantee that the data is present on the bus
-    reg                          bus_clock_nxt;
-    integer                      clock_count_reg;
-    integer                      clock_count_nxt;
+    reg bus_clock_nxt;
+    integer clock_count_reg;
+    integer clock_count_nxt;
 
     // states transmission FSM
     localparam NUM_STATES = 9;
@@ -104,18 +104,18 @@ module OctalSPI #(
     // the first latency already begins after the sample point of the upper address
     // therefore we have to subtract one cycle (-2) from the latency
     localparam integer NUM_SHORT_LATENCY_CYCLES = LATENCY_CYCLES;
-    localparam integer NUM_LONG_LATENCY_CYCLES = LATENCY_CYCLES *2 +2;
+    localparam integer NUM_LONG_LATENCY_CYCLES = LATENCY_CYCLES * 2 + 2;
     //localparam integer READ_LATENCY_IN_CYCLE = 1; // (issue #15)
     localparam integer TEMP_OPERATION_CYCLES = 1;   // transfer 2 bytes // ToDo: make dynamic handshake (issue #12)
 
     assign en_data_strobe  = (state_reg == SEND_DATA | state_reg == WAIT_LATENCY | (~i_config_read_data & (state_reg == CS_HIGH | state_reg == FINISH)));   // FINISH is needed, because otherwise the model does not store the value
-    assign io_data_strobe  = (en_data_strobe) ? data_strobe_out_reg : 1'bZ;
-    assign data_strobe_in  = io_data_strobe;
+    assign io_data_strobe = (en_data_strobe) ? data_strobe_out_reg : 1'bZ;
+    assign data_strobe_in = io_data_strobe;
     //assign en_data_out     = (state_reg != IDLE && state_reg != RECEIVE_DATA & state_reg != CS_HIGH & state_reg != FINISH);
 
-    assign o_bus_clock     =  bus_clock_p2_reg;
+    assign o_bus_clock = bus_clock_p2_reg;
     assign o_bus_clock_neg = ~bus_clock_p2_reg;
-    assign o_reset         = 1'b0;
+    assign o_reset = 1'b0;
 
 
     always @(*) begin : clock_logic
@@ -158,18 +158,18 @@ module OctalSPI #(
             end
 
             CS_LOW: begin
-                    state_nxt = SEND_OPCODE;
-                    count_nxt = OPCODE_CYCLES -1;
+                state_nxt = SEND_OPCODE;
+                count_nxt = OPCODE_CYCLES - 1;
             end
 
             SEND_OPCODE: begin
                 count_nxt = count_reg - 1;
-                    if (count_reg == 0) begin
-                        if (i_config_write_address) begin
-                            count_nxt = ADDRESS_CYCLES -1;
-                            state_nxt = SEND_ADDRESS;
-                        end else state_nxt = CS_HIGH;
-                    end
+                if (count_reg == 0) begin
+                    if (i_config_write_address) begin
+                        count_nxt = ADDRESS_CYCLES - 1;
+                        state_nxt = SEND_ADDRESS;
+                    end else state_nxt = CS_HIGH;
+                end
             end
 
             SEND_ADDRESS: begin
@@ -221,8 +221,8 @@ module OctalSPI #(
                 end
             end
 
-            CS_HIGH:  state_nxt <= FINISH;
-            FINISH: state_nxt <= IDLE;
+            CS_HIGH: state_nxt <= FINISH;
+            FINISH:  state_nxt <= IDLE;
 
             default: state_nxt = IDLE;
         endcase
@@ -253,8 +253,7 @@ module OctalSPI #(
 
         case (state_reg)
             SEND_OPCODE: begin
-                for (i = 0; i < BUS_WIDTH; i = i + 1)
-                data_out_nxt[i] = i_opcode[i[2:0]];
+                for (i = 0; i < BUS_WIDTH; i = i + 1) data_out_nxt[i] = i_opcode[i[2:0]];
             end
 
             SEND_ADDRESS: begin
