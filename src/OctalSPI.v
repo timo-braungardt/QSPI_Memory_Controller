@@ -111,7 +111,6 @@ module OctalSPI #(
     assign en_data_strobe  = (state_reg == SEND_DATA | state_reg == WAIT_LATENCY | (~i_config_read_data & (state_reg == CS_HIGH | state_reg == FINISH)));   // FINISH is needed, because otherwise the model does not store the value
     assign io_data_strobe = (en_data_strobe) ? data_strobe_out_reg : 1'bZ;
     assign data_strobe_in = io_data_strobe;
-    //assign en_data_out     = (state_reg != IDLE && state_reg != RECEIVE_DATA & state_reg != CS_HIGH & state_reg != FINISH);
 
     assign o_bus_clock = bus_clock_p2_reg;
     assign o_bus_clock_neg = ~bus_clock_p2_reg;
@@ -121,7 +120,7 @@ module OctalSPI #(
     always @(*) begin : clock_logic
         bus_clock_nxt = 1'b0;
 
-        if (state_reg != IDLE & state_reg != FINISH & state_reg != CS_LOW & state_reg != CS_HIGH) begin
+        if (state_reg != IDLE & state_reg != CS_LOW & state_reg != CS_HIGH & state_reg != FINISH) begin
             bus_clock_nxt = ~bus_clock_reg;
         end
     end
