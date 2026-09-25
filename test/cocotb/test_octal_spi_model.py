@@ -4,6 +4,7 @@ import cocotb
 from cocotb_tools.runner import get_runner
 from cocotb.triggers import Timer, RisingEdge, ClockCycles, First
 from cocotb.clock import Clock
+from cocotb.handle import Immediate
 from HelperClasses import DummyData
 
 T_rwr = Timer(35, unit="ns")  # read-write recovery time from the datasheet
@@ -24,8 +25,8 @@ async def reset_model(dut):
     dut.reset_neg.value = 1
     await Timer(200, unit="ns")  # t_RH
 
-    if dut.Memory.top.PoweredUp.value == 0:
-        await dut.Memory.top.PoweredUp.value_change
+    if dut.Memory.bottom.PoweredUp.value == 0:
+        await dut.Memory.bottom.PoweredUp.value_change
 
 
 async def wait_for_idle(dut):
@@ -44,6 +45,19 @@ async def trigger_go(dut):
 
 def check_write_enable(dut):
     return dut.Memory.bottom.WREN.value
+
+
+def set_variable_latency(dut):
+    config = dut.Memory.top.Config_reg0.value
+    config[3] = 0
+    dut.Memory.top.Config_reg0.set(Immediate(config)) 
+
+    config = dut.Memory.bottom.Config_reg0.value
+    config[3] = 0
+    dut.Memory.bottom.Config_reg0.set(Immediate(config)) 
+
+    assert dut.Memory.bottom.Config_reg0.value[3] == 0
+    assert dut.Memory.top.Config_reg0.value[3] == 0
 
 
 def config_transaction(dut, opcode, address=0, data=0):
@@ -86,6 +100,38 @@ async def read_write_test(dut):
     config_transaction(dut, OPCODE.write_enable)
     await trigger_go(dut)
     await wait_for_idle(dut)
+
+    await T_rwr
+
+    assert check_write_enable(dut)
+
+    config_transaction(dut, OPCODE.write, address=0x001000, data=test_data.get_test_number())
+    await trigger_go(dut)
+    await wait_for_idle(dut)
+
+    await T_rwr
+
+    config_transaction(dut, OPCODE.read, address=0x001000, data=test_data.get_test_number())
+    await trigger_go(dut)
+    await wait_for_idle(dut)
+
+    assert dut.o_data_read.value.to_unsigned() == test_data.get_test_number()
+
+
+@cocotb.test()
+async def variable_latency_test(dut):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await Timer(50, unit="ns")
+    await reset_model(dut)
+    test_data = DummyData(1)
+
+    config_transaction(dut, OPCODE.write_enable)
+    await trigger_go(dut)
+    await wait_for_idle(dut)
+
+    set_variable_latency(dut)
 
     await T_rwr
 

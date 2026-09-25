@@ -23,5 +23,7 @@ add wave sim:/Octal_SPI_wrapper/Memory/bottom/Address
 add wave sim:/Octal_SPI_wrapper/Memory/bottom/LByteMask
 add wave sim:/Octal_SPI_wrapper/Memory/bottom/UByteMask
 add wave sim:/Octal_SPI_wrapper/Memory/bottom/Data_in
+add wave -position end  sim:/Octal_SPI_wrapper/Memory/bottom/BurstDelay
+add wave -position end  sim:/Octal_SPI_wrapper/Memory/bottom/RefreshDelay
 run -all;
 wave zoom full

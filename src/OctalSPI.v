@@ -103,7 +103,7 @@ module OctalSPI #(
     localparam integer LATENCY_CYCLES = 7 * 2;
     // the first latency already begins after the sample point of the upper address
     // therefore we have to subtract one cycle (-2) from the latency
-    localparam integer NUM_SHORT_LATENCY_CYCLES = LATENCY_CYCLES;
+    localparam integer NUM_SHORT_LATENCY_CYCLES = LATENCY_CYCLES + 2;
     localparam integer NUM_LONG_LATENCY_CYCLES = LATENCY_CYCLES * 2 + 2;
     //localparam integer READ_LATENCY_IN_CYCLE = 1; // (issue #15)
     localparam integer TEMP_OPERATION_CYCLES = 1;   // transfer 2 bytes // ToDo: make dynamic handshake (issue #12)
@@ -168,12 +168,12 @@ module OctalSPI #(
                     if (i_config_write_address) begin
                         count_nxt = ADDRESS_CYCLES - 1;
                         state_nxt = SEND_ADDRESS;
+                        has_latency_nxt = data_strobe_in;
                     end else state_nxt = CS_HIGH;
                 end
             end
 
             SEND_ADDRESS: begin
-                has_latency_nxt = 1'b1;  // ToDo: always set latency to long latency (issue #15)
                 count_nxt = count_reg - 1;
 
                 if (count_reg == 0) begin
@@ -182,11 +182,6 @@ module OctalSPI #(
 
                     state_nxt = WAIT_LATENCY;
                 end
-                /* (issue #15)
-                if (count_reg == (ADDRESS_CYCLES - READ_LATENCY_IN_CYCLE)) begin
-                    has_latency_nxt = 1'b1;
-                end
-                */
             end
 
             WAIT_LATENCY: begin
