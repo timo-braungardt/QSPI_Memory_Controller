@@ -2,9 +2,12 @@ import os
 from pathlib import Path
 import cocotb
 from cocotb_tools.runner import get_runner
-from cocotb.triggers import Timer, RisingEdge
+from cocotb.triggers import Timer, RisingEdge, ClockCycles, First
 from cocotb.clock import Clock
 from HelperClasses import DummyData
+
+T_rwr = Timer(35, unit="ns")  # read-write recovery time from the datasheet
+# to wait after one transaction this much is pesimistic, we can already issue 4 cycles of the next command
 
 
 # opcode for the S70KL1283 Octal SPI RAM chip
@@ -27,7 +30,7 @@ async def reset_model(dut):
 
 async def wait_for_idle(dut):
     timeout = Timer(100, unit="us")
-    trigger = await First(RisingEdge(dut.o_chip_select_neg), timeout)
+    trigger = await First(RisingEdge(dut.chip_select_neg), timeout)
     assert trigger != timeout
 
 
@@ -37,6 +40,10 @@ async def trigger_go(dut):
     dut.go.value = 1
     await ClockCycles(dut.clk, 1, rising=True)
     dut.go.value = 0
+
+
+def check_write_enable(dut):
+    return dut.Memory.bottom.WREN.value
 
 
 def config_transaction(dut, opcode, address=0, data=0):
@@ -80,11 +87,17 @@ async def read_write_test(dut):
     await trigger_go(dut)
     await wait_for_idle(dut)
 
-    config_transaction(dut, OPCODE.write, address=0x800001, data=test_data, num_bytes=1)
+    await T_rwr
+
+    assert check_write_enable(dut)
+
+    config_transaction(dut, OPCODE.write, address=0x001000, data=test_data.get_test_number())
     await trigger_go(dut)
     await wait_for_idle(dut)
+    
+    await T_rwr
 
-    config_transaction(dut, OPCODE.read, address=0x800001, data=test_data, num_bytes=1)
+    config_transaction(dut, OPCODE.read, address=0x001000, data=test_data.get_test_number())
     await trigger_go(dut)
     await wait_for_idle(dut)
 
