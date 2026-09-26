@@ -6,6 +6,7 @@ from cocotb.triggers import Timer, RisingEdge, ClockCycles, First
 from cocotb.clock import Clock
 from cocotb.handle import Immediate
 from HelperClasses import DummyData
+from unittest import SkipTest
 
 T_rwr = Timer(35, unit="ns")  # read-write recovery time from the datasheet
 # to wait after one transaction this much is pesimistic, we can already issue 4 cycles of the next command
