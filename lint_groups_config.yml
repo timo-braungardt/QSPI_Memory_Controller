@@ -14,3 +14,7 @@ groups:
       - src/SPIController.v
       - src/SPITransmitter.v
       - src/AXIInterface.v
+  - top: OSPIController
+    files: 
+      - src/OSPIController.v
+      - src/OctalSPI.v

@@ -28,8 +28,7 @@ module Octal_SPI_Controller_wrapper #(
 
     OSPIController #(
         .ADDRESS_LENGTH(ADDR_WIDTH),
-        .DATA_WIDTH(DATA_WIDTH),
-        .INTERFACE_TYPE("OSPI")
+        .DATA_WIDTH(DATA_WIDTH)
     ) Controller (
         .clk(clk),
         .reset_neg(reset_neg),

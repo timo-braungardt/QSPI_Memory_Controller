@@ -218,8 +218,8 @@ module OctalSPI #(
                 end
             end
 
-            CS_HIGH: state_nxt <= FINISH;
-            FINISH:  state_nxt <= IDLE;
+            CS_HIGH: state_nxt = FINISH;
+            FINISH:  state_nxt = IDLE;
 
             default: state_nxt = IDLE;
         endcase
@@ -255,7 +255,7 @@ module OctalSPI #(
 
             SEND_ADDRESS: begin
                 for (i = 0; i < BUS_WIDTH; i = i + 1)
-                data_out_nxt[i] = i_address[{count_reg[2:0], i[2:0]}];
+                data_out_nxt[i] = i_address[{count_reg[1:0], i[2:0]}];
             end
 
             SEND_DATA: begin
