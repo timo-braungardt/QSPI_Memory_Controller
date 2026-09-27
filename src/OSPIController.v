@@ -35,6 +35,7 @@ module OSPIController #(
 
     // SPI Pins
     output o_bus_clock,
+    output o_bus_clock_neg,
     output o_chip_select_neg,
     output o_reset,
     inout  io_data_strobe,
@@ -138,6 +139,7 @@ module OSPIController #(
 
             // SPI Pins
             .o_bus_clock(o_bus_clock),
+            .o_bus_clock_neg(o_bus_clock_neg),
             .o_chip_select_neg(o_chip_select_neg),
             .io_data({io_data7, 
                         io_data6, 

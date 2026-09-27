@@ -44,6 +44,7 @@ module Octal_SPI_Controller_wrapper #(
         .o_next_word(o_next_word),
 
         .o_bus_clock(bus_clock),
+        .o_bus_clock_neg(bus_clock_neg),
         .o_chip_select_neg(chip_select_neg),
         .io_data_strobe(data_strobe),
         .io_data0_manager_serial_out(data[0]),

@@ -34,7 +34,6 @@ module OctalSPI #(
     output             o_bus_clock,
     output             o_bus_clock_neg,
     output reg         o_chip_select_neg,
-    output             o_reset,
     inout      [7 : 0] io_data,
     inout              io_data_strobe
 );
@@ -114,7 +113,6 @@ module OctalSPI #(
 
     assign o_bus_clock = bus_clock_p2_reg;
     assign o_bus_clock_neg = ~bus_clock_p2_reg;
-    assign o_reset = 1'b0;
     assign o_finish = (state_reg == FINISH);
     assign o_recieved_next_byte = (state_reg == RECEIVE_DATA);
     assign o_need_next_byte = (state_reg == SEND_DATA);
