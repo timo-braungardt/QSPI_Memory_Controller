@@ -115,6 +115,9 @@ module OctalSPI #(
     assign o_bus_clock = bus_clock_p2_reg;
     assign o_bus_clock_neg = ~bus_clock_p2_reg;
     assign o_reset = 1'b0;
+    assign o_finish = (state_reg == FINISH);
+    assign o_recieved_next_byte = (state_reg == RECEIVE_DATA);
+    assign o_need_next_byte = (state_reg == SEND_DATA);
 
 
     always @(*) begin : clock_logic
