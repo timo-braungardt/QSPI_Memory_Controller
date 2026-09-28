@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 import cocotb
 from cocotb_tools.runner import get_runner
-from cocotb.triggers import Timer, RisingEdge, ClockCycles, First
+from cocotb.triggers import Timer, RisingEdge, FallingEdge, ClockCycles, First
 from cocotb.clock import Clock
 from cocotb.handle import Immediate
 from HelperClasses import DummyData
@@ -61,10 +61,10 @@ def set_variable_latency(dut):
     assert dut.Memory.top.Config_reg0.value[3] == 0
 
 
-def config_transaction(dut, opcode, address=0, data=0):
+def config_transaction(dut, opcode, address=0, data=0, only_one_byte=True):
     dut.i_address.value = address
     dut.i_opcode.value = opcode
-    dut.i_last_word.value = True
+    dut.i_last_word.value = only_one_byte
 
     if opcode == OPCODE.write:
         dut.i_data_write.value = data
@@ -87,6 +87,35 @@ def config_transaction(dut, opcode, address=0, data=0):
         dut.i_config_read_data.value = True
         dut.i_config_write_data.value = False
         dut.i_config_write_address.value = True
+
+
+async def handle_write_burst(dut, test_data):
+    num_loops = len(test_data)
+    await dut.o_need_next_byte.value_change
+
+    for i in range(1, num_loops):
+        await First(RisingEdge(dut.bus_clock), FallingEdge(dut.bus_clock))
+        dut.i_data_write.value = test_data[i]
+        if (num_loops - i - 1) == 0:
+            dut.i_last_word.value = True
+    await RisingEdge(dut.clk)
+    dut.i_last_word.value = True
+    await wait_for_idle(dut)
+
+
+async def handle_read_burst(dut, num_bytes):
+    recieved_data = []
+    await dut.o_recieved_next_byte.value_change
+
+    for i in range(num_bytes):
+        if (num_bytes - i - 1) == 0:
+            dut.i_last_word.value = True        
+        await First(RisingEdge(dut.bus_clock), FallingEdge(dut.bus_clock))
+        recieved_data.append(dut.o_data_read.value.to_unsigned())
+    await RisingEdge(dut.clk)
+    dut.i_last_word.value = True
+    await wait_for_idle(dut)
+    return recieved_data
 
 
 @cocotb.test()
@@ -149,6 +178,37 @@ async def variable_latency_test(dut):
     await wait_for_idle(dut)
 
     assert dut.o_data_read.value.to_unsigned() == test_data.get_test_number()
+
+
+@cocotb.test()
+async def read_write_burst_test(dut):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await Timer(50, unit="ns")
+    await reset_model(dut)
+    test_data = DummyData(6)
+
+    config_transaction(dut, OPCODE.write_enable)
+    await trigger_go(dut)
+    await wait_for_idle(dut)
+
+    await T_rwr
+
+    assert check_write_enable(dut)
+
+    config_transaction(dut, OPCODE.write, address=0x001000, data=test_data.get_test_number_word(0, 1), only_one_byte=False)
+    await trigger_go(dut)
+    await handle_write_burst(dut, test_data.get_test_array())
+
+    await T_rwr
+
+    config_transaction(dut, OPCODE.read, address=0x001000, data=test_data.get_test_number(), only_one_byte=False)
+    await trigger_go(dut)
+    recieved_data = await handle_read_burst(dut, test_data.num_bytes)
+
+    assert len(recieved_data) == test_data.num_bytes
+    assert recieved_data == test_data.get_test_array()
 
 
 def test_octal_spi_model(wave=False):

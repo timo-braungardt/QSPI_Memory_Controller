@@ -2,7 +2,7 @@
 
 module Octal_SPI_Controller_wrapper #(
     // Width of data bus in bits
-    parameter DATA_WIDTH = 8,
+    parameter DATA_WIDTH = 32,
     // Width of address bus in bits
     parameter ADDR_WIDTH = 32,
     // Width of wstrb (width of data bus in words)
@@ -10,7 +10,8 @@ module Octal_SPI_Controller_wrapper #(
     // Width of ID signal
     parameter ID_WIDTH = 8,
     // Extra pipeline register on output
-    parameter PIPELINE_OUTPUT = 1'b0
+    parameter PIPELINE_OUTPUT = 1'b0,
+    parameter MAX_NUM_BYTES = $clog2(256)
 );
     reg clk;
     reg go;
@@ -18,17 +19,19 @@ module Octal_SPI_Controller_wrapper #(
 
     wire [7:0] data;
     wire manager_serial_out, manager_serial_in, bus_clock, bus_clock_neg, chip_select_neg, data_strobe;
-    wire i_config_read_data, i_config_write_data,i_config_write_address,o_finish,o_need_next_byte,o_recieved_next_byte;
+    wire i_config_read_data, i_config_write_data,i_config_write_address,o_finish,o_next_word,o_recieved_next_word;
 
     reg [ADDR_WIDTH-1:0] i_address;
     reg [DATA_WIDTH-1:0] i_data_write;
     reg [DATA_WIDTH-1:0] o_data_read;
     reg i_write_enable;
     reg i_last_word;
+    reg [MAX_NUM_BYTES-1:0] i_num_bytes;
 
     OSPIController #(
         .ADDRESS_LENGTH(ADDR_WIDTH),
-        .DATA_WIDTH(DATA_WIDTH)
+        .DATA_WIDTH(DATA_WIDTH),
+        .MAX_NUM_BYTES(MAX_NUM_BYTES)
     ) Controller (
         .clk(clk),
         .reset_neg(reset_neg),
@@ -36,12 +39,13 @@ module Octal_SPI_Controller_wrapper #(
 
         .i_address(i_address),
         .i_write_enable(i_write_enable),
-        .i_num_bytes(1),
-        .i_last_word(1),
+        .i_num_bytes(i_num_bytes),
+        .i_last_word(i_last_word),
         .i_data_write(i_data_write),
         .o_data_read(o_data_read),
         .o_busy(busy),
         .o_next_word(o_next_word),
+        .o_recieved_next_word(o_recieved_next_word),
 
         .o_bus_clock(bus_clock),
         .o_bus_clock_neg(bus_clock_neg),

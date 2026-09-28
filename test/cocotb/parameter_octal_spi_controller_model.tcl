@@ -13,8 +13,8 @@ add wave sim:/Octal_SPI_Controller_wrapper/i_data_write
 add wave sim:/Octal_SPI_Controller_wrapper/Controller/opcode_reg
 add wave sim:/Octal_SPI_Controller_wrapper/i_last_word
 add wave sim:/Octal_SPI_Controller_wrapper/o_data_read
-add wave sim:/Octal_SPI_Controller_wrapper/o_need_next_byte
-add wave sim:/Octal_SPI_Controller_wrapper/o_recieved_next_byte
+add wave sim:/Octal_SPI_Controller_wrapper/o_next_word
+add wave sim:/Octal_SPI_Controller_wrapper/o_recieved_next_word
 add wave sim:/Octal_SPI_Controller_wrapper/Controller/SPI_Transmitter/state_reg
 add wave sim:/Octal_SPI_Controller_wrapper/Controller/SPI_Transmitter/has_latency_reg
 add wave sim:/Octal_SPI_Controller_wrapper/Controller/SPI_Transmitter/count_reg

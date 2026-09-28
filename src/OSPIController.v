@@ -259,7 +259,7 @@ module OSPIController #(
 
         if (control_state_reg == WRITE | control_state_reg == READ | control_state_reg == WRITE_CONFIG) begin
             if (spi_write_next_byte | spi_read_next_byte) begin
-                if (byte_index_reg == DATA_BYTES'(DATA_BYTES - 2)) write_next_word_nxt = 1;
+                if (byte_index_reg == DATA_BYTES'(DATA_BYTES - 2)) write_next_word_nxt = 1;     // ToDo: the DATA_BYTES can make problems, when it is too small (issue #10)
 
                 if (byte_index_reg == DATA_BYTES'(DATA_BYTES - 1) | byte_count_reg == 0) begin
                     byte_index_nxt = 0;

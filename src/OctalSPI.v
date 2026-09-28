@@ -52,6 +52,7 @@ module OctalSPI #(
     reg data_strobe_out_reg;
     reg data_strobe_out_nxt = 0;  // ToDo: The signal has to be driven for write (issue #15) 0 is write, 1 is mask
     wire data_strobe_in;
+    reg recieved_next_byte_reg;
 
     reg has_latency_reg;
     reg has_latency_nxt;
@@ -59,7 +60,7 @@ module OctalSPI #(
     genvar x;
     generate
         for (x = 0; x < BUS_WIDTH; x = x + 1) begin
-            assign io_data[x] = (en_data_out_reg) ? data_out_reg[x] : 1'bZ;
+            assign #1 io_data[x] = (en_data_out_reg) ? data_out_reg[x] : 1'bZ;  // ToDo: this is bad, because the buffer behaviour is not in the top (issue #12)
             assign data_in[x] = io_data[x];
         end
     endgenerate
@@ -108,13 +109,13 @@ module OctalSPI #(
     localparam integer TEMP_OPERATION_CYCLES = 1;   // transfer 2 bytes // ToDo: make dynamic handshake (issue #12)
 
     assign en_data_strobe  = (state_reg == SEND_DATA | state_reg == WAIT_LATENCY | (~i_config_read_data & (state_reg == CS_HIGH | state_reg == FINISH)));   // FINISH is needed, because otherwise the model does not store the value
-    assign io_data_strobe = (en_data_strobe) ? data_strobe_out_reg : 1'bZ;
+    assign #1 io_data_strobe = (en_data_strobe) ? data_strobe_out_reg : 1'bZ; // ToDo: this is bad, because the buffer behaviour is not in the top (issue #12)
     assign data_strobe_in = io_data_strobe;
 
     assign o_bus_clock = bus_clock_p2_reg;
     assign o_bus_clock_neg = ~bus_clock_p2_reg;
     assign o_finish = (state_reg == FINISH);
-    assign o_recieved_next_byte = (state_reg == RECEIVE_DATA);
+    assign o_recieved_next_byte = recieved_next_byte_reg;
     assign o_need_next_byte = (state_reg == SEND_DATA);
 
 
@@ -201,7 +202,7 @@ module OctalSPI #(
             RECEIVE_DATA: begin
                 count_nxt = count_reg - 1;
 
-                if (count_reg == 0) begin
+                if (i_last_word) begin
                     state_nxt = CS_HIGH;
                 end
             end
@@ -209,8 +210,9 @@ module OctalSPI #(
             SEND_DATA: begin
                 count_nxt = count_reg - 1;
 
-
-                if (count_reg == 0) begin
+                // we check the clock, because we always have to send two bytes
+                // on the first byte sent out, the clock is always low
+                if (i_last_word & ~bus_clock_p2_reg) begin
                     count_nxt = 0;  // otherwise underflow - can this be synthesised elegantly?
                     state_nxt = CS_HIGH;
                 end
@@ -270,13 +272,16 @@ module OctalSPI #(
     always @(posedge clk) begin : data_register
         if (~reset_neg) begin
             data_out_reg <= 0;
+            recieved_next_byte_reg <= 0;
         end else begin
             data_out_reg <= data_out_nxt;
+            recieved_next_byte_reg <= 1'b0;
 
             if (state_reg == RECEIVE_DATA) begin
                 for (i = 0; i < BUS_WIDTH; i = i + 1) begin
                     data_read_reg[i] <= data_in[i];
                 end
+                recieved_next_byte_reg <= 1'b1;
             end
         end
     end
