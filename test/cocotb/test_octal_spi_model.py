@@ -51,11 +51,11 @@ def check_write_enable(dut):
 def set_variable_latency(dut):
     config = dut.Memory.top.Config_reg0.value
     config[3] = 0
-    dut.Memory.top.Config_reg0.set(Immediate(config)) 
+    dut.Memory.top.Config_reg0.set(Immediate(config))
 
     config = dut.Memory.bottom.Config_reg0.value
     config[3] = 0
-    dut.Memory.bottom.Config_reg0.set(Immediate(config)) 
+    dut.Memory.bottom.Config_reg0.set(Immediate(config))
 
     assert dut.Memory.bottom.Config_reg0.value[3] == 0
     assert dut.Memory.top.Config_reg0.value[3] == 0
@@ -109,7 +109,7 @@ async def handle_read_burst(dut, num_bytes):
 
     for i in range(num_bytes):
         if (num_bytes - i - 1) == 0:
-            dut.i_last_word.value = True        
+            dut.i_last_word.value = True
         await First(RisingEdge(dut.bus_clock), FallingEdge(dut.bus_clock))
         recieved_data.append(dut.o_data_read.value.to_unsigned())
     await RisingEdge(dut.clk)
@@ -197,13 +197,21 @@ async def read_write_burst_test(dut):
 
     assert check_write_enable(dut)
 
-    config_transaction(dut, OPCODE.write, address=0x001000, data=test_data.get_test_number_word(0, 1), only_one_byte=False)
+    config_transaction(
+        dut,
+        OPCODE.write,
+        address=0x001000,
+        data=test_data.get_test_number_word(0, 1),
+        only_one_byte=False,
+    )
     await trigger_go(dut)
     await handle_write_burst(dut, test_data.get_test_array())
 
     await T_rwr
 
-    config_transaction(dut, OPCODE.read, address=0x001000, data=test_data.get_test_number(), only_one_byte=False)
+    config_transaction(
+        dut, OPCODE.read, address=0x001000, data=test_data.get_test_number(), only_one_byte=False
+    )
     await trigger_go(dut)
     recieved_data = await handle_read_burst(dut, test_data.num_bytes)
 
