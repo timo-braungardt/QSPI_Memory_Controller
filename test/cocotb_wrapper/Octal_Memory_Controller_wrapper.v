@@ -61,6 +61,7 @@ module Octal_Memory_Controller_wrapper #(
     wire [7:0] data;
     wire data_strobe;
     wire bus_clock, bus_clock_neg, chip_select_neg;
+    integer test_number = 0;
 
     MemoryController #(
         .ADDR_WIDTH(ADDR_WIDTH),

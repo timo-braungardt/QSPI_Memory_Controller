@@ -21,6 +21,7 @@ T_rwr = Timer(35, unit="ns")  # read-write recovery time from the datasheet
 
 
 async def reset_model(dut):
+    dut.test_number.value = dut.test_number.value + 1
     dut.reset.value = 1
     await Timer(200, unit="ns")  # t_RP
     dut.reset.value = 0
