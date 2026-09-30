@@ -11,5 +11,16 @@ add wave sim:/Octal_Memory_Controller_wrapper/Memory/bottom/Dout;
 add wave sim:/Octal_Memory_Controller_wrapper/Memory/bottom/PoweredUp;
 add wave sim:/Octal_Memory_Controller_wrapper/Controller/genblk1/SPI_Controller/o_data_read;
 add wave sim:/Octal_Memory_Controller_wrapper/Controller/genblk1/SPI_Controller/i_data_write;
+add wave sim:/Octal_Memory_Controller_wrapper/Controller/genblk1/SPI_Controller/SPI_Transmitter/o_need_next_byte
+add wave sim:/Octal_Memory_Controller_wrapper/Controller/genblk1/SPI_Controller/SPI_Transmitter/o_recieved_next_byte
+add wave sim:/Octal_Memory_Controller_wrapper/Controller/spi_recieved_next_word
+add wave sim:/Octal_Memory_Controller_wrapper/Controller/spi_next_word
+add wave sim:/Octal_Memory_Controller_wrapper/Controller/s_axi_wready
+add wave sim:/Octal_Memory_Controller_wrapper/Controller/s_axi_rvalid
+add wave sim:/Octal_Memory_Controller_wrapper/test_number
+add wave sim:/Octal_Memory_Controller_wrapper/Controller/AXI_Interface/s_axi_wdata
+add wave sim:/Octal_Memory_Controller_wrapper/Controller/genblk1/SPI_Controller/data_in_muxed_reg
+add wave sim:/Octal_Memory_Controller_wrapper/Controller/genblk1/SPI_Controller/byte_pointer
+add wave sim:/Octal_Memory_Controller_wrapper/Controller/genblk1/SPI_Controller/SPI_Transmitter/data_out_reg
 run -all;
 wave zoom full
