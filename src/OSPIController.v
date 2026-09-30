@@ -259,7 +259,8 @@ module OSPIController #(
 
         if (control_state_reg == WRITE | control_state_reg == READ | control_state_reg == WRITE_CONFIG) begin
             if (spi_write_next_byte | spi_read_next_byte) begin
-                if (byte_index_reg == DATA_BYTES'(DATA_BYTES - 2)) write_next_word_nxt = 1;     // ToDo: the DATA_BYTES can make problems, when it is too small (issue #10)
+                // ToDo: is the -3 good design? (issue #12) we need it otherwise the transmitter puts out a wrong byte 
+                if (byte_index_reg == DATA_BYTES'(DATA_BYTES -3)) write_next_word_nxt = 1;     // ToDo: the DATA_BYTES can make problems, when it is too small (issue #10)
 
                 if (byte_index_reg == DATA_BYTES'(DATA_BYTES - 1) | byte_count_reg == 0) begin
                     byte_index_nxt = 0;
