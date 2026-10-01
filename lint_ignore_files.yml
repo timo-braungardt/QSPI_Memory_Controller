@@ -12,3 +12,4 @@ files:
   - test/cocotb_wrapper/Octal_Memory_Controller_wrapper.v
   - test/cocotb_wrapper/Combined_SPI_wrapper.v
   - test/cocotb_wrapper/Memory_Controller_wrapper.v
+  - test/hardware_verification/octal_nexys_video/top.v
