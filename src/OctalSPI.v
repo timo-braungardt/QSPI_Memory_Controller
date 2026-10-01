@@ -48,7 +48,7 @@ module OctalSPI #(
     reg [BUS_WIDTH-1 : 0] data_out_nxt;
     wire [BUS_WIDTH-1 : 0] data_in;
 
-    reg en_data_strobe;
+    wire en_data_strobe;
     reg data_strobe_out_reg;
     reg data_strobe_out_nxt = 0;  // ToDo: The signal has to be driven for write (issue #15) 0 is write, 1 is mask
     wire data_strobe_in;
