@@ -1,8 +1,7 @@
 module top #(
     parameter ADDR_WIDTH = 32,
     parameter DATA_WIDTH = 32,
-    parameter STRB_WIDTH = (DATA_WIDTH / 8),
-    parameter ID_WIDTH = 8,
+    parameter ID_WIDTH = 1,
     parameter MAX_NUM_BYTES = $clog2(256),
     parameter INTERFACE_TYPE = "OSPI"
 ) (
@@ -72,16 +71,19 @@ module top #(
     MemoryController #(
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
-        .INTERFACE_TYPE("OSPI")
+        .ID_WIDTH(ID_WIDTH),
+        .MAX_NUM_BYTES(MAX_NUM_BYTES),
+        .INTERFACE_TYPE(INTERFACE_TYPE)
     ) Controller (
         .clk  (clk),
         .reset(reset),
 
         // SPI Pins
-        .o_spi_bus_clock(bus_clock),
-        .o_spi_bus_clock_neg(bus_clock_neg),
-        .o_spi_chip_select_neg(chip_select_neg),
-        .io_spi_data_strobe(data_strobe),
+        .o_spi_bus_clock(o_spi_bus_clock),
+        .o_spi_bus_clock_neg(o_spi_bus_clock_neg),
+        .o_spi_chip_select_neg(o_spi_chip_select_neg),
+        .o_spi_reset(o_spi_reset),
+        .io_spi_data_strobe(io_spi_data_strobe),
         .io_spi_data0_manager_serial_out(io_spi_data[0]),
         .io_spi_data1_manager_serial_in(io_spi_data[1]),
         .io_spi_data2(io_spi_data[2]),
