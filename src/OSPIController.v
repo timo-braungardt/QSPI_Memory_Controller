@@ -90,8 +90,6 @@ module OSPIController #(
     wire                         config_write_address;
     wire                         config_write_data;
     wire                         config_read_data;
-    reg  [                  2:0] config_quad_mode;
-    reg  [                  4:0] config_dummy_cycles;
     reg                          config_is_config_operation;
 
     // states control FSM
@@ -226,9 +224,7 @@ module OSPIController #(
             control_state_reg <= IDLE;
             address_reg <= 0;
             opcode_reg <= 0;
-            config_quad_mode <= 3'b000;
             config_is_config_operation <= 1'b0;
-            config_dummy_cycles <= 5'd0;
         end
     end
 
