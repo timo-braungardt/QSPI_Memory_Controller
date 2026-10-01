@@ -9,5 +9,6 @@ files:
   - test/cocotb_wrapper/SPI_wrapper.v
   - test/cocotb_wrapper/Octal_SPI_wrapper.v
   - test/cocotb_wrapper/Octal_SPI_Controller_wrapper.v
+  - test/cocotb_wrapper/Octal_Memory_Controller_wrapper.v
   - test/cocotb_wrapper/Combined_SPI_wrapper.v
   - test/cocotb_wrapper/Memory_Controller_wrapper.v
