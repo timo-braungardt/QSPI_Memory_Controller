@@ -106,7 +106,7 @@ module MemoryController #(
 
 
     generate
-        if (INTERFACE_TYPE == "SPI") begin
+        if (INTERFACE_TYPE == "SPI") begin : gen_SPI_Interface
             SPIController #(
                 .ADDRESS_LENGTH(ADDR_WIDTH),
                 .DATA_WIDTH(DATA_WIDTH),
@@ -135,7 +135,8 @@ module MemoryController #(
                 .io_data2(io_spi_data2),
                 .io_data3(io_spi_data3)
             );
-        end else if (INTERFACE_TYPE == "OSPI") begin
+            assign o_spi_bus_clock_neg = 0;
+        end else if (INTERFACE_TYPE == "OSPI") begin : gen_Octal_SPI_Interface
             OSPIController #(
                 .ADDRESS_LENGTH(ADDR_WIDTH),
                 .DATA_WIDTH(DATA_WIDTH),
