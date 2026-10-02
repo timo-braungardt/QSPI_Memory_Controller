@@ -224,9 +224,7 @@ module OSPIController #(
             control_state_reg <= IDLE;
             address_reg <= 0;
             opcode_reg <= 0;
-            config_quad_mode <= 3'b000;
             config_is_config_operation <= 1'b0;
-            config_dummy_cycles <= 5'd0;
         end
     end
 
