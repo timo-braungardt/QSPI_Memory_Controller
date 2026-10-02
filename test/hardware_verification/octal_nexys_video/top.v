@@ -12,7 +12,7 @@ module top #(
     output o_spi_bus_clock,
     output o_spi_bus_clock_neg,
     output o_spi_chip_select_neg,
-    output o_spi_reset,
+    output o_spi_reset_neg,
     inout io_spi_data_strobe,
     inout [7:0] io_spi_data,
 
@@ -82,7 +82,7 @@ module top #(
         .o_spi_bus_clock(o_spi_bus_clock),
         .o_spi_bus_clock_neg(o_spi_bus_clock_neg),
         .o_spi_chip_select_neg(o_spi_chip_select_neg),
-        .o_spi_reset(o_spi_reset),
+        .o_spi_reset_neg(o_spi_reset_neg),
         .io_spi_data_strobe(io_spi_data_strobe),
         .io_spi_data0_manager_serial_out(io_spi_data[0]),
         .io_spi_data1_manager_serial_in(io_spi_data[1]),
@@ -134,7 +134,8 @@ module top #(
 
     jtag_axi_0 JTAG_AXI_Module (
         .aclk(clk),
-        .aresetn(reset),
+        .aresetn(~reset),
+        
         .m_axi_awid(axi_awid),
         .m_axi_awaddr(axi_awaddr),
         .m_axi_awlen(axi_awlen),
@@ -146,15 +147,18 @@ module top #(
         .m_axi_awqos(axi_awqos),
         .m_axi_awvalid(axi_awvalid),
         .m_axi_awready(axi_awready),
+        
         .m_axi_wdata(axi_wdata),
         .m_axi_wstrb(axi_wstrb),
         .m_axi_wlast(axi_wlast),
         .m_axi_wvalid(axi_wvalid),
         .m_axi_wready(axi_wready),
+        
         .m_axi_bid(axi_bid),
         .m_axi_bresp(axi_bresp),
         .m_axi_bvalid(axi_bvalid),
         .m_axi_bready(axi_bready),
+        
         .m_axi_arid(axi_arid),
         .m_axi_araddr(axi_araddr),
         .m_axi_arlen(axi_arlen),
@@ -166,6 +170,7 @@ module top #(
         .m_axi_arqos(axi_arqos),
         .m_axi_arvalid(axi_arvalid),
         .m_axi_arready(axi_arvalid),
+        
         .m_axi_rid(axi_rid),
         .m_axi_rdata(axi_rdata),
         .m_axi_rresp(axi_rresp),

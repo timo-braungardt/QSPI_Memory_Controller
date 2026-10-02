@@ -36,7 +36,7 @@ module SPIController #(
     // SPI Pins
     output o_bus_clock,
     output o_chip_select_neg,
-    output o_reset,
+    output o_reset_neg,
     inout  io_data0_manager_serial_out,
     inout  io_data1_manager_serial_in,
     inout  io_data2,
@@ -108,7 +108,7 @@ module SPIController #(
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE_ANY_REG = 8'h71;
     //localparam [OPCODE_LENGTH -1 : 0] OPCODE_LONG_ADDRESS_ENABLE = 8'hB7;
 
-    assign o_reset = 1'b0;
+    assign o_reset_neg = reset_neg;
     assign o_next_word = write_next_word_reg;
     assign o_recieved_next_word = read_next_word_reg;
 

@@ -37,7 +37,7 @@ module OSPIController #(
     output o_bus_clock,
     output o_bus_clock_neg,
     output o_chip_select_neg,
-    output o_reset,
+    output o_reset_neg,
     inout  io_data_strobe,
     inout  io_data0_manager_serial_out,
     inout  io_data1_manager_serial_in,
@@ -111,7 +111,7 @@ module OSPIController #(
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE_ANY_REG = 8'h00;
     //localparam [OPCODE_LENGTH -1 : 0] OPCODE_LONG_ADDRESS_ENABLE = 8'h00;
 
-    assign o_reset = 1'b0;
+    assign o_reset_neg = reset_neg;
     assign o_next_word = write_next_word_reg;
     assign o_recieved_next_word = read_next_word_reg;
 
@@ -224,7 +224,9 @@ module OSPIController #(
             control_state_reg <= IDLE;
             address_reg <= 0;
             opcode_reg <= 0;
+            config_quad_mode <= 3'b000;
             config_is_config_operation <= 1'b0;
+            config_dummy_cycles <= 5'd0;
         end
     end
 
