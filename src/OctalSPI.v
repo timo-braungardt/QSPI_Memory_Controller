@@ -40,6 +40,8 @@ module OctalSPI #(
 
     // constants
     localparam BUS_WIDTH = 8;
+    localparam INFINEON_LATENCY_CYCLES = 7;
+    localparam APMEMORY_LATENCY_CLCLES = 5;
 
     // Pin tristate stuff
     reg en_data_out_reg;
@@ -100,7 +102,7 @@ module OctalSPI #(
     localparam integer ADDRESS_CYCLES = 4;
     localparam integer OPCODE_CYCLES = 2;
     // times two because of the two clock edges
-    localparam integer LATENCY_CYCLES = 7 * 2;
+    localparam integer LATENCY_CYCLES = INFINEON_LATENCY_CYCLES * 2;
     // the first latency already begins after the sample point of the upper address
     // therefore we have to subtract one cycle (-2) from the latency
     localparam integer NUM_SHORT_LATENCY_CYCLES = LATENCY_CYCLES + 2;
