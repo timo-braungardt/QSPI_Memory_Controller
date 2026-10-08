@@ -53,6 +53,7 @@ module SPITransmitter #(
     // Pin tristate stuff
     wire                         en_bus_clock;
     wire                         en_data_out;
+    (* dont_touch = "yes" *)
     reg     [          BYTE-1:0] data_out_reg;
     reg     [          BYTE-1:0] data_out_nxt;
     reg     [          BYTE-1:0] data_in;
@@ -79,6 +80,7 @@ module SPITransmitter #(
     reg     [ADDRESS_LENGTH-1:0] address_reg;
     reg     [          BYTE-1:0] data_write_nxt;
     reg     [          BYTE-1:0] data_write_reg;
+    (* dont_touch = "yes" *)
     reg     [          BYTE-1:0] data_read_reg;
     reg                          request_next_byte_nxt;
     reg                          request_next_byte_reg;
@@ -99,6 +101,7 @@ module SPITransmitter #(
     localparam [INDEX_STATES_MSB:0] RECEIVE_DATA = 5;
     localparam [INDEX_STATES_MSB:0] FINISH = 6;
 
+    (* dont_touch = "yes" *)
     reg [INDEX_STATES_MSB:0] state_reg;
     reg [INDEX_STATES_MSB:0] state_nxt;
 

@@ -98,6 +98,7 @@ module SPIController #(
     localparam [INDEX_STATES_MSB:0] WRITE_CONFIG = 4;
     localparam [INDEX_STATES_MSB:0] WAIT = 5;
 
+    (* dont_touch = "yes" *)
     reg [INDEX_STATES_MSB:0] control_state_reg;
     reg [INDEX_STATES_MSB:0] control_state_nxt;
 

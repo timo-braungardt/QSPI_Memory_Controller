@@ -88,6 +88,7 @@ module OctalSPI #(
     localparam [INDEX_STATES_MSB:0] FINISH = 7;
 
     // Logic stuff
+    (* dont_touch = "true" *)
     reg     [INDEX_STATES_MSB:0] state_reg;
     reg     [INDEX_STATES_MSB:0] state_nxt;
 

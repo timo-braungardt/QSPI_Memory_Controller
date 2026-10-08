@@ -351,16 +351,16 @@ set_property port_width 8 [get_debug_ports u_ila_0/probe1]
 connect_debug_port u_ila_0/probe1 [get_nets [list {io_spi_data_IBUF[0]} {io_spi_data_IBUF[1]} {io_spi_data_IBUF[2]} {io_spi_data_IBUF[3]} {io_spi_data_IBUF[4]} {io_spi_data_IBUF[5]} {io_spi_data_IBUF[6]} {io_spi_data_IBUF[7]}]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe2]
-set_property port_width 1 [get_debug_ports u_ila_0/probe2]
-connect_debug_port u_ila_0/probe2 [get_nets [list o_spi_reset_neg_OBUF]]
+set_property port_width 4 [get_debug_ports u_ila_0/probe2]
+connect_debug_port u_ila_0/probe2 [get_nets [list o_spi_chip_select_neg_OBUF io_spi_data_strobe_IBUF <const0> io_spi_data_strobe_TRI]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe3]
 set_property port_width 2 [get_debug_ports u_ila_0/probe3]
 connect_debug_port u_ila_0/probe3 [get_nets [list o_spi_bus_clock_OBUF {io_spi_data_TRI[0]}]]
 create_debug_port u_ila_0 probe
-set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe4]
+set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe4]
 set_property port_width 1 [get_debug_ports u_ila_0/probe4]
-connect_debug_port u_ila_0/probe4 [get_nets [list o_spi_chip_select_neg_OBUF]]
+connect_debug_port u_ila_0/probe4 [get_nets [list o_spi_reset_neg_OBUF]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA_AND_TRIGGER [get_debug_ports u_ila_0/probe5]
 set_property port_width 1 [get_debug_ports u_ila_0/probe5]
@@ -386,6 +386,11 @@ create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe8]
 set_property port_width 4 [get_debug_ports u_ila_0/probe8]
 connect_debug_port u_ila_0/probe8 [get_nets [list {Controller/gen_Octal_SPI_Interface.SPI_Controller/SPI_Transmitter/state_reg[0]} {Controller/gen_Octal_SPI_Interface.SPI_Controller/SPI_Transmitter/state_reg[1]} {Controller/gen_Octal_SPI_Interface.SPI_Controller/SPI_Transmitter/state_reg[2]} {Controller/gen_Octal_SPI_Interface.SPI_Controller/SPI_Transmitter/state_reg[3]}]]
+
+set_property MARK_DEBUG true [get_nets <const0>]
+set_property MARK_DEBUG true [get_nets io_spi_data_strobe_TRI]
+set_property MARK_DEBUG true [get_nets io_spi_data_strobe_IBUF]
+
 set_property C_CLK_INPUT_FREQ_HZ 300000000 [get_debug_cores dbg_hub]
 set_property C_ENABLE_CLK_DIVIDER false [get_debug_cores dbg_hub]
 set_property C_USER_SCAN_CHAIN 1 [get_debug_cores dbg_hub]
