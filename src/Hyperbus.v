@@ -37,13 +37,8 @@ module Hyperbus (
     reg has_latency_reg;
     reg has_latency_nxt;
 
-    genvar x;
-    generate
-        for (x = 0; x < BUS_WIDTH; x = x + 1) begin
-            assign io_data[x] = (en_data_out) ? data_out_reg[x] : 1'bZ;
-            assign data_in[x] = io_data[x];
-        end
-    endgenerate
+    assign io_data = (en_data_out) ? data_out_reg : {BUS_WIDTH{1'bZ}};
+    assign data_in = io_data;
 
     // Bus Clock
     reg            bus_clock_reg;

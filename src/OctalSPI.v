@@ -59,17 +59,12 @@ module OctalSPI #(
     reg has_latency_reg;
     reg has_latency_nxt;
 
-    genvar x;
-    generate
-        for (x = 0; x < BUS_WIDTH; x = x + 1) begin
-            assign #1 io_data[x] = (en_data_out_reg) ? data_out_reg[x] : 1'bZ;  // ToDo: this is bad, because the buffer behaviour is not in the top (issue #12)
-            assign data_in[x] = io_data[x];
-        end
-    endgenerate
+    assign #1 io_data = (en_data_out_reg) ? data_out_reg : {BUS_WIDTH{1'bZ}};  // ToDo: this is bad, because the buffer behaviour is not in the top (issue #12)
+    assign data_in = io_data;
 
     // Bus Clock
     reg bus_clock_reg;
-    reg                          bus_clock_p2_reg;  // the bus clock has to be shifted a bit to guarantee that the data is present on the bus
+    reg bus_clock_p2_reg;  // the bus clock has to be shifted a bit to guarantee that the data is present on the bus
     reg bus_clock_nxt;
     integer clock_count_reg;
     integer clock_count_nxt;
@@ -106,7 +101,7 @@ module OctalSPI #(
     localparam integer LATENCY_CYCLES = APMEMORY_LATENCY_CLCLES * 2;
     // the first latency already begins after the sample point of the upper address
     // therefore we have to subtract one cycle (-2) from the latency
-    localparam integer NUM_SHORT_LATENCY_CYCLES = LATENCY_CYCLES + 2;
+    localparam integer NUM_SHORT_LATENCY_CYCLES = LATENCY_CYCLES - 2;// + 2;
     localparam integer NUM_LONG_LATENCY_CYCLES = LATENCY_CYCLES * 2 + 2;
     //localparam integer READ_LATENCY_IN_CYCLE = 1; // (issue #15)
     localparam integer TEMP_OPERATION_CYCLES = 1;   // transfer 2 bytes // ToDo: make dynamic handshake (issue #12)
@@ -114,7 +109,10 @@ module OctalSPI #(
     // ToDo: why was this in en_data_strobe?: | state_reg == WAIT_LATENCY 
     assign en_data_strobe  = (state_reg == SEND_DATA | (~i_config_read_data & (state_reg == CS_HIGH | state_reg == FINISH)));   // FINISH is needed, because otherwise the model does not store the value
     assign #1 io_data_strobe = (en_data_strobe) ? data_strobe_out_reg : 1'bZ; // ToDo: this is bad, because the buffer behaviour is not in the top (issue #12)
+    (* dont_touch = "true" *)
     assign data_strobe_in = io_data_strobe;
+    (* dont_touch = "true" *)
+    reg temp_data_strobe_debug;
 
     assign o_bus_clock = bus_clock_p2_reg;
     assign o_bus_clock_neg = ~bus_clock_p2_reg;
@@ -173,7 +171,8 @@ module OctalSPI #(
                     if (i_config_write_address) begin
                         count_nxt = ADDRESS_CYCLES - 1;
                         state_nxt = SEND_ADDRESS;
-                        has_latency_nxt = data_strobe_in;
+                        //has_latency_nxt = data_strobe_in;
+                        has_latency_nxt = 1'b0;
                     end else state_nxt = CS_HIGH;
                 end
             end
@@ -192,10 +191,10 @@ module OctalSPI #(
             WAIT_LATENCY: begin
                 count_nxt = count_reg - 1;
 
+                    en_data_out_nxt = ~i_config_read_data;
                 if (count_reg == 0) begin
                     count_nxt = TEMP_OPERATION_CYCLES;
 
-                    en_data_out_nxt = ~i_config_read_data;
 
                     if (i_config_read_data) state_nxt = RECEIVE_DATA;
                     else if (i_config_write_data) state_nxt = SEND_DATA;
@@ -245,6 +244,7 @@ module OctalSPI #(
             has_latency_reg <= has_latency_nxt;
             data_strobe_out_reg <= data_strobe_out_nxt;
             en_data_out_reg <= en_data_out_nxt;
+            temp_data_strobe_debug <= data_strobe_in;
         end
     end
 
