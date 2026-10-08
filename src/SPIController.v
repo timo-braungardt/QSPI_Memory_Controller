@@ -89,7 +89,7 @@ module SPIController #(
     reg                          config_is_config_operation;
 
     // states control FSM
-    localparam NUM_STATES = 6;
+    localparam NUM_STATES = 10;
     localparam INDEX_STATES_MSB = $clog2(NUM_STATES) - 1;
     localparam [INDEX_STATES_MSB:0] IDLE = 0;
     localparam [INDEX_STATES_MSB:0] READ = 1;
@@ -97,6 +97,10 @@ module SPIController #(
     localparam [INDEX_STATES_MSB:0] WRITE = 3;
     localparam [INDEX_STATES_MSB:0] WRITE_CONFIG = 4;
     localparam [INDEX_STATES_MSB:0] WAIT = 5;
+    localparam [INDEX_STATES_MSB:0] STARTUP = 6;
+    localparam [INDEX_STATES_MSB:0] STARTUP_RESET_EN = 7;
+    localparam [INDEX_STATES_MSB:0] STARTUP_WAIT = 8;
+    localparam [INDEX_STATES_MSB:0] STARTUP_RESET = 9;
 
     (* dont_touch = "yes" *)
     reg [INDEX_STATES_MSB:0] control_state_reg;
@@ -108,6 +112,9 @@ module SPIController #(
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE = 8'h02;
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE_ANY_REG = 8'h71;
     //localparam [OPCODE_LENGTH -1 : 0] OPCODE_LONG_ADDRESS_ENABLE = 8'hB7;
+    //localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ_ID = 8'h9F;
+    localparam [OPCODE_LENGTH -1 : 0] OPCODE_RESET_ENABLE = 8'h66;
+    localparam [OPCODE_LENGTH -1 : 0] OPCODE_RESET = 8'h99;
 
     assign o_reset = 1'b0;
     assign o_next_word = write_next_word_reg;
@@ -145,7 +152,7 @@ module SPIController #(
     );
 
 
-    assign start_transmission = (control_state_reg != IDLE && control_state_reg != WAIT);
+    assign start_transmission = (control_state_reg != IDLE && control_state_reg != WAIT && control_state_reg != STARTUP_WAIT && control_state_reg != STARTUP);
     assign config_read_data = (control_state_reg == READ);
     assign config_write_data = (control_state_reg == WRITE || control_state_reg == WRITE_CONFIG);
     assign config_write_address = (control_state_reg == READ || control_state_reg == WRITE || control_state_reg == WRITE_CONFIG);
@@ -198,7 +205,31 @@ module SPIController #(
                 if (transmitter_finish) control_state_nxt = IDLE;
             end
 
-            default: control_state_nxt = IDLE;
+            STARTUP: begin
+                control_state_nxt = STARTUP_RESET_EN;
+                opcode_nxt = OPCODE_RESET_ENABLE;
+            end
+
+            STARTUP_RESET_EN: begin
+                if (transmitter_finish) begin
+                    control_state_nxt = STARTUP_WAIT;
+                end
+            end
+
+            STARTUP_WAIT: begin
+                if (delay_fsm == DELAY_CYCLES) begin
+                    control_state_nxt = STARTUP_RESET;
+                    opcode_nxt = OPCODE_RESET;
+                end
+            end
+
+            STARTUP_RESET: begin
+                if (transmitter_finish) begin
+                    control_state_nxt = IDLE;
+                end
+            end
+
+            default: control_state_nxt = STARTUP;
         endcase
 
     end
@@ -210,12 +241,12 @@ module SPIController #(
         control_state_reg <= control_state_nxt;
         delay_fsm <= 0;
 
-        if (control_state_reg == WAIT) begin
+        if (control_state_reg == WAIT || control_state_reg == STARTUP_WAIT) begin
             delay_fsm <= delay_fsm + 1;
         end
 
         if (!reset_neg) begin
-            control_state_reg <= IDLE;
+            control_state_reg <= STARTUP;
             address_reg <= 0;
             opcode_reg <= 0;
             config_quad_mode <= 3'b000;
