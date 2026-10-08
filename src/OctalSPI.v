@@ -103,7 +103,7 @@ module OctalSPI #(
     localparam integer ADDRESS_CYCLES = 4;
     localparam integer OPCODE_CYCLES = 2;
     // times two because of the two clock edges
-    localparam integer LATENCY_CYCLES = INFINEON_LATENCY_CYCLES * 2;
+    localparam integer LATENCY_CYCLES = APMEMORY_LATENCY_CLCLES * 2;
     // the first latency already begins after the sample point of the upper address
     // therefore we have to subtract one cycle (-2) from the latency
     localparam integer NUM_SHORT_LATENCY_CYCLES = LATENCY_CYCLES + 2;
@@ -111,7 +111,8 @@ module OctalSPI #(
     //localparam integer READ_LATENCY_IN_CYCLE = 1; // (issue #15)
     localparam integer TEMP_OPERATION_CYCLES = 1;   // transfer 2 bytes // ToDo: make dynamic handshake (issue #12)
 
-    assign en_data_strobe  = (state_reg == SEND_DATA | state_reg == WAIT_LATENCY | (~i_config_read_data & (state_reg == CS_HIGH | state_reg == FINISH)));   // FINISH is needed, because otherwise the model does not store the value
+    // ToDo: why was this in en_data_strobe?: | state_reg == WAIT_LATENCY 
+    assign en_data_strobe  = (state_reg == SEND_DATA | (~i_config_read_data & (state_reg == CS_HIGH | state_reg == FINISH)));   // FINISH is needed, because otherwise the model does not store the value
     assign #1 io_data_strobe = (en_data_strobe) ? data_strobe_out_reg : 1'bZ; // ToDo: this is bad, because the buffer behaviour is not in the top (issue #12)
     assign data_strobe_in = io_data_strobe;
 

@@ -106,15 +106,33 @@ module OSPIController #(
     reg [INDEX_STATES_MSB:0] control_state_reg;
     reg [INDEX_STATES_MSB:0] control_state_nxt;
 
-    localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ = 8'hEE;
+    //localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ = 8'hEE;
+    localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ = 8'h20;
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE_ENABLE = 8'h06;
-    localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE = 8'hDE;
+    localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE = 8'hA0;
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE_ANY_REG = 8'h00;
     //localparam [OPCODE_LENGTH -1 : 0] OPCODE_LONG_ADDRESS_ENABLE = 8'h00;
 
-    assign o_reset_neg = reset_neg;
     assign o_next_word = write_next_word_reg;
     assign o_recieved_next_word = read_next_word_reg;
+
+    // Temp counter for correct reset
+    reg reset_spi;
+    assign o_reset_neg = reset_spi;
+    integer reset_counter;
+
+    always @(posedge clk ) begin
+        if (!reset_neg)
+            reset_counter <= 0;
+        else begin
+            if (reset_counter != 20000) begin
+                reset_counter <= reset_counter +1;
+                reset_spi <= 1'b0;
+            end
+            else
+                reset_spi <= 1'b1;
+        end
+    end
 
     
         OctalSPI #(
