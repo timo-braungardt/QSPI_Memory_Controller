@@ -16,7 +16,7 @@ class MemoryModelHelper:
             data = model.bottom.Mem[address + i].value
             data_lower = data % 256
             data_upper = data >> 8
-            data_array.append(data_lower)
             data_array.append(data_upper)
+            data_array.append(data_lower)
 
         return data_array[:num_bytes]
