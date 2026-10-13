@@ -197,13 +197,14 @@ async def variable_latency_test(dut):
 
 
 @cocotb.test()
-async def read_write_burst_test(dut):
+async def write_burst_test(dut):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
 
     await Timer(50, unit="ns")
     await reset_model(dut)
     test_data = DummyData(6)
+    address = 0x002000
 
     config_transaction(dut, OPCODE.write_enable)
     await trigger_go(dut)
@@ -216,17 +217,32 @@ async def read_write_burst_test(dut):
     config_transaction(
         dut,
         OPCODE.write,
-        address=0x001000,
+        address=address,
         data=test_data.get_test_number_word(0, 1),
         only_one_byte=False,
     )
     await trigger_go(dut)
     await handle_write_burst(dut, test_data.get_test_array())
-
     await T_rwr
 
+    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, address, test_data.num_bytes)
+    assert memory_data == test_data.get_test_array()
+
+
+@cocotb.test()
+async def read_burst_test(dut):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await Timer(50, unit="ns")
+    await reset_model(dut)
+    test_data = DummyData(6)
+    address = 0x002010
+
+    MemoryModelHelper.set_memory_s70kl1283(dut.Memory, address, test_data.get_test_array())
+
     config_transaction(
-        dut, OPCODE.read, address=0x001000, data=test_data.get_test_number(), only_one_byte=False
+        dut, OPCODE.read, address=address, data=test_data.get_test_number(), only_one_byte=False
     )
     await trigger_go(dut)
     recieved_data = await handle_read_burst(dut, test_data.num_bytes)
