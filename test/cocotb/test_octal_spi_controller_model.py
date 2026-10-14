@@ -5,7 +5,7 @@ from cocotb_tools.runner import get_runner
 from cocotb.triggers import Timer, RisingEdge, FallingEdge, ClockCycles, First
 from cocotb.clock import Clock
 from cocotb.handle import Immediate
-from HelperClasses import DummyData
+from HelperClasses import DummyData, MemoryModelHelper
 from unittest import SkipTest
 
 DATA_WIDTH = int(os.environ.get("PARAM_DATA_WIDTH", 32))
@@ -103,50 +103,64 @@ async def handle_write_burst(dut, test_data):
     await wait_for_idle(dut)
 
 
-async def handle_read_burst(dut, test_data):
-    dut.i_num_bytes.value = test_data.num_bytes
-    num_loops = test_data.num_bytes // DATA_WIDTH_BYTES
-    last_num_bytes = test_data.num_bytes - (DATA_WIDTH_BYTES * num_loops)
+async def handle_read_burst(dut, num_bytes):
+    num_loops = num_bytes // DATA_WIDTH_BYTES
     await dut.o_recieved_next_word.value_change
+    recieved_data = []
 
     for i in range(num_loops):
-        await First(RisingEdge(dut.bus_clock), FallingEdge(dut.bus_clock))
+        await RisingEdge(dut.clk)
         if i == num_loops - 2:
             dut.i_last_word.value = True
-
-        assert dut.o_data_read.value.to_unsigned() == test_data.get_test_number_word(i * DATA_WIDTH_BYTES)
+        for x in range(DATA_WIDTH_BYTES):
+            lower = x * 8
+            upper = (x+1) *8 -1
+            data = dut.o_data_read.value
+            recieved_data.append(data[upper:lower].to_unsigned())
         dut.Controller.data_read_reg.value = 0  # ToDo: the other bytes have to be masked (issue #18)
 
-    if last_num_bytes != 0:
-        await First(RisingEdge(dut.bus_clock), FallingEdge(dut.bus_clock))
-        assert dut.o_data_read.value.to_unsigned() == test_data.get_test_number_word(
-            num_loops * DATA_WIDTH_BYTES, last_num_bytes
-        )
-
     await wait_for_idle(dut)
+    return recieved_data[:num_bytes]
 
 
 @cocotb.test()
-async def read_write_test(dut):
+async def write_test(dut):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
 
     await Timer(50, unit="ns")
     await reset_model(dut)
     test_data = DummyData(1)
+    address = 0x001000
 
-    config_transaction(dut, OPCODE.write, address=0x001000, data=test_data.get_test_number())
+    config_transaction(dut, OPCODE.write, address=address, data=test_data.get_test_number())
     await trigger_go(dut)
     await wait_for_idle(dut)
     await wait_for_idle(dut)
-
     await T_rwr
 
-    config_transaction(dut, OPCODE.read, address=0x001000, data=test_data.get_test_number())
+    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, address, 1)
+    assert memory_data == test_data.get_test_array()
+
+
+@cocotb.test()
+async def read_test(dut):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await Timer(50, unit="ns")
+    await reset_model(dut)
+    test_data = DummyData(1)
+    address = 0x001004
+
+    MemoryModelHelper.set_memory_s70kl1283(dut.Memory, address, test_data.get_test_array())
+
+    config_transaction(dut, OPCODE.read, address=address, data=test_data.get_test_number())
     await trigger_go(dut)
     await wait_for_idle(dut)
 
-    assert dut.o_data_read.value.to_unsigned() == test_data.get_test_number()
+    recieved_data = dut.o_data_read.value
+    assert recieved_data.to_unsigned() == test_data.get_test_number()
 
 
 @cocotb.test()
@@ -176,7 +190,7 @@ async def variable_latency_test(dut):
 
 @cocotb.test()
 @cocotb.parametrize(num_bytes=[DATA_WIDTH_BYTES])#, DATA_WIDTH_BYTES*2])
-async def read_write_burst_test(dut, num_bytes):
+async def write_burst_test(dut, num_bytes):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
 
@@ -184,16 +198,36 @@ async def read_write_burst_test(dut, num_bytes):
     await reset_model(dut)
     test_data = DummyData(num_bytes)
     print(test_data.get_test_array())
+    address = 0x002000
 
-    config_transaction(dut, OPCODE.write, address=0x001000, data=test_data.get_test_number_word(0, DATA_WIDTH_BYTES), only_one_byte=False, num_bytes=test_data.num_bytes)
+    config_transaction(dut, OPCODE.write, address=address, data=test_data.get_test_number_word(0, DATA_WIDTH_BYTES), only_one_byte=False, num_bytes=test_data.num_bytes)
     await trigger_go(dut)
     await handle_write_burst(dut, test_data)
-
     await T_rwr
 
-    config_transaction(dut, OPCODE.read, address=0x001000, data=test_data.get_test_number(), only_one_byte=False, num_bytes=test_data.num_bytes)
+    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, address, test_data.num_bytes)
+    assert memory_data == test_data.get_test_array()
+    
+
+
+@cocotb.test()
+@cocotb.parametrize(num_bytes=[DATA_WIDTH_BYTES])#, DATA_WIDTH_BYTES*2])
+async def read_burst_test(dut, num_bytes):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await Timer(50, unit="ns")
+    await reset_model(dut)
+    test_data = DummyData(num_bytes)
+    print(test_data.get_test_array())
+    address = 0x002010
+    
+    MemoryModelHelper.set_memory_s70kl1283(dut.Memory, address, test_data.get_test_array())
+
+    config_transaction(dut, OPCODE.read, address=address, data=test_data.get_test_number(), only_one_byte=False, num_bytes=test_data.num_bytes)
     await trigger_go(dut)
-    recieved_data = await handle_read_burst(dut, test_data)
+    recieved_data = await handle_read_burst(dut, test_data.num_bytes)
+    assert recieved_data == test_data.get_test_array()
 
 
 def test_octal_spi_controller_model(wave=False):

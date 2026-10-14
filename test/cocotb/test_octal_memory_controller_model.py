@@ -10,7 +10,7 @@ from cocotb.clock import Clock
 from collections import deque
 from cocotbext.axi import AxiBus, AxiMaster
 from cocotbext.spi import SpiBus
-from HelperClasses import DummyData
+from HelperClasses import DummyData, MemoryModelHelper
 from unittest import SkipTest
 
 DATA_WIDTH = int(os.environ.get("PARAM_DATA_WIDTH", 32))
@@ -39,7 +39,7 @@ async def wait_for_idle(dut):
 
 @cocotb.test()
 @cocotb.parametrize(params=[(4, 0x0100), (16, 0x0200), (128, 0x0300)])
-async def readwrite_alligned_test(dut, params):
+async def write_alligned_test(dut, params):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
 
@@ -50,7 +50,6 @@ async def readwrite_alligned_test(dut, params):
     num_bytes, addr = params
     test_data = DummyData(num_bytes)
 
-    # step: write
     timeout = Timer(200, unit="us")
     write_task = cocotb.start_soon(axi_master.write(addr, test_data.get_test_array()))
     trigger = await First(write_task, timeout)
@@ -59,8 +58,26 @@ async def readwrite_alligned_test(dut, params):
         await FallingEdge(dut.Controller.spi_busy)
 
     await T_rwr
+    
+    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, addr, test_data.num_bytes)
+    assert memory_data == test_data.get_test_array()
 
-    # step: read
+
+@cocotb.test()
+@cocotb.parametrize(params=[(4, 0x0108), (16, 0x0220), (128, 0x0500)])
+async def read_alligned_test(dut, params):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await Timer(50, unit="ns")
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    await reset_model(dut)
+
+    num_bytes, addr = params
+    test_data = DummyData(num_bytes)
+
+    MemoryModelHelper.set_memory_s70kl1283(dut.Memory, addr, test_data.get_test_array())
+
     timeout = Timer(200, unit="us")
     read_task = cocotb.start_soon(axi_master.read(addr, test_data.num_bytes))
     trigger = await First(read_task, timeout)
@@ -105,6 +122,38 @@ async def readwrite_unalligned_test(dut, params):
         await First(FallingEdge(dut.Controller.spi_busy), timeout)
     data = read_task.result()
     assert list(data.data) == test_data.get_test_array()
+
+
+@cocotb.test()
+async def write_length_test(dut):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await Timer(50, unit="ns")
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    await reset_model(dut)
+
+    num_bytes = 4 
+    addr = 0x0008
+    test_data = DummyData(num_bytes)
+
+    # step: write
+    timeout = Timer(100, unit="us")
+    write_task = cocotb.start_soon(axi_master.write(addr, test_data.get_test_array()))
+    trigger = await First(write_task, timeout)
+    assert trigger != timeout
+    if dut.Controller.spi_busy.value == True:
+        await FallingEdge(dut.Controller.spi_busy)
+    await T_rwr
+
+    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, addr, test_data.num_bytes)
+    assert memory_data == test_data.get_test_array()
+
+    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, addr -4, 4)
+    assert memory_data == [0xff] *4
+
+    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, addr +4, 4)
+    assert memory_data == [0xff] *4
 
 
 def test_octal_memory_controller_model(wave=False):

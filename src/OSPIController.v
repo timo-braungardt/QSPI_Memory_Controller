@@ -300,7 +300,7 @@ module OSPIController #(
         write_next_word_reg <= write_next_word_nxt;
         config_data_reg <= config_data_nxt;
 
-        if (spi_read_next_byte) begin
+        if (spi_read_next_byte & ~last_word_reg) begin
             data_read_reg[byte_index_reg*8+:8] <= read_byte;
         end
 
