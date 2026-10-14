@@ -103,27 +103,24 @@ async def handle_write_burst(dut, test_data):
     await wait_for_idle(dut)
 
 
-async def handle_read_burst(dut, test_data):
-    dut.i_num_bytes.value = test_data.num_bytes
-    num_loops = test_data.num_bytes // DATA_WIDTH_BYTES
-    last_num_bytes = test_data.num_bytes - (DATA_WIDTH_BYTES * num_loops)
+async def handle_read_burst(dut, num_bytes):
+    num_loops = num_bytes // DATA_WIDTH_BYTES
     await dut.o_recieved_next_word.value_change
+    recieved_data = []
 
     for i in range(num_loops):
-        await First(RisingEdge(dut.bus_clock), FallingEdge(dut.bus_clock))
+        await RisingEdge(dut.clk)
         if i == num_loops - 2:
             dut.i_last_word.value = True
-
-        assert dut.o_data_read.value.to_unsigned() == test_data.get_test_number_word(i * DATA_WIDTH_BYTES)
+        for x in range(DATA_WIDTH_BYTES):
+            lower = x * 8
+            upper = (x+1) *8 -1
+            data = dut.o_data_read.value
+            recieved_data.append(data[upper:lower].to_unsigned())
         dut.Controller.data_read_reg.value = 0  # ToDo: the other bytes have to be masked (issue #18)
 
-    if last_num_bytes != 0:
-        await First(RisingEdge(dut.bus_clock), FallingEdge(dut.bus_clock))
-        assert dut.o_data_read.value.to_unsigned() == test_data.get_test_number_word(
-            num_loops * DATA_WIDTH_BYTES, last_num_bytes
-        )
-
     await wait_for_idle(dut)
+    return recieved_data[:num_bytes]
 
 
 @cocotb.test()
@@ -162,7 +159,8 @@ async def read_test(dut):
     await trigger_go(dut)
     await wait_for_idle(dut)
 
-    assert dut.o_data_read.value.to_unsigned() == test_data.get_test_number()
+    recieved_data = dut.o_data_read.value
+    assert recieved_data.to_unsigned() == test_data.get_test_number()
 
 
 @cocotb.test()
@@ -228,7 +226,7 @@ async def read_burst_test(dut, num_bytes):
 
     config_transaction(dut, OPCODE.read, address=address, data=test_data.get_test_number(), only_one_byte=False, num_bytes=test_data.num_bytes)
     await trigger_go(dut)
-    recieved_data = await handle_read_burst(dut, test_data)
+    recieved_data = await handle_read_burst(dut, test_data.num_bytes)
     assert recieved_data == test_data.get_test_array()
 
 

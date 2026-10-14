@@ -12,6 +12,8 @@ add wave sim:/Octal_SPI_Controller_wrapper/i_address
 add wave sim:/Octal_SPI_Controller_wrapper/i_data_write
 add wave sim:/Octal_SPI_Controller_wrapper/Controller/opcode_reg
 add wave sim:/Octal_SPI_Controller_wrapper/i_last_word
+add wave sim:/Octal_SPI_Controller_wrapper/Controller/byte_index_reg
+add wave sim:/Octal_SPI_Controller_wrapper/Controller/byte_count_reg
 add wave sim:/Octal_SPI_Controller_wrapper/o_data_read
 add wave sim:/Octal_SPI_Controller_wrapper/o_next_word
 add wave sim:/Octal_SPI_Controller_wrapper/o_recieved_next_word
