@@ -94,7 +94,7 @@ async def handle_write_burst(dut, test_data):
     await dut.o_need_next_byte.value_change
 
     for i in range(1, num_loops):
-        await First(RisingEdge(dut.bus_clock), FallingEdge(dut.bus_clock))
+        await RisingEdge(dut.clk)
         dut.i_data_write.value = test_data[i]
         if (num_loops - i - 1) == 0:
             dut.i_last_word.value = True
@@ -110,7 +110,7 @@ async def handle_read_burst(dut, num_bytes):
     for i in range(num_bytes):
         if (num_bytes - i - 1) == 0:
             dut.i_last_word.value = True
-        await First(RisingEdge(dut.bus_clock), FallingEdge(dut.bus_clock))
+        await RisingEdge(dut.clk)
         recieved_data.append(dut.o_data_read.value.to_unsigned())
     await RisingEdge(dut.clk)
     dut.i_last_word.value = True
