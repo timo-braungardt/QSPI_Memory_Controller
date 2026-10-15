@@ -230,6 +230,15 @@ async def read_burst_test(dut, num_bytes):
     assert recieved_data == test_data.get_test_array()
 
 
+@cocotb.test()
+async def correct_opcode_test(dut):
+    """
+    This test checks if the opcode set in the controller is the same as the Infineon opcodes.
+    """
+    assert dut.Controller.OPCODE_READ.value.to_unsigned() == OPCODE.read
+    assert dut.Controller.OPCODE_WRITE.value.to_unsigned() == OPCODE.write
+
+
 def test_octal_spi_controller_model(wave=False):
     """
     Test if the basics of the Octal SPI protocol are implemented correctly.
