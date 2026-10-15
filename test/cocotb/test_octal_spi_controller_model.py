@@ -172,7 +172,7 @@ async def variable_latency_test(dut):
     await reset_model(dut)
     test_data = DummyData(1)
 
-    assert check_write_enable(dut)
+    set_variable_latency(dut)
 
     config_transaction(dut, OPCODE.write, address=0x001000, data=test_data.get_test_number())
     await trigger_go(dut)
