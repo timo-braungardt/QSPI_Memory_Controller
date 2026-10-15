@@ -105,8 +105,8 @@ module OctalSPI #(
     localparam integer LATENCY_CYCLES = INFINEON_LATENCY_CYCLES * 2;
     // the first latency already begins after the sample point of the upper address
     // therefore we have to subtract one cycle (-2) from the latency
-    localparam integer NUM_SHORT_LATENCY_CYCLES = LATENCY_CYCLES + 2;
-    localparam integer NUM_LONG_LATENCY_CYCLES = LATENCY_CYCLES * 2 + 2;
+    localparam integer NUM_SHORT_LATENCY_CYCLES = LATENCY_CYCLES;
+    localparam integer NUM_LONG_LATENCY_CYCLES = LATENCY_CYCLES * 2;
     //localparam integer READ_LATENCY_IN_CYCLE = 1; // (issue #15)
     localparam integer TEMP_OPERATION_CYCLES = 1;   // transfer 2 bytes // ToDo: make dynamic handshake (issue #12)
 
@@ -130,7 +130,7 @@ module OctalSPI #(
     end
 
 
-    always @(posedge clk) begin : clock_register
+    always @(negedge clk) begin : clock_register
         if (~reset_neg) begin
             bus_clock_reg <= 0;
             bus_clock_p2_reg <= 0;
@@ -150,7 +150,7 @@ module OctalSPI #(
 
         // the read needs one more cycle after the latency until the memory puts out data
         // therefore +2
-        latency_offset = (i_config_read_data) ? 1 : -1;
+        latency_offset = (i_config_read_data) ? 2 : 1;
 
         case (state_reg)
             IDLE: begin

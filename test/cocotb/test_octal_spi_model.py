@@ -189,6 +189,9 @@ async def variable_latency_test(dut):
 
     await T_rwr
 
+    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, 0x001000, test_data.num_bytes)
+    assert memory_data == test_data.get_test_array()
+
     config_transaction(dut, OPCODE.read, address=0x001000, data=test_data.get_test_number())
     await trigger_go(dut)
     await wait_for_idle(dut)
