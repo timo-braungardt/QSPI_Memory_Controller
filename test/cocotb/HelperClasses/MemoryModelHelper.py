@@ -1,3 +1,5 @@
+from cocotb.handle import Immediate
+
 class MemoryModelHelper:
     """This function does not handle uneven addresses or uneven data length yet."""
     def set_memory_s70kl1283(model, address, data):
@@ -30,3 +32,16 @@ class MemoryModelHelper:
             data_array.append(data_lower)
 
         return data_array[:num_bytes]
+
+
+    def set_variable_latency_s70kl1283(model):
+        config = model.top.Config_reg0.value
+        config[3] = 0
+        model.top.Config_reg0.set(Immediate(config))
+
+        config = model.bottom.Config_reg0.value
+        config[3] = 0
+        model.bottom.Config_reg0.set(Immediate(config))
+
+        assert model.bottom.Config_reg0.value[3] == 0
+        assert model.top.Config_reg0.value[3] == 0

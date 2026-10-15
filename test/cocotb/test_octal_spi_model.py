@@ -4,7 +4,6 @@ import cocotb
 from cocotb_tools.runner import get_runner
 from cocotb.triggers import Timer, RisingEdge, FallingEdge, ClockCycles, First
 from cocotb.clock import Clock
-from cocotb.handle import Immediate
 from HelperClasses import DummyData, MemoryModelHelper
 from unittest import SkipTest
 
@@ -46,19 +45,6 @@ async def trigger_go(dut):
 
 def check_write_enable(dut):
     return dut.Memory.bottom.WREN.value
-
-
-def set_variable_latency(dut):
-    config = dut.Memory.top.Config_reg0.value
-    config[3] = 0
-    dut.Memory.top.Config_reg0.set(Immediate(config))
-
-    config = dut.Memory.bottom.Config_reg0.value
-    config[3] = 0
-    dut.Memory.bottom.Config_reg0.set(Immediate(config))
-
-    assert dut.Memory.bottom.Config_reg0.value[3] == 0
-    assert dut.Memory.top.Config_reg0.value[3] == 0
 
 
 def config_transaction(dut, opcode, address=0, data=0, only_one_byte=True):
@@ -177,7 +163,7 @@ async def variable_latency_test(dut):
     await trigger_go(dut)
     await wait_for_idle(dut)
 
-    set_variable_latency(dut)
+    MemoryModelHelper.set_variable_latency_s70kl1283(dut.Memory)
 
     await T_rwr
 
@@ -249,6 +235,10 @@ async def read_burst_test(dut):
 
     assert len(recieved_data) == test_data.num_bytes
     assert recieved_data == test_data.get_test_array()
+
+
+# @cocotb.test()
+# async def byte_masking_test(dut):
 
 
 def test_octal_spi_model(wave=False):
