@@ -190,10 +190,10 @@ module OctalSPI #(
             WAIT_LATENCY: begin
                 count_nxt = count_reg - 1;
 
+                    en_data_out_nxt = ~i_config_read_data;
                 if (count_reg == 0) begin
                     count_nxt = TEMP_OPERATION_CYCLES;
 
-                    en_data_out_nxt = ~i_config_read_data;
 
                     if (i_config_read_data) state_nxt = RECEIVE_DATA;
                     else if (i_config_write_data) state_nxt = SEND_DATA;
