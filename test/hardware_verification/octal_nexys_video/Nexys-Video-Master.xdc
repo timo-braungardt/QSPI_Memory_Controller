@@ -358,15 +358,15 @@ set psram_tCSP       2.5   ;# CE# setup to CLK rising edge
 set psram_tCHD       2.5   ;# CE# hold from CLK falling edge
 set psram_tDQSCK_min 2.0   ;# CLK edge -> DQS edge (read)
 set psram_tDQSCK_max 5.5
-set psram_tDQSQ_max  0.6   ;# DQS -> DQ skew (read)
+set psram_tDQSQ      0.6   ;# DQS -> DQ skew (read)
 
 # --- Board delays between FPGA pin and PSRAM ball [ns] ---
 # TODO: replace with your real values (rule of thumb: ~0.17 ns per inch of trace,
 # add the FMC connector / cable / breakout board). Min and max cover tolerance.
-set pcb_clk_min 0.561   ;# FPGA o_spi_bus_clock -> PSRAM CLK
-set pcb_clk_max 0.57
-set pcb_dq_min  0.17   ;# DQ / DM / CE# traces (same length assumed both ways)
-set pcb_dq_max  0.25
+set pcb_clk_min 0.92   ;# FPGA o_spi_bus_clock -> PSRAM CLK
+set pcb_clk_max 0.99
+set pcb_dq_min  0.59   ;# DQ / DM / CE# traces (same length assumed both ways)
+set pcb_dq_max  0.64
 
 
 ##############################################################################
@@ -429,8 +429,8 @@ set_output_delay -clock bus_clk -clock_fall -min $ce_min -add_delay [get_ports o
 #    The delay from sys_clk to the pin (FF clk->Q + OBUF) is added by Vivado
 #    automatically as latency of the generated clock.
 ##############################################################################
-set in_max [expr {$psram_tDQSCK_max + $psram_tDQSQ_max + $pcb_clk_max + $pcb_dq_max}]
-set in_min [expr {$psram_tDQSCK_min - $psram_tDQSQ_max + $pcb_clk_min + $pcb_dq_min}]
+set in_max [expr {$psram_tDQSCK_max + $psram_tDQSQ + $pcb_clk_max + $pcb_dq_max}]
+set in_min [expr {$psram_tDQSCK_min - $psram_tDQSQ + $pcb_clk_min + $pcb_dq_min}]
 
 set dq_in_ports [get_ports {io_spi_data[*]}]
 
