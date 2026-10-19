@@ -40,8 +40,6 @@ module OctalSPI #(
 
     // constants
     localparam BUS_WIDTH = 8;
-    localparam INFINEON_LATENCY_CYCLES = 7;
-    localparam APMEMORY_LATENCY_CLCLES = 5;
 
     // Pin tristate stuff
     reg en_data_out_reg;
@@ -97,11 +95,13 @@ module OctalSPI #(
     // constants
     localparam integer ADDRESS_CYCLES = 4;
     localparam integer OPCODE_CYCLES = 2;
+    localparam INFINEON_LATENCY_CYCLES = 7;
+    localparam APMEMORY_LATENCY_CYCLES = 5;
     // times two because of the two clock edges
-    localparam integer LATENCY_CYCLES = APMEMORY_LATENCY_CLCLES * 2;
+    localparam integer LATENCY_CYCLES = APMEMORY_LATENCY_CYCLES * 2;    // ToDo think about a better switch (issue #12)
     // the first latency already begins after the sample point of the upper address
     // therefore we have to subtract one cycle (-2) from the latency
-    localparam integer NUM_SHORT_LATENCY_CYCLES = LATENCY_CYCLES - 2;// + 2;
+    localparam integer NUM_SHORT_LATENCY_CYCLES = LATENCY_CYCLES - 2;// + 2;    // ToDo think about a better switch (issue #12)
     localparam integer NUM_LONG_LATENCY_CYCLES = LATENCY_CYCLES * 2 + 2;
     //localparam integer READ_LATENCY_IN_CYCLE = 1; // (issue #15)
     localparam integer TEMP_OPERATION_CYCLES = 1;   // transfer 2 bytes // ToDo: make dynamic handshake (issue #12)
@@ -150,7 +150,7 @@ module OctalSPI #(
 
         // the read needs one more cycle after the latency until the memory puts out data
         // therefore +2
-        latency_offset = (i_config_read_data) ? 1 : -1;
+        latency_offset = (i_config_read_data) ? 1 : -1;     // ToDo change (issue #12)
 
         case (state_reg)
             IDLE: begin
@@ -171,7 +171,7 @@ module OctalSPI #(
                     if (i_config_write_address) begin
                         count_nxt = ADDRESS_CYCLES - 1;
                         state_nxt = SEND_ADDRESS;
-                        //has_latency_nxt = data_strobe_in;
+                        //has_latency_nxt = data_strobe_in;     // ToDo change (issue #12)
                         has_latency_nxt = 1'b0;
                     end else state_nxt = CS_HIGH;
                 end
