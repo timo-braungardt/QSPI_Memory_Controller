@@ -149,10 +149,10 @@ async def write_length_test(dut):
     memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, addr, test_data.num_bytes)
     assert memory_data == test_data.get_test_array()
 
-    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, addr -4, 4)
+    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, addr -2, 4)
     assert memory_data == [0xff] *4
 
-    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, addr +4, 4)
+    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, addr +2, 4)
     assert memory_data == [0xff] *4
 
 
