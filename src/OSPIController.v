@@ -17,7 +17,9 @@ module OSPIController #(
     parameter ADDRESS_LENGTH = 24,
     parameter DATA_WIDTH = 32,
     parameter DATA_BYTES = DATA_WIDTH / 8,
-    parameter MAX_NUM_BYTES = $clog2(256)
+    parameter MAX_NUM_BYTES = $clog2(256),
+    parameter OPCODE_READ_PARAM = 8'hEE,      // opcodes for infineon chip
+    parameter OPCODE_WRITE_PARAM = 8'hDE
 ) (
     input clk,
     input reset_neg,
@@ -106,10 +108,13 @@ module OSPIController #(
     reg [INDEX_STATES_MSB:0] control_state_reg;
     reg [INDEX_STATES_MSB:0] control_state_nxt;
 
-    //localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ = 8'hEE;
-    localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ = 8'h20;
+    //localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ = 8'hEE;    // Infineon
+    //localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ = 8'h20;    // AP Memory    ToDo: cleanup (issue #12)
+    localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ = OPCODE_READ_PARAM;
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE_ENABLE = 8'h06;
-    localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE = 8'hA0;
+    //localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE = 8'hDE;  // Infineon
+    //localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE = 8'hA0;  // AP Memory
+    localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE = OPCODE_WRITE_PARAM;
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE_ANY_REG = 8'h00;
     //localparam [OPCODE_LENGTH -1 : 0] OPCODE_LONG_ADDRESS_ENABLE = 8'h00;
 

@@ -11,7 +11,9 @@ module MemoryController #(
     parameter STRB_WIDTH = (DATA_WIDTH / 8),
     parameter ID_WIDTH = 8,
     parameter MAX_NUM_BYTES = $clog2(256),
-    parameter INTERFACE_TYPE = "SPI"
+    parameter INTERFACE_TYPE = "SPI",
+    parameter OPCODE_READ_PARAM = 8'hEE,      // opcodes for infineon chip
+    parameter OPCODE_WRITE_PARAM = 8'hDE
 ) (
     input clk,
     input reset,
@@ -140,7 +142,9 @@ module MemoryController #(
             OSPIController #(
                 .ADDRESS_LENGTH(ADDR_WIDTH),
                 .DATA_WIDTH(DATA_WIDTH),
-                .MAX_NUM_BYTES(MAX_NUM_BYTES)
+                .MAX_NUM_BYTES(MAX_NUM_BYTES),
+                .OPCODE_READ_PARAM(OPCODE_READ_PARAM),
+                .OPCODE_WRITE_PARAM(OPCODE_WRITE_PARAM)
             ) SPI_Controller (
                 .clk(clk),
                 .reset_neg(!reset),

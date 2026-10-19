@@ -67,13 +67,17 @@ module top #(
     wire axi_rvalid;
     wire axi_rready;
 
+    localparam [7 : 0] OPCODE_READ  = 8'h20;    // AP Memory
+    localparam [7 : 0] OPCODE_WRITE = 8'hA0;
 
     MemoryController #(
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
         .ID_WIDTH(ID_WIDTH),
         .MAX_NUM_BYTES(MAX_NUM_BYTES),
-        .INTERFACE_TYPE(INTERFACE_TYPE)
+        .INTERFACE_TYPE(INTERFACE_TYPE),
+        .OPCODE_READ_PARAM(OPCODE_READ),
+        .OPCODE_WRITE_PARAM(OPCODE_WRITE)
     ) Controller (
         .clk  (clk),
         .reset(reset),
