@@ -69,8 +69,9 @@ module OctalSPI #(
 
     // Bus Clock
     reg bus_clock_reg;
-    reg                          bus_clock_p2_reg;  // the bus clock has to be shifted a bit to guarantee that the data is present on the bus
     reg bus_clock_nxt;
+    reg bus_clock_p2_reg;  // the bus clock has to be shifted a bit to guarantee that the data is present on the bus
+    reg bus_clock_p2_nxt;
     integer clock_count_reg;
     integer clock_count_nxt;
 
@@ -123,9 +124,11 @@ module OctalSPI #(
 
     always @(*) begin : clock_logic
         bus_clock_nxt = 1'b0;
+        bus_clock_p2_nxt = 1'b0;
 
         if (state_reg != IDLE & state_reg != CS_LOW & state_reg != CS_HIGH & state_reg != FINISH) begin
             bus_clock_nxt = ~bus_clock_reg;
+            bus_clock_p2_nxt = bus_clock_reg;
         end
     end
 
@@ -136,7 +139,7 @@ module OctalSPI #(
             bus_clock_p2_reg <= 0;
         end else begin
             bus_clock_reg <= bus_clock_nxt;
-            bus_clock_p2_reg <= bus_clock_reg;  // a delayed clock is needed so that the data is set before the clock edge goes out to the device
+            bus_clock_p2_reg <= bus_clock_p2_nxt;  // a delayed clock is needed so that the data is set before the clock edge goes out to the device
         end
     end
 
