@@ -217,8 +217,8 @@ module OctalSPI #(
                 count_nxt = count_reg - 1;
 
                 // we check the clock, because we always have to send two bytes
-                // on the first byte sent out, the clock is always low
-                if (i_last_word & ~bus_clock_p2_reg) begin
+                // on the first byte sent out, the clock is always low  ToDo: (issue #12) maybe better description, maybe unnecessary because the clock shift is not needed?
+                if (i_last_word & bus_clock_p2_reg) begin
                     count_nxt = 0;  // otherwise underflow - can this be synthesised elegantly?
                     state_nxt = CS_HIGH;
                 end
