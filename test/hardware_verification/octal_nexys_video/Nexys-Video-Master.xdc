@@ -375,15 +375,11 @@ set pcb_dq_max  0.64
 
 # The register that drives o_spi_bus_clock. Check in the synthesized design:
 #   llength [get_cells -hier -filter {NAME =~ *SPI_Transmitter/bus_clock_p2_reg_reg}]  -> must be 1
-set bus_clk_reg [get_cells -hier -filter {NAME =~ *SPI_Transmitter/bus_clock_p2_reg_reg}]
 
 # Divide-by-2, rising edge on the sys_clk FALLING edge:
 # sys_clk edges: 1=rise, 2=fall, 3=rise, 4=fall, 5=rise, 6=fall
 # bus clock rises on edge 2, falls on edge 4, rises again on edge 6.
-create_generated_clock -name bus_clk \
-    -source [get_pins -of_objects $bus_clk_reg -filter {REF_PIN_NAME == C}] \
-    -divide_by 2 \
-    [get_ports o_spi_bus_clock]
+create_generated_clock -name bus_clk -source [get_pins -of_objects [get_cells -hier -filter {NAME =~ *SPI_Transmitter/bus_clock_p2_reg_reg}] -filter {REF_PIN_NAME == C}] -divide_by 2 [get_ports o_spi_bus_clock]
 
 
 ##############################################################################
@@ -473,10 +469,11 @@ set_property C_INPUT_PIPE_STAGES 0 [get_debug_cores u_ila_0]
 set_property C_TRIGIN_EN false [get_debug_cores u_ila_0]
 set_property C_TRIGOUT_EN false [get_debug_cores u_ila_0]
 set_property port_width 1 [get_debug_ports u_ila_0/clk]
-connect_debug_port u_ila_0/clk [get_nets [list clk_IBUF_BUFG]]
+connect_debug_port u_ila_0/clk [get_nets [list sys_clk]]
 set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe0]
 set_property port_width 8 [get_debug_ports u_ila_0/probe0]
 connect_debug_port u_ila_0/probe0 [get_nets [list {io_spi_data_OBUF[0]} {io_spi_data_OBUF[1]} {io_spi_data_OBUF[2]} {io_spi_data_OBUF[3]} {io_spi_data_OBUF[4]} {io_spi_data_OBUF[5]} {io_spi_data_OBUF[6]} {io_spi_data_OBUF[7]}]]
+connect_debug_port u_ila_0/clk [get_nets [list sys_clk_IBUF_BUFG]]
 create_debug_port u_ila_0 probe
 set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe1]
 set_property port_width 8 [get_debug_ports u_ila_0/probe1]
@@ -523,7 +520,9 @@ set_property MARK_DEBUG true [get_nets <const0>]
 set_property MARK_DEBUG true [get_nets io_spi_data_strobe_TRI]
 set_property MARK_DEBUG true [get_nets io_spi_data_strobe_IBUF]
 
+connect_debug_port dbg_hub/clk [get_nets clk_IBUF_BUFG]
+
 set_property C_CLK_INPUT_FREQ_HZ 300000000 [get_debug_cores dbg_hub]
 set_property C_ENABLE_CLK_DIVIDER false [get_debug_cores dbg_hub]
 set_property C_USER_SCAN_CHAIN 1 [get_debug_cores dbg_hub]
-connect_debug_port dbg_hub/clk [get_nets clk_IBUF_BUFG]
+connect_debug_port dbg_hub/clk [get_nets sys_clk]

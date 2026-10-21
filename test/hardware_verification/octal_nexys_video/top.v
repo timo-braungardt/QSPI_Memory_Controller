@@ -63,6 +63,16 @@ module top #(
     wire axi_rlast;
     wire axi_rvalid;
     wire axi_rready;
+    
+    wire sys_clk;
+
+
+    clk_wiz_0 mmcm (
+        .clk_out1(sys_clk),          
+        .reset(reset),
+        .clk_in1(clk)
+    );
+
 
     localparam INFINEON_CHIP = 1;
     localparam APMEMORY_CHIP = 2;
@@ -75,7 +85,7 @@ module top #(
         .INTERFACE_TYPE(INTERFACE_TYPE),
         .CHIP_TYPE(APMEMORY_CHIP)
     ) Controller (
-        .clk  (clk),
+        .clk  (sys_clk),
         .reset(reset),
 
         // SPI Pins
@@ -133,7 +143,7 @@ module top #(
 
 
     jtag_axi_0 JTAG_AXI_Module (
-        .aclk(clk),
+        .aclk(sys_clk),
         .aresetn(~reset),
 
         .m_axi_awid(axi_awid),
