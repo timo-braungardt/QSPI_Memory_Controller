@@ -133,7 +133,7 @@ module OctalSPI #(
     end
 
 
-    always @(negedge clk) begin : clock_register    // ToDo change (issue #12)
+    always @(posedge clk) begin : clock_register
         if (~reset_neg) begin
             bus_clock_reg <= 0;
             bus_clock_p2_reg <= 0;
