@@ -103,7 +103,7 @@ module OctalSPI #(
     localparam integer LATENCY_CYCLES = (CHIP_TYPE == 1) ? INFINEON_LATENCY_CYCLES * 2 : APMEMORY_LATENCY_CYCLES * 2;    // ToDo think about a better switch (issue #12)
     // the first latency already begins after the sample point of the upper address
     // therefore we have to subtract one cycle (-2) from the latency
-    localparam integer NUM_SHORT_LATENCY_CYCLES = LATENCY_CYCLES - 2;// + 2;    // ToDo think about a better switch (issue #12)
+    localparam integer NUM_SHORT_LATENCY_CYCLES = (CHIP_TYPE == 1) ? LATENCY_CYCLES + 2 : LATENCY_CYCLES - 2;   // ToDo think about a better switch (issue #12)
     localparam integer NUM_LONG_LATENCY_CYCLES = LATENCY_CYCLES * 2 + 2;
     //localparam integer READ_LATENCY_IN_CYCLE = 1; // (issue #15)
     localparam integer TEMP_OPERATION_CYCLES = 1;   // transfer 2 bytes // ToDo: make dynamic handshake (issue #12)
