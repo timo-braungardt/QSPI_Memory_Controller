@@ -29,7 +29,6 @@ Simple interface which accepts read and write requests.
 Can create backpreasure so the SPI can write the data out.
 */
 
-`resetall
 `timescale 1ns / 1ps
 `default_nettype none
 
@@ -398,5 +397,3 @@ module AXIInterface #(
 
 
 endmodule
-
-`resetall
