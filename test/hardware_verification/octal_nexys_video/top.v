@@ -26,9 +26,6 @@ module top #(
     assign set_vadj = volt33;
     assign vadj_en  = 1'b1;
 
-    wire aclk;
-    wire aresetn;
-
     wire [0 : 0] axi_awid;
     wire [31 : 0] axi_awaddr;
     wire [7 : 0] axi_awlen;
@@ -138,7 +135,7 @@ module top #(
     jtag_axi_0 JTAG_AXI_Module (
         .aclk(clk),
         .aresetn(~reset),
-        
+
         .m_axi_awid(axi_awid),
         .m_axi_awaddr(axi_awaddr),
         .m_axi_awlen(axi_awlen),
@@ -150,18 +147,18 @@ module top #(
         .m_axi_awqos(axi_awqos),
         .m_axi_awvalid(axi_awvalid),
         .m_axi_awready(axi_awready),
-        
-        .m_axi_wdata(axi_wdata),
-        .m_axi_wstrb(axi_wstrb),
-        .m_axi_wlast(axi_wlast),
+
+        .m_axi_wdata (axi_wdata),
+        .m_axi_wstrb (axi_wstrb),
+        .m_axi_wlast (axi_wlast),
         .m_axi_wvalid(axi_wvalid),
         .m_axi_wready(axi_wready),
-        
+
         .m_axi_bid(axi_bid),
         .m_axi_bresp(axi_bresp),
         .m_axi_bvalid(axi_bvalid),
         .m_axi_bready(axi_bready),
-        
+
         .m_axi_arid(axi_arid),
         .m_axi_araddr(axi_araddr),
         .m_axi_arlen(axi_arlen),
@@ -173,7 +170,7 @@ module top #(
         .m_axi_arqos(axi_arqos),
         .m_axi_arvalid(axi_arvalid),
         .m_axi_arready(axi_arvalid),
-        
+
         .m_axi_rid(axi_rid),
         .m_axi_rdata(axi_rdata),
         .m_axi_rresp(axi_rresp),
