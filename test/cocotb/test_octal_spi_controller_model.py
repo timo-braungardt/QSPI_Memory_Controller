@@ -158,7 +158,7 @@ async def variable_latency_test(dut):
     await reset_model(dut)
     test_data = DummyData(1)
 
-    assert check_write_enable(dut)
+    set_variable_latency(dut)
 
     config_transaction(dut, OPCODE.write, address=0x001000, data=test_data.get_test_number())
     await trigger_go(dut)
@@ -216,6 +216,15 @@ async def read_burst_test(dut, num_bytes):
     await trigger_go(dut)
     recieved_data = await handle_read_burst(dut, test_data.num_bytes)
     assert recieved_data == test_data.get_test_array()
+
+
+@cocotb.test()
+async def correct_opcode_test(dut):
+    """
+    This test checks if the opcode set in the controller is the same as the Infineon opcodes.
+    """
+    assert dut.Controller.OPCODE_READ.value.to_unsigned() == OPCODE.read
+    assert dut.Controller.OPCODE_WRITE.value.to_unsigned() == OPCODE.write
 
 
 def test_octal_spi_controller_model(wave=False):
