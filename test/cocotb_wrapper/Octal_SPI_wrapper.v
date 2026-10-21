@@ -27,7 +27,12 @@ module Octal_SPI_wrapper #(
     reg i_write_enable;
     reg i_last_word;
 
-    OctalSPI Controller (
+    localparam INFINEON_CHIP = 1;
+    localparam APMEMORY_CHIP = 2;
+
+    OctalSPI #(
+        .CHIP_TYPE(INFINEON_CHIP)
+    ) Controller (
         .clk(clk),
         .reset_neg(reset_neg),
         .start_transmission(go),

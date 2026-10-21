@@ -63,10 +63,14 @@ module Octal_Memory_Controller_wrapper #(
     wire bus_clock, bus_clock_neg, chip_select_neg;
     integer test_number = 0;
 
+    localparam INFINEON_CHIP = 1;
+    localparam APMEMORY_CHIP = 2;
+
     MemoryController #(
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
-        .INTERFACE_TYPE("OSPI")
+        .INTERFACE_TYPE("OSPI"),
+        .CHIP_TYPE(INFINEON_CHIP)
     ) Controller (
         .clk  (clk),
         .reset(reset),

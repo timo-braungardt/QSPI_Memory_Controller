@@ -67,8 +67,8 @@ module top #(
     wire axi_rvalid;
     wire axi_rready;
 
-    localparam [7 : 0] OPCODE_READ  = 8'h20;    // AP Memory
-    localparam [7 : 0] OPCODE_WRITE = 8'hA0;
+    localparam INFINEON_CHIP = 1;
+    localparam APMEMORY_CHIP = 2;
 
     MemoryController #(
         .ADDR_WIDTH(ADDR_WIDTH),
@@ -76,8 +76,7 @@ module top #(
         .ID_WIDTH(ID_WIDTH),
         .MAX_NUM_BYTES(MAX_NUM_BYTES),
         .INTERFACE_TYPE(INTERFACE_TYPE),
-        .OPCODE_READ_PARAM(OPCODE_READ),
-        .OPCODE_WRITE_PARAM(OPCODE_WRITE)
+        .CHIP_TYPE(APMEMORY_CHIP)
     ) Controller (
         .clk  (clk),
         .reset(reset),

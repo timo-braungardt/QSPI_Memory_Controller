@@ -28,10 +28,14 @@ module Octal_SPI_Controller_wrapper #(
     reg i_last_word;
     reg [MAX_NUM_BYTES-1:0] i_num_bytes;
 
+    localparam INFINEON_CHIP = 1;
+    localparam APMEMORY_CHIP = 2;
+
     OSPIController #(
         .ADDRESS_LENGTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
-        .MAX_NUM_BYTES(MAX_NUM_BYTES)
+        .MAX_NUM_BYTES(MAX_NUM_BYTES),
+        .CHIP_TYPE(INFINEON_CHIP)
     ) Controller (
         .clk(clk),
         .reset_neg(reset_neg),
