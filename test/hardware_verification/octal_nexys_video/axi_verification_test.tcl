@@ -54,6 +54,20 @@ proc test_backpreasure_ram_refresh {} {
 }
 
 
+proc test_read_write_queue {} {
+    # 4 cycles, so 80ns @ 50MHz system clock for refresh?
+    setup_all_zero
+
+    create_hw_axi_txn write_txn [get_hw_axis hw_axi_1] -type write -address 0 -len 256 -data 0x55aa55aa -force
+    create_hw_axi_txn read_txn [get_hw_axis hw_axi_1] -type read -address 0 -len 256 -force
+
+    run_hw_axi -queue  [get_hw_axi_txns read_txn] [get_hw_axi_txns write_txn]
+    
+    set data [read_data  0 4]
+    assert {{$data} == "{55aa55aa55aa55aa55aa55aa55aa55aa}"}
+}
+
+
 ### ===================
 ###   Helper Function
 ### ===================
