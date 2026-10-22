@@ -440,7 +440,7 @@ set_input_delay -clock bus_clk -clock_fall -min $in_min -add_delay $dq_in_ports
 # by the SECOND following sys_clk rising edge instead of the first one.
 # Setup only: new data arrives every cycle, so the hold check must NOT be moved.
 # Verify with report_timing; use 3 if the data arrives later than ~2 cycles.
-set_multicycle_path 2 -setup -from [get_clocks bus_clk] -to [get_clocks sys_clk_pin]
+#set_multicycle_path 2 -setup -from [get_clocks bus_clk] -to [get_clocks sys_clk_pin]
 
 
 ##############################################################################
