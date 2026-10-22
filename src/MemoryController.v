@@ -10,7 +10,7 @@ module MemoryController #(
     parameter DATA_WIDTH = 32,
     parameter STRB_WIDTH = (DATA_WIDTH / 8),
     parameter ID_WIDTH = 8,
-    parameter MAX_NUM_BYTES = $clog2(256),
+    parameter MAX_NUM_BYTES = $clog2(1024),
     parameter INTERFACE_TYPE = "SPI",
     parameter CHIP_TYPE = -1    // 1 is Infineon, 2 is APMemory
 ) (

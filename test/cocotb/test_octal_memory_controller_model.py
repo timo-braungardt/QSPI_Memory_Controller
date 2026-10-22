@@ -38,7 +38,7 @@ async def wait_for_idle(dut):
 
 
 @cocotb.test()
-@cocotb.parametrize(params=[(4, 0x0100), (16, 0x0200), (128, 0x0300)])
+@cocotb.parametrize(params=[(4, 0x0100), (16, 0x0200), (128, 0x0300), (256, 0x1000),(512, 0x1100)])
 async def write_alligned_test(dut, params):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())

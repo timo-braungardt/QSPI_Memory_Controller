@@ -17,7 +17,7 @@ module OSPIController #(
     parameter ADDRESS_LENGTH = 24,
     parameter DATA_WIDTH = 32,
     parameter DATA_BYTES = DATA_WIDTH / 8,
-    parameter MAX_NUM_BYTES = $clog2(256),
+    parameter MAX_NUM_BYTES = $clog2(1024),
     parameter CHIP_TYPE = -1    // 1 is Infineon, 2 is APMemory
 ) (
     input clk,

@@ -11,7 +11,7 @@ module Octal_SPI_Controller_wrapper #(
     parameter ID_WIDTH = 8,
     // Extra pipeline register on output
     parameter PIPELINE_OUTPUT = 1'b0,
-    parameter MAX_NUM_BYTES = $clog2(256)
+    parameter MAX_NUM_BYTES = $clog2(1024)
 );
     reg clk;
     reg go;

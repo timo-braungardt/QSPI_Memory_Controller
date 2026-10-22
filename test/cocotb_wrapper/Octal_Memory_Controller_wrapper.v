@@ -10,8 +10,7 @@ module Octal_Memory_Controller_wrapper #(
     // Width of ID signal
     parameter ID_WIDTH = 8,
     // Extra pipeline register on output
-    parameter PIPELINE_OUTPUT = 1'b0,
-    parameter MAX_NUM_BYTES = $clog2(256)
+    parameter PIPELINE_OUTPUT = 1'b0
 ) (
     input clk,
     input reset,
@@ -57,6 +56,7 @@ module Octal_Memory_Controller_wrapper #(
     output wire                  s_axi_rvalid,
     input  wire                  s_axi_rready
 );
+    localparam MAX_NUM_BYTES = $clog2(1024);
 
     wire [7:0] data;
     wire data_strobe;
@@ -70,7 +70,8 @@ module Octal_Memory_Controller_wrapper #(
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
         .INTERFACE_TYPE("OSPI"),
-        .CHIP_TYPE(INFINEON_CHIP)
+        .CHIP_TYPE(INFINEON_CHIP),
+        .MAX_NUM_BYTES(MAX_NUM_BYTES)
     ) Controller (
         .clk  (clk),
         .reset(reset),

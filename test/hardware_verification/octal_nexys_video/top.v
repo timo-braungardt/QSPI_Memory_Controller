@@ -2,7 +2,7 @@ module top #(
     parameter ADDR_WIDTH = 32,
     parameter DATA_WIDTH = 32,
     parameter ID_WIDTH = 1,
-    parameter MAX_NUM_BYTES = $clog2(256),
+    parameter MAX_NUM_BYTES = $clog2(1024),
     parameter INTERFACE_TYPE = "OSPI"
 ) (
     input clk,
