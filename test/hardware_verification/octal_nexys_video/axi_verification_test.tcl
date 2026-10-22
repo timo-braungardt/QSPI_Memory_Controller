@@ -26,7 +26,7 @@ proc setup_all_zero {} {
 proc test_write {} {
     setup_all_zero
     set data [read_data  0 4]
-    assert {$data == {00000000}}
+    assert {$data == "{00000000}"}
 
     write_data 0 3 0x55aa55aa
     set data [read_data  0 4]
@@ -35,6 +35,22 @@ proc test_write {} {
     write_data 2 1 0x11111111
     set data [read_data  0 4]
     assert {{$data} == "{0000000055aa55aa55aa1111111155aa}"}
+}
+
+
+proc test_backpreasure_ram_refresh {} {
+    # 4 cycles, so 80ns @ 50MHz system clock for refresh?
+    setup_all_zero
+    write_data 0 4 0x55aa55aa
+
+    #create_hw_axi_txn read_txn_short [get_hw_axis hw_axi_1] -type read -address 0 -len 1 -force
+    create_hw_axi_txn read_txn [get_hw_axis hw_axi_1] -type read -address 0 -len 256 -force
+    for {set i 0} {$i < 1000} {incr i} {
+        run_hw_axi -queue  [get_hw_axi_txns read_txn] [get_hw_axi_txns read_txn] [get_hw_axi_txns read_txn] [get_hw_axi_txns read_txn] [get_hw_axi_txns read_txn] [get_hw_axi_txns read_txn] [get_hw_axi_txns read_txn] [get_hw_axi_txns read_txn]
+    }
+
+    set data [read_data  0 4]
+    assert {{$data} == "{55aa55aa55aa55aa55aa55aa55aa55aa}"}
 }
 
 
@@ -49,3 +65,4 @@ foreach name $all_functions {
             $name
         }
     }
+puts "Finished!"
