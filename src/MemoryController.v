@@ -80,7 +80,6 @@ module MemoryController #(
     wire [ADDR_WIDTH-1:0] axi_address;
     wire [DATA_WIDTH-1:0] axi_data_read;
     wire [DATA_WIDTH-1:0] axi_data_write;
-    wire [2:0] axi_write_width;
     wire [MAX_NUM_BYTES-1:0] spi_number_bytes_write;
     wire [MAX_NUM_BYTES-1:0] spi_number_bytes_read;
     wire [MAX_NUM_BYTES-1:0] spi_number_bytes_muxed;
@@ -95,12 +94,13 @@ module MemoryController #(
 
     // ToDo: arbitrary byte masking is not possible (yet?) with flash (issue #10)
     // ToDo: make it for arbitrary data width (issue #10)
+    localparam NUM_TRANS_PADDING_BITS = MAX_NUM_BYTES - 8;
     assign num_write_beats = s_axi_awlen + 8'd1;
-    assign num_write_bytes = num_write_beats << s_axi_awsize;
+    assign num_write_bytes = {{NUM_TRANS_PADDING_BITS{1'b0}}, num_write_beats} << s_axi_awsize;
     assign spi_number_bytes_write = (MAX_NUM_BYTES)'(num_write_bytes - 1);
 
     assign num_read_beats = s_axi_arlen + 8'd1;
-    assign num_read_bytes = num_read_beats << s_axi_arsize;
+    assign num_read_bytes = {{NUM_TRANS_PADDING_BITS{1'b0}}, num_read_beats} << s_axi_arsize;
     assign spi_number_bytes_read = (MAX_NUM_BYTES)'(num_read_bytes - 1);
 
     assign spi_number_bytes_muxed = (axi_write_enable) ? spi_number_bytes_write : spi_number_bytes_read;
