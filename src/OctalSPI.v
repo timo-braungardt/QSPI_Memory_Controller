@@ -52,6 +52,7 @@ module OctalSPI #(
     wire en_data_strobe;
     reg data_strobe_out_reg;
     reg data_strobe_out_nxt = 0;  // ToDo: The signal has to be driven for write (issue #15) 0 is write, 1 is mask
+    (* dont_touch = "true" *)
     wire data_strobe_in;
     reg recieved_next_byte_reg;
 
@@ -111,7 +112,6 @@ module OctalSPI #(
     // ToDo: why was this in en_data_strobe?: | state_reg == WAIT_LATENCY 
     assign en_data_strobe  = (state_reg == SEND_DATA | (~i_config_read_data & (state_reg == CS_HIGH | state_reg == FINISH)));   // FINISH is needed, because otherwise the model does not store the value
     assign #1 io_data_strobe = (en_data_strobe) ? data_strobe_out_reg : 1'bZ; // ToDo: this is bad, because the buffer behaviour is not in the top (issue #12)
-    (* dont_touch = "true" *)
     assign data_strobe_in = io_data_strobe;
     (* dont_touch = "true" *)
     reg temp_data_strobe_debug;
@@ -145,7 +145,6 @@ module OctalSPI #(
     end
 
 
-    integer i;
     always @(*) begin : state_machine_logic
         state_nxt = state_reg;
         count_nxt = OPCODE_CYCLES - 1;
@@ -253,6 +252,7 @@ module OctalSPI #(
 
 
     always @(*) begin : data_logic
+        integer i;
         data_out_nxt = data_out_reg;
 
         case (state_reg)
@@ -266,9 +266,7 @@ module OctalSPI #(
             end
 
             SEND_DATA: begin
-                for (i = 0; i < BUS_WIDTH; i = i + 1) begin
-                    data_out_nxt[i] = i_data_write[i];
-                end
+                data_out_nxt = i_data_write;
             end
 
             default: ;
@@ -285,9 +283,7 @@ module OctalSPI #(
             recieved_next_byte_reg <= 1'b0;
 
             if (state_reg == RECEIVE_DATA) begin
-                for (i = 0; i < BUS_WIDTH; i = i + 1) begin
-                    data_read_reg[i] <= data_in[i];
-                end
+                data_read_reg <= data_in;
                 recieved_next_byte_reg <= 1'b1;
             end
         end
