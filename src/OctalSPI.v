@@ -25,6 +25,7 @@ module OctalSPI #(
     input                       i_config_write_data,
     input                       i_config_write_address,
     input                       i_last_word,
+    input                       i_data_byte_mask,
     input  [          BYTE-1:0] i_data_write,
     output [          BYTE-1:0] o_data_read,
     output                      o_finish,
@@ -51,7 +52,7 @@ module OctalSPI #(
 
     wire en_data_strobe;
     reg data_strobe_out_reg;
-    reg data_strobe_out_nxt = 0;  // ToDo: The signal has to be driven for write (issue #15) 0 is write, 1 is mask
+    reg data_strobe_out_nxt;  // ToDo: The signal has to be driven for write (issue #15) 0 is write, 1 is mask
     (* dont_touch = "true" *)
     wire data_strobe_in;
     reg recieved_next_byte_reg;
@@ -267,6 +268,7 @@ module OctalSPI #(
 
             SEND_DATA: begin
                 data_out_nxt = i_data_write;
+                data_strobe_out_nxt = i_data_byte_mask;
             end
 
             default: ;

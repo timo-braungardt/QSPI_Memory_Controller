@@ -57,6 +57,7 @@ def config_transaction(dut, opcode, address=0, data=0, only_one_byte=True):
         dut.i_config_read_data.value = False
         dut.i_config_write_data.value = True
         dut.i_config_write_address.value = True
+        dut.i_data_byte_mask.value = False
 
     if opcode == OPCODE.read:
         dut.i_config_read_data.value = True

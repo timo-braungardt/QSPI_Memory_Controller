@@ -57,6 +57,7 @@ def config_transaction(dut, opcode, address=0, data=0, only_one_byte=True, num_b
 
     if opcode == OPCODE.write:
         dut.i_data_write.value = data
+        dut.i_data_word_mask.value = 0
         dut.i_write_enable.value = True
 
     if opcode == OPCODE.read:
@@ -127,6 +128,32 @@ async def write_test(dut):
 
     memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, address, 1)
     assert memory_data == test_data.get_test_array()
+
+
+@cocotb.test()
+async def write_mask_test(dut):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await Timer(50, unit="ns")
+    await reset_model(dut)
+    test_data = DummyData(4)
+    address = 0x000100
+
+    MemoryModelHelper.set_memory_s70kl1283(dut.Memory, address, [0]*4)
+    config_transaction(dut, OPCODE.write, address=address, data=test_data.get_test_number(), only_one_byte=False, num_bytes=test_data.num_bytes)
+    dut.i_data_word_mask.value = 0b0110
+    await trigger_go(dut)
+    await wait_for_idle(dut)
+    await wait_for_idle(dut)
+    await T_rwr
+
+    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, address, 4)
+    assert memory_data != test_data.get_test_array()
+    assert memory_data[0] == test_data.get_test_array()[0]
+    assert memory_data[1] == 0
+    assert memory_data[2] == 0
+    assert memory_data[3] == test_data.get_test_array()[3]
 
 
 @cocotb.test()

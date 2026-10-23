@@ -17,6 +17,7 @@ module OSPIController #(
     parameter ADDRESS_LENGTH = 24,
     parameter DATA_WIDTH = 32,
     parameter DATA_BYTES = DATA_WIDTH / 8,
+    parameter STRB_WIDTH = DATA_WIDTH / 8,
     parameter MAX_NUM_BYTES = $clog2(1024),
     parameter CHIP_TYPE = -1    // 1 is Infineon, 2 is APMemory
 ) (
@@ -28,6 +29,7 @@ module OSPIController #(
     input                       i_write_enable,
     input                       i_last_word,
     input  [ MAX_NUM_BYTES-1:0] i_num_bytes,          // 0 based indexing
+    input  [    STRB_WIDTH-1:0] i_data_word_mask,
     input  [    DATA_WIDTH-1:0] i_data_write,
     output [    DATA_WIDTH-1:0] o_data_read,
     output                      o_busy,
@@ -69,6 +71,8 @@ module OSPIController #(
     reg  [       DATA_WIDTH-1:0] config_data_reg;
     reg  [       DATA_WIDTH-1:0] data_in_muxed_nxt;
     reg  [       DATA_WIDTH-1:0] data_in_muxed_reg;
+    reg  [       STRB_WIDTH-1:0] data_mask_nxt;
+    reg  [       STRB_WIDTH-1:0] data_mask_reg;
     reg  [       DATA_WIDTH-1:0] data_read_reg;
     wire                         start_transmission;
     wire                         transmitter_finish;
@@ -83,6 +87,7 @@ module OSPIController #(
     reg  [     DATA_BYTES-1 : 0] byte_index_nxt;
     reg  [     DATA_BYTES-1 : 0] byte_index_reg;
     reg  [             BYTE-1:0] byte_pointer;
+    reg  [       STRB_WIDTH-1:0] byte_pointer_mask;
     wire [             BYTE-1:0] read_byte;
     reg                          last_word_nxt;
     reg                          last_word_reg;
@@ -153,6 +158,7 @@ module OSPIController #(
             .i_config_write_data(config_write_data),
             .i_config_write_address(config_write_address),
             .i_last_word(last_word_reg),
+            .i_data_byte_mask(byte_pointer_mask),
             .i_data_write(byte_pointer),
             .o_data_read(read_byte),
             .o_finish(transmitter_finish),
@@ -257,6 +263,7 @@ module OSPIController #(
         byte_index_nxt = byte_index_reg;
         byte_count_nxt = byte_count_reg;
         data_in_muxed_nxt = data_in_muxed_reg;
+        data_mask_nxt = data_mask_reg;
         last_word_nxt = last_word_reg;
         read_next_word_nxt = 0;
         write_next_word_nxt = 0;
@@ -264,11 +271,13 @@ module OSPIController #(
 
         // select which byte is transfered to the transmitter
         byte_pointer = data_in_muxed_reg[byte_index_reg*8+:8];
+        byte_pointer_mask = data_mask_reg[byte_index_reg];
 
         // to get the first data byte
         if (control_state_reg == IDLE) begin
             if (go) begin
                 data_in_muxed_nxt = (config_is_config_operation) ? config_data_reg : i_data_write;
+                data_mask_nxt = i_data_word_mask;
                 byte_count_nxt = (config_is_config_operation)? 0 : {{(ARBITRARY_WIDTH-MAX_NUM_BYTES){1'b0}}, i_num_bytes};
                 byte_index_nxt = 0;
                 last_word_nxt = 0;
@@ -288,6 +297,7 @@ module OSPIController #(
                 end else byte_index_nxt = byte_index_reg + 1;
 
                 data_in_muxed_nxt = (config_is_config_operation) ? config_data_reg : i_data_write;
+                data_mask_nxt = i_data_word_mask;
                 byte_count_nxt = byte_count_reg - 1;
             end
         end
@@ -298,6 +308,7 @@ module OSPIController #(
 
     always @(posedge clk) begin : data_register
         data_in_muxed_reg <= data_in_muxed_nxt;
+        data_mask_reg <= data_mask_nxt;
         byte_count_reg <= byte_count_nxt;
         byte_index_reg <= byte_index_nxt;
         last_word_reg <= last_word_nxt;
@@ -311,6 +322,7 @@ module OSPIController #(
 
         if (!reset_neg) begin
             data_in_muxed_reg <= 0;
+            data_mask_reg <= 0;
             byte_count_reg <= 0;
             byte_index_reg <= 0;
             last_word_reg <= 0;

@@ -153,6 +153,7 @@ module MemoryController #(
                 .i_last_word(axi_last_word),
                 .i_num_bytes(spi_number_bytes_muxed),
                 .i_data_write(axi_data_write),
+                .i_data_word_mask(~s_axi_wstrb), // the axi write strobe signals are inverted to the octal-spi signals
                 .o_data_read(axi_data_read),
                 .o_busy(spi_busy),
                 .o_next_word(spi_next_word),

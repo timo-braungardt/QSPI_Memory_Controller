@@ -23,6 +23,7 @@ module Octal_SPI_Controller_wrapper #(
 
     reg [ADDR_WIDTH-1:0] i_address;
     reg [DATA_WIDTH-1:0] i_data_write;
+    reg [STRB_WIDTH-1:0]i_data_word_mask;
     reg [DATA_WIDTH-1:0] o_data_read;
     reg i_write_enable;
     reg i_last_word;
@@ -46,6 +47,7 @@ module Octal_SPI_Controller_wrapper #(
         .i_num_bytes(i_num_bytes),
         .i_last_word(i_last_word),
         .i_data_write(i_data_write),
+        .i_data_word_mask(i_data_word_mask),
         .o_data_read(o_data_read),
         .o_busy(busy),
         .o_next_word(o_next_word),
