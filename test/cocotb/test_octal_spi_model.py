@@ -50,7 +50,7 @@ def check_write_enable(dut):
 def config_transaction(dut, opcode, address=0, data=0, only_one_byte=True):
     dut.i_address.value = address
     dut.i_opcode.value = opcode
-    dut.i_last_word.value = only_one_byte
+    dut.i_last_byte.value = only_one_byte
 
     if opcode == OPCODE.write:
         dut.i_data_write.value = data
@@ -84,9 +84,9 @@ async def handle_write_burst(dut, test_data):
         await RisingEdge(dut.clk)
         dut.i_data_write.value = test_data[i]
         if (num_loops - i - 1) == 0:
-            dut.i_last_word.value = True
+            dut.i_last_byte.value = True
     await RisingEdge(dut.clk)
-    dut.i_last_word.value = True
+    dut.i_last_byte.value = True
     await wait_for_idle(dut)
 
 
@@ -96,11 +96,11 @@ async def handle_read_burst(dut, num_bytes):
 
     for i in range(num_bytes):
         if (num_bytes - i - 1) == 0:
-            dut.i_last_word.value = True
+            dut.i_last_byte.value = True
         await RisingEdge(dut.clk)
         recieved_data.append(dut.o_data_read.value.to_unsigned())
     await RisingEdge(dut.clk)
-    dut.i_last_word.value = True
+    dut.i_last_byte.value = True
     await wait_for_idle(dut)
     return recieved_data
 

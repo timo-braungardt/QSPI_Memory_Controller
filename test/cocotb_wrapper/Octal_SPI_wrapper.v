@@ -26,7 +26,7 @@ module Octal_SPI_wrapper #(
     reg [DATA_WIDTH-1:0] i_data_write;
     reg [DATA_WIDTH-1:0] o_data_read;
     reg i_write_enable;
-    reg i_last_word;
+    reg i_last_byte;
 
     localparam INFINEON_CHIP = 1;
     localparam APMEMORY_CHIP = 2;
@@ -40,7 +40,7 @@ module Octal_SPI_wrapper #(
 
         .i_address(i_address),
         .i_opcode(i_opcode),
-        .i_last_word(i_last_word),
+        .i_last_byte(i_last_byte),
         .i_data_byte_mask(i_data_byte_mask),
         .i_data_write(i_data_write),
         .o_data_read(o_data_read),

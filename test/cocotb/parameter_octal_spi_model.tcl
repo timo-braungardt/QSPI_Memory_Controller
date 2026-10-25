@@ -11,7 +11,7 @@ add wave sim:/Octal_SPI_wrapper/chip_select_neg
 add wave sim:/Octal_SPI_wrapper/i_address
 add wave sim:/Octal_SPI_wrapper/i_data_write
 add wave sim:/Octal_SPI_wrapper/i_opcode
-add wave sim:/Octal_SPI_wrapper/i_last_word
+add wave sim:/Octal_SPI_wrapper/i_last_byte
 add wave sim:/Octal_SPI_wrapper/o_data_read
 add wave sim:/Octal_SPI_wrapper/o_need_next_byte
 add wave sim:/Octal_SPI_wrapper/o_recieved_next_byte

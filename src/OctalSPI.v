@@ -24,7 +24,7 @@ module OctalSPI #(
     input                       i_config_read_data,
     input                       i_config_write_data,
     input                       i_config_write_address,
-    input                       i_last_word,
+    input                       i_last_byte,
     input                       i_data_byte_mask,
     input  [          BYTE-1:0] i_data_write,
     output [          BYTE-1:0] o_data_read,
@@ -208,7 +208,7 @@ module OctalSPI #(
             RECEIVE_DATA: begin
                 count_nxt = count_reg - 1;
 
-                if (i_last_word) begin
+                if (i_last_byte) begin
                     state_nxt = CS_HIGH;
                 end
             end
@@ -218,7 +218,7 @@ module OctalSPI #(
 
                 // we check the clock, because we always have to send two bytes
                 // on the first byte sent out, the clock is always low  ToDo: (issue #12) maybe better description, maybe unnecessary because the clock shift is not needed?
-                if (i_last_word & bus_clock_p2_reg) begin
+                if (i_last_byte & bus_clock_p2_reg) begin
                     count_nxt = 0;  // otherwise underflow - can this be synthesised elegantly?
                     state_nxt = CS_HIGH;
                 end

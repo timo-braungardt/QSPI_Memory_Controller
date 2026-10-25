@@ -19,7 +19,7 @@ module SPITransmitter #(
     input                       i_config_write_data,
     input                       i_config_write_address,
     input  [               2:0] i_config_quad_mode,
-    input                       i_last_word,
+    input                       i_last_byte,
     input  [               4:0] i_config_dummy_cycles,
     input  [          BYTE-1:0] i_data_write,
     output [          BYTE-1:0] o_data_read,
@@ -167,7 +167,7 @@ module SPITransmitter #(
                     opcode_nxt = i_opcode;
                     address_nxt = i_address;
                     data_write_nxt = i_data_write;
-                    transmission_finished_nxt = i_last_word;
+                    transmission_finished_nxt = i_last_byte;
                 end
             end
 
@@ -224,7 +224,7 @@ module SPITransmitter #(
             RECEIVE_DATA: begin
                 transmission_finished_nxt = transmission_finished_reg;
                 if (clock_tick_pos) begin
-                    transmission_finished_nxt = i_last_word;
+                    transmission_finished_nxt = i_last_byte;
                     if (count_reg == 0) begin
                         count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? BYTE / BITS_PER_SHIFT -1 : BYTE-1;
                         recieved_next_byte_nxt = 1;
@@ -243,7 +243,7 @@ module SPITransmitter #(
                     if (count_reg == 0) begin
                         count_nxt = (i_config_quad_mode[QUAD_MODE_DATA]) ? BYTE / BITS_PER_SHIFT -1 : BYTE-1;
                         data_write_nxt = i_data_write;
-                        transmission_finished_nxt = i_last_word;
+                        transmission_finished_nxt = i_last_byte;
                     end else count_nxt = count_reg - 1;
                 end
 
