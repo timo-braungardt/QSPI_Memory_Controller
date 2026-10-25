@@ -1,6 +1,7 @@
 log -r /*;
 add wave sim:/Octal_SPI_Controller_wrapper/Memory/top/PoweredUp
 add wave sim:/Octal_SPI_Controller_wrapper/clk
+add wave sim:/Octal_SPI_Controller_wrapper/test_number;
 add wave sim:/Octal_SPI_Controller_wrapper/data
 add wave sim:/Octal_SPI_Controller_wrapper/Controller/SPI_Transmitter/data_out_reg
 add wave sim:/Octal_SPI_Controller_wrapper/Controller/SPI_Transmitter/en_data_out_reg
@@ -13,7 +14,6 @@ add wave sim:/Octal_SPI_Controller_wrapper/i_data_write
 add wave sim:/Octal_SPI_Controller_wrapper/Controller/opcode_reg
 add wave sim:/Octal_SPI_Controller_wrapper/i_last_word
 add wave sim:/Octal_SPI_Controller_wrapper/Controller/byte_index_reg
-add wave sim:/Octal_SPI_Controller_wrapper/Controller/byte_count_reg
 add wave sim:/Octal_SPI_Controller_wrapper/o_data_read
 add wave sim:/Octal_SPI_Controller_wrapper/o_next_word
 add wave sim:/Octal_SPI_Controller_wrapper/o_recieved_next_word

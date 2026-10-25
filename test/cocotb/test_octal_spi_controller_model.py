@@ -23,6 +23,7 @@ class OPCODE:
 
 
 async def reset_model(dut):
+    dut.test_number.value = dut.test_number.value + 1
     dut.reset_neg.value = 0
     await Timer(200, unit="ns")  # t_RP
     dut.reset_neg.value = 1
