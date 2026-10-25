@@ -51,10 +51,9 @@ def check_write_enable(dut):
     return dut.Memory.bottom.WREN.value
 
 
-def config_transaction(dut, opcode, address=0, data=0, only_one_word=True, num_bytes=1):
+def config_transaction(dut, opcode, address=0, data=0, only_one_word=True):
     dut.i_address.value = address
     dut.i_last_word.value = only_one_word
-    dut.i_num_bytes.value = num_bytes
 
     if opcode == OPCODE.write:
         dut.i_data_write.value = data
@@ -70,14 +69,16 @@ def config_transaction(dut, opcode, address=0, data=0, only_one_word=True, num_b
 
 
 async def handle_write_burst(dut, test_data):
-    dut.i_num_bytes.value = test_data.num_bytes
     num_loops = test_data.num_bytes // DATA_WIDTH_BYTES
     last_num_bytes = test_data.num_bytes - (DATA_WIDTH_BYTES * num_loops)
+    if test_data.num_bytes <= DATA_WIDTH_BYTES:
+        dut.i_last_word.value = True
+
     await dut.o_next_word.value_change
 
     for i in range(1, num_loops):
         await First(RisingEdge(dut.bus_clock), FallingEdge(dut.bus_clock))
-        if i == num_loops - 2:
+        if i == num_loops - 1:
             dut.i_last_word.value = True
 
         dut.i_data_write.value = test_data.get_test_number_word(i * DATA_WIDTH_BYTES)
@@ -93,13 +94,16 @@ async def handle_write_burst(dut, test_data):
 
 async def handle_read_burst(dut, num_bytes):
     num_loops = num_bytes // DATA_WIDTH_BYTES
-    await dut.o_recieved_next_word.value_change
+    if num_bytes <= DATA_WIDTH_BYTES:
+        dut.i_last_word.value = True
+
     recieved_data = []
 
     for i in range(num_loops):
-        await RisingEdge(dut.clk)
-        if i == num_loops - 2:
+        await RisingEdge(dut.o_recieved_next_word)
+        if i == num_loops - 1:
             dut.i_last_word.value = True
+
         for x in range(DATA_WIDTH_BYTES):
             lower = x * 8
             upper = (x+1) *8 -1
@@ -142,7 +146,7 @@ async def write_mask_test(dut):
     address = 0x000100
 
     MemoryModelHelper.set_memory_s70kl1283(dut.Memory, address, [0]*4)
-    config_transaction(dut, OPCODE.write, address=address, data=test_data.get_test_number(), only_one_byte=False, num_bytes=test_data.num_bytes)
+    config_transaction(dut, OPCODE.write, address=address, data=test_data.get_test_number())
     dut.i_data_word_mask.value = 0b0110
     await trigger_go(dut)
     await wait_for_idle(dut)
@@ -174,6 +178,11 @@ async def read_test(dut):
     await wait_for_idle(dut)
 
     recieved_data = dut.o_data_read.value
+    # since now we only read word wise, we have to append some data to the test data
+    # (issue #18)
+    test_data._array.append(0x00)
+    test_data._array.append(0xff)
+    test_data._array.append(0xff)
     assert recieved_data.to_unsigned() == test_data.get_test_number()
 
 
@@ -203,7 +212,7 @@ async def variable_latency_test(dut):
 
 
 @cocotb.test()
-@cocotb.parametrize(num_bytes=[DATA_WIDTH_BYTES])#, DATA_WIDTH_BYTES*2])
+@cocotb.parametrize(num_bytes=[DATA_WIDTH_BYTES, DATA_WIDTH_BYTES*2])
 async def write_burst_test(dut, num_bytes):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
@@ -227,7 +236,7 @@ async def write_burst_test(dut, num_bytes):
 
 
 @cocotb.test()
-@cocotb.parametrize(num_bytes=[DATA_WIDTH_BYTES])#, DATA_WIDTH_BYTES*2])
+@cocotb.parametrize(num_bytes=[DATA_WIDTH_BYTES, DATA_WIDTH_BYTES*2])
 async def read_burst_test(dut, num_bytes):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
