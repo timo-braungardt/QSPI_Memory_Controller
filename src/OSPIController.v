@@ -12,9 +12,7 @@ What it does:
 */
 
 module OSPIController #(
-    // Warining: the SPI flash chips start with a 24 bit address width.
-    // ToDo: the automatic upgrade to 32bit address width is not yet implemented (issue #16)
-    parameter ADDRESS_LENGTH = 24,
+    parameter ADDRESS_LENGTH = 32,
     parameter DATA_WIDTH = 32,
     parameter DATA_BYTES = DATA_WIDTH / 8,
     parameter STRB_WIDTH = DATA_WIDTH / 8,
@@ -88,6 +86,7 @@ module OSPIController #(
     wire [             BYTE-1:0] read_byte;
     reg                          last_byte_nxt;
     reg                          last_byte_reg;
+    wire [   ADDRESS_LENGTH-1:0] word_alligned_address;
 
     // Config stuff - ToDo: this should be later configured using a second port (issue #16)
     wire                         config_write_address;
@@ -121,6 +120,8 @@ module OSPIController #(
 
     assign o_next_word = write_next_word_reg;
     assign o_recieved_next_word = read_next_word_reg;
+    localparam WORD_LENGTH = $clog2(DATA_BYTES);
+    assign word_alligned_address = {i_address[ADDRESS_LENGTH-1 : WORD_LENGTH], {WORD_LENGTH{1'b0}}};
 
     // Temp counter for correct reset
     reg reset_spi;
@@ -195,7 +196,7 @@ module OSPIController #(
         case (control_state_reg)
             IDLE: begin
                 if (go) begin
-                    address_nxt = ADDRESS_LENGTH'(i_address);
+                    address_nxt = ADDRESS_LENGTH'(word_alligned_address);
                     opcode_nxt = (i_write_enable | config_is_config_operation) ? OPCODE_WRITE_ENABLE : OPCODE_READ;
                     control_state_nxt = (i_write_enable | config_is_config_operation) ? WRITE_ENABLE : READ;
 
