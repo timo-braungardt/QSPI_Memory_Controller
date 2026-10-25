@@ -13,4 +13,16 @@ groups:
       - src/MemoryController.v
       - src/SPIController.v
       - src/SPITransmitter.v
+      - src/OSPIController.v 
+      - src/OctalSPI.v
       - src/AXIInterface.v
+  - top: OctalMemoryController
+    files: 
+      - src/OctalMemoryController.v
+      - src/OSPIController.v 
+      - src/OctalSPI.v
+      - src/AXIInterface.v
+  - top: OSPIController
+    files: 
+      - src/OSPIController.v
+      - src/OctalSPI.v

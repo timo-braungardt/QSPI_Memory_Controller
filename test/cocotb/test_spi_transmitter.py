@@ -54,9 +54,9 @@ async def handle_write_burst(dut, subordinate, test_data):
         await RisingEdge(dut.o_need_next_byte)
         dut.i_data_write.value = test_data[i]
         if (num_loops - i - 1) == 0:
-            dut.i_last_word.value = True
+            dut.i_last_byte.value = True
     await RisingEdge(dut.clk)
-    dut.i_last_word.value = True
+    dut.i_last_byte.value = True
     await wait_for_idle(dut)
 
 
@@ -66,12 +66,12 @@ async def handle_read_burst(dut, subordinate):
 
     for i in range(num_bytes):
         if (num_bytes - i - 1) == 0:
-            dut.i_last_word.value = True
+            dut.i_last_byte.value = True
         # falling edge because we do not trigger on the signal but poll the value later in the design
         await FallingEdge(dut.o_recieved_next_byte)
         recieved_data.append(dut.o_data_read.value.to_unsigned())
     await RisingEdge(dut.clk)
-    dut.i_last_word.value = True
+    dut.i_last_byte.value = True
     await wait_for_idle(dut)
     return recieved_data
 
@@ -94,7 +94,7 @@ async def write_test_spi(dut):
 
     dut.i_opcode.value = 0x02
     dut.i_address.value = 0x800001
-    dut.i_last_word.value = True
+    dut.i_last_byte.value = True
     dut.i_data_write.value = test_data
 
     dut.i_config_read_data.value = False
@@ -131,7 +131,7 @@ async def read_test_spi(dut):
 
     dut.i_opcode.value = 0x03
     dut.i_address.value = 0x800001
-    dut.i_last_word.value = True
+    dut.i_last_byte.value = True
 
     dut.i_config_read_data.value = True
     dut.i_config_write_data.value = False
@@ -182,7 +182,7 @@ async def write_test_qspi(dut):
 
     dut.i_opcode.value = 0x02
     dut.i_address.value = 0x800001
-    dut.i_last_word.value = True
+    dut.i_last_byte.value = True
     dut.i_data_write.value = test_data
 
     dut.i_config_read_data.value = False
@@ -231,7 +231,7 @@ async def read_test_qspi(dut):
 
     dut.i_opcode.value = 0x03
     dut.i_address.value = 0x800001
-    dut.i_last_word.value = True
+    dut.i_last_byte.value = True
 
     dut.i_config_read_data.value = True
     dut.i_config_write_data.value = False
@@ -282,7 +282,7 @@ async def write_test_burst_qspi(dut, num_bytes):
 
     dut.i_opcode.value = 0x02
     dut.i_address.value = 0x800001
-    dut.i_last_word.value = False
+    dut.i_last_byte.value = False
     dut.i_data_write.value = test_data[0]
 
     dut.i_config_read_data.value = False
@@ -334,7 +334,7 @@ async def read_test_burst_qspi(dut, num_bytes):
 
     dut.i_opcode.value = 0x03
     dut.i_address.value = 0x800001
-    dut.i_last_word.value = False
+    dut.i_last_byte.value = False
 
     dut.i_config_read_data.value = True
     dut.i_config_write_data.value = False

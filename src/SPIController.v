@@ -36,7 +36,7 @@ module SPIController #(
     // SPI Pins
     output o_bus_clock,
     output o_chip_select_neg,
-    output o_reset,
+    output o_reset_neg,
     inout  io_data0_manager_serial_out,
     inout  io_data1_manager_serial_in,
     inout  io_data2,
@@ -77,8 +77,8 @@ module SPIController #(
     reg  [     DATA_BYTES-1 : 0] byte_index_reg;
     reg  [             BYTE-1:0] byte_pointer;
     wire [             BYTE-1:0] read_byte;
-    reg                          last_word_nxt;
-    reg                          last_word_reg;
+    reg                          last_byte_nxt;
+    reg                          last_byte_reg;
 
     // Config stuff - ToDo: this should be later configured using a second port (issue #16)
     wire                         config_write_address;
@@ -98,6 +98,7 @@ module SPIController #(
     localparam [INDEX_STATES_MSB:0] WRITE_CONFIG = 4;
     localparam [INDEX_STATES_MSB:0] WAIT = 5;
 
+    (* dont_touch = "yes" *)
     reg [INDEX_STATES_MSB:0] control_state_reg;
     reg [INDEX_STATES_MSB:0] control_state_nxt;
 
@@ -108,7 +109,7 @@ module SPIController #(
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE_ANY_REG = 8'h71;
     //localparam [OPCODE_LENGTH -1 : 0] OPCODE_LONG_ADDRESS_ENABLE = 8'hB7;
 
-    assign o_reset = 1'b0;
+    assign o_reset_neg = reset_neg;
     assign o_next_word = write_next_word_reg;
     assign o_recieved_next_word = read_next_word_reg;
 
@@ -126,7 +127,7 @@ module SPIController #(
         .i_config_write_data(config_write_data),
         .i_config_write_address(config_write_address),
         .i_config_quad_mode(config_quad_mode),
-        .i_last_word(last_word_reg),
+        .i_last_byte(last_byte_reg),
         .i_config_dummy_cycles(config_dummy_cycles),    // ToDo: depending on the opcode, we need dummy cycles or not (issue #10)
         .i_data_write(byte_pointer),
         .o_data_read(read_byte),
@@ -228,7 +229,7 @@ module SPIController #(
         byte_index_nxt = byte_index_reg;
         byte_count_nxt = byte_count_reg;
         data_in_muxed_nxt = data_in_muxed_reg;
-        last_word_nxt = last_word_reg;
+        last_byte_nxt = last_byte_reg;
         read_next_word_nxt = 0;
         write_next_word_nxt = 0;
         config_data_nxt = config_data_reg;
@@ -242,11 +243,11 @@ module SPIController #(
                 data_in_muxed_nxt = (config_is_config_operation) ? config_data_reg : i_data_write;
                 byte_count_nxt = (config_is_config_operation)? 0 : {{(ARBITRARY_WIDTH-MAX_NUM_BYTES){1'b0}}, i_num_bytes};
                 byte_index_nxt = 0;
-                last_word_nxt = 0;
+                last_byte_nxt = 0;
             end
         end
 
-        if (control_state_reg != IDLE & byte_count_reg == 0) last_word_nxt = 1;
+        if (control_state_reg != IDLE & byte_count_reg == 0) last_byte_nxt = 1;
 
         if (control_state_reg == WRITE | control_state_reg == READ | control_state_reg == WRITE_CONFIG) begin
             if (spi_write_next_byte | spi_read_next_byte) begin
@@ -270,7 +271,7 @@ module SPIController #(
         data_in_muxed_reg <= data_in_muxed_nxt;
         byte_count_reg <= byte_count_nxt;
         byte_index_reg <= byte_index_nxt;
-        last_word_reg <= last_word_nxt;
+        last_byte_reg <= last_byte_nxt;
         read_next_word_reg <= read_next_word_nxt;
         write_next_word_reg <= write_next_word_nxt;
         config_data_reg <= config_data_nxt;
@@ -283,7 +284,7 @@ module SPIController #(
             data_in_muxed_reg <= 0;
             byte_count_reg <= 0;
             byte_index_reg <= 0;
-            last_word_reg <= 0;
+            last_byte_reg <= 0;
             data_read_reg <= 0;
             read_next_word_reg <= 0;
             write_next_word_reg <= 0;
