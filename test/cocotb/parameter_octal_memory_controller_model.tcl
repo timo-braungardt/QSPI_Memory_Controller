@@ -1,6 +1,7 @@
 log -r /*;
 add wave sim:/Octal_Memory_Controller_wrapper/clk;
 add wave sim:/Octal_Memory_Controller_wrapper/reset;
+add wave sim:/Octal_Memory_Controller_wrapper/test_number
 add wave sim:/Octal_Memory_Controller_wrapper/data_strobe;
 add wave sim:/Octal_Memory_Controller_wrapper/data;
 add wave sim:/Octal_Memory_Controller_wrapper/chip_select_neg;
@@ -17,7 +18,6 @@ add wave sim:/Octal_Memory_Controller_wrapper/Controller/spi_recieved_next_word
 add wave sim:/Octal_Memory_Controller_wrapper/Controller/spi_next_word
 add wave sim:/Octal_Memory_Controller_wrapper/Controller/s_axi_wready
 add wave sim:/Octal_Memory_Controller_wrapper/Controller/s_axi_rvalid
-add wave sim:/Octal_Memory_Controller_wrapper/test_number
 add wave sim:/Octal_Memory_Controller_wrapper/Controller/AXI_Interface/s_axi_wdata
 add wave sim:/Octal_Memory_Controller_wrapper/Controller/SPI_Controller/data_in_muxed_reg
 add wave sim:/Octal_Memory_Controller_wrapper/Controller/SPI_Controller/byte_pointer

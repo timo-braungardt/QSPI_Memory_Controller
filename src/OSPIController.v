@@ -18,7 +18,6 @@ module OSPIController #(
     parameter DATA_WIDTH = 32,
     parameter DATA_BYTES = DATA_WIDTH / 8,
     parameter STRB_WIDTH = DATA_WIDTH / 8,
-    parameter MAX_NUM_BYTES = $clog2(1024),
     parameter CHIP_TYPE = -1    // 1 is Infineon, 2 is APMemory
 ) (
     input clk,
@@ -28,7 +27,6 @@ module OSPIController #(
     input  [ADDRESS_LENGTH-1:0] i_address,
     input                       i_write_enable,
     input                       i_last_word,
-    input  [ MAX_NUM_BYTES-1:0] i_num_bytes,          // 0 based indexing
     input  [    STRB_WIDTH-1:0] i_data_word_mask,
     input  [    DATA_WIDTH-1:0] i_data_write,
     output [    DATA_WIDTH-1:0] o_data_read,
@@ -56,7 +54,6 @@ module OSPIController #(
     localparam integer OPCODE_LENGTH = 8;
     localparam DELAY_CYCLES = 10;
     localparam BYTE = 8;
-    localparam ARBITRARY_WIDTH = 32;
 
     // Chip specific hardcoded constants
     localparam CONFIG_ADDRESS = 32'h00800002;
@@ -82,8 +79,8 @@ module OSPIController #(
     reg                          write_next_word_reg;
     reg                          read_next_word_nxt;
     reg                          read_next_word_reg;
-    reg  [ARBITRARY_WIDTH-1 : 0] byte_count_nxt;
-    reg  [ARBITRARY_WIDTH-1 : 0] byte_count_reg;
+    reg                          last_word_nxt;
+    reg                          last_word_reg;
     reg  [     DATA_BYTES-1 : 0] byte_index_nxt;
     reg  [     DATA_BYTES-1 : 0] byte_index_reg;
     reg  [             BYTE-1:0] byte_pointer;
@@ -261,7 +258,7 @@ module OSPIController #(
 
     always @(*) begin : data_logic
         byte_index_nxt = byte_index_reg;
-        byte_count_nxt = byte_count_reg;
+        last_word_nxt = last_word_reg;
         data_in_muxed_nxt = data_in_muxed_reg;
         data_mask_nxt = data_mask_reg;
         last_byte_nxt = last_byte_reg;
@@ -278,27 +275,27 @@ module OSPIController #(
             if (go) begin
                 data_in_muxed_nxt = (config_is_config_operation) ? config_data_reg : i_data_write;
                 data_mask_nxt = i_data_word_mask;
-                byte_count_nxt = (config_is_config_operation)? 0 : {{(ARBITRARY_WIDTH-MAX_NUM_BYTES){1'b0}}, i_num_bytes};
+                last_word_nxt = (config_is_config_operation) ? 1'b1 : i_last_word;
                 byte_index_nxt = 0;
                 last_byte_nxt = 0;
             end
         end
 
-        if (control_state_reg != IDLE & byte_count_reg == 0) last_byte_nxt = 1;
+        if (control_state_reg != IDLE & (last_word_reg == 1 & byte_index_nxt == DATA_BYTES-1)) last_byte_nxt = 1;
 
         if (control_state_reg == WRITE | control_state_reg == READ | control_state_reg == WRITE_CONFIG) begin
             if (spi_write_next_byte | spi_read_next_byte) begin
                 // ToDo: is the -3 good design? (issue #12) we need it otherwise the transmitter puts out a wrong byte 
                 if (byte_index_reg == DATA_BYTES'(DATA_BYTES -3)) write_next_word_nxt = 1;     // ToDo: the DATA_BYTES can make problems, when it is too small (issue #10)
 
-                if (byte_index_reg == DATA_BYTES'(DATA_BYTES - 1) | byte_count_reg == 0) begin
+                if (byte_index_reg == DATA_BYTES'(DATA_BYTES - 1) | (last_word_reg == 1 & byte_index_nxt == DATA_BYTES-1)) begin
                     byte_index_nxt = 0;
                     read_next_word_nxt = 1;
                 end else byte_index_nxt = byte_index_reg + 1;
 
                 data_in_muxed_nxt = (config_is_config_operation) ? config_data_reg : i_data_write;
                 data_mask_nxt = i_data_word_mask;
-                byte_count_nxt = byte_count_reg - 1;
+                last_word_nxt = i_last_word;
             end
         end
     end
@@ -309,7 +306,7 @@ module OSPIController #(
     always @(posedge clk) begin : data_register
         data_in_muxed_reg <= data_in_muxed_nxt;
         data_mask_reg <= data_mask_nxt;
-        byte_count_reg <= byte_count_nxt;
+        last_word_reg <= last_word_nxt;
         byte_index_reg <= byte_index_nxt;
         last_byte_reg <= last_byte_nxt;
         read_next_word_reg <= read_next_word_nxt;
@@ -323,7 +320,7 @@ module OSPIController #(
         if (!reset_neg) begin
             data_in_muxed_reg <= 0;
             data_mask_reg <= 0;
-            byte_count_reg <= 0;
+            last_word_reg <= 0;
             byte_index_reg <= 0;
             last_byte_reg <= 0;
             data_read_reg <= 0;

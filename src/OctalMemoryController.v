@@ -10,7 +10,6 @@ module OctalMemoryController #(
     parameter DATA_WIDTH = 32,
     parameter STRB_WIDTH = (DATA_WIDTH / 8),
     parameter ID_WIDTH = 8,
-    parameter MAX_NUM_BYTES = $clog2(1024),
     parameter CHIP_TYPE = -1    // 1 is Infineon, 2 is APMemory
 ) (
     input clk,
@@ -79,36 +78,14 @@ module OctalMemoryController #(
     wire [ADDR_WIDTH-1:0] axi_address;
     wire [DATA_WIDTH-1:0] axi_data_read;
     wire [DATA_WIDTH-1:0] axi_data_write;
-    wire [MAX_NUM_BYTES-1:0] spi_number_bytes_write;
-    wire [MAX_NUM_BYTES-1:0] spi_number_bytes_read;
-    wire [MAX_NUM_BYTES-1:0] spi_number_bytes_muxed;
     wire axi_write_enable;
     wire axi_last_word;
     wire axi_start_transaction;
-
-    wire [7:0] num_read_beats;
-    wire [7:0] num_write_beats;
-    wire [MAX_NUM_BYTES-1:0] num_read_bytes;
-    wire [MAX_NUM_BYTES-1:0] num_write_bytes;
-
-    // ToDo: arbitrary byte masking is not possible (yet?) with flash (issue #10)
-    // ToDo: make it for arbitrary data width (issue #10)
-    localparam NUM_TRANS_PADDING_BITS = MAX_NUM_BYTES - 8;
-    assign num_write_beats = s_axi_awlen + 8'd1;
-    assign num_write_bytes = {{NUM_TRANS_PADDING_BITS{1'b0}}, num_write_beats} << s_axi_awsize;
-    assign spi_number_bytes_write = (MAX_NUM_BYTES)'(num_write_bytes - 1);
-
-    assign num_read_beats = s_axi_arlen + 8'd1;
-    assign num_read_bytes = {{NUM_TRANS_PADDING_BITS{1'b0}}, num_read_beats} << s_axi_arsize;
-    assign spi_number_bytes_read = (MAX_NUM_BYTES)'(num_read_bytes - 1);
-
-    assign spi_number_bytes_muxed = (axi_write_enable) ? spi_number_bytes_write : spi_number_bytes_read;
 
 
     OSPIController #(
         .ADDRESS_LENGTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
-        .MAX_NUM_BYTES(MAX_NUM_BYTES),
         .CHIP_TYPE(CHIP_TYPE)
     ) SPI_Controller (
         .clk(clk),
@@ -118,7 +95,6 @@ module OctalMemoryController #(
         .i_address(axi_address),
         .i_write_enable(axi_write_enable),
         .i_last_word(axi_last_word),
-        .i_num_bytes(spi_number_bytes_muxed),
         .i_data_write(axi_data_write),
         .i_data_word_mask(~s_axi_wstrb), // the axi write strobe signals are inverted to the octal-spi signals
         .o_data_read(axi_data_read),

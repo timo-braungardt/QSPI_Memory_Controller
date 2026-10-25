@@ -69,8 +69,7 @@ module Octal_Memory_Controller_wrapper #(
     OctalMemoryController #(
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
-        .CHIP_TYPE(INFINEON_CHIP),
-        .MAX_NUM_BYTES(MAX_NUM_BYTES)
+        .CHIP_TYPE(INFINEON_CHIP)
     ) Controller (
         .clk  (clk),
         .reset(reset),
