@@ -66,10 +66,9 @@ module Octal_Memory_Controller_wrapper #(
     localparam INFINEON_CHIP = 1;
     localparam APMEMORY_CHIP = 2;
 
-    MemoryController #(
+    OctalMemoryController #(
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
-        .INTERFACE_TYPE("OSPI"),
         .CHIP_TYPE(INFINEON_CHIP),
         .MAX_NUM_BYTES(MAX_NUM_BYTES)
     ) Controller (
