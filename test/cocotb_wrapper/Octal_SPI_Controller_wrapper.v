@@ -10,12 +10,12 @@ module Octal_SPI_Controller_wrapper #(
     // Width of ID signal
     parameter ID_WIDTH = 8,
     // Extra pipeline register on output
-    parameter PIPELINE_OUTPUT = 1'b0,
-    parameter MAX_NUM_BYTES = $clog2(1024)
+    parameter PIPELINE_OUTPUT = 1'b0
 );
     reg clk;
     reg go;
     reg reset_neg = 1'b0;
+    integer test_number = 0;
 
     wire [7:0] data;
     wire manager_serial_out, manager_serial_in, bus_clock, bus_clock_neg, chip_select_neg, data_strobe;
@@ -27,7 +27,6 @@ module Octal_SPI_Controller_wrapper #(
     reg [DATA_WIDTH-1:0] o_data_read;
     reg i_write_enable;
     reg i_last_word;
-    reg [MAX_NUM_BYTES-1:0] i_num_bytes;
 
     localparam INFINEON_CHIP = 1;
     localparam APMEMORY_CHIP = 2;
@@ -35,7 +34,6 @@ module Octal_SPI_Controller_wrapper #(
     OSPIController #(
         .ADDRESS_LENGTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
-        .MAX_NUM_BYTES(MAX_NUM_BYTES),
         .CHIP_TYPE(INFINEON_CHIP)
     ) Controller (
         .clk(clk),
@@ -44,7 +42,6 @@ module Octal_SPI_Controller_wrapper #(
 
         .i_address(i_address),
         .i_write_enable(i_write_enable),
-        .i_num_bytes(i_num_bytes),
         .i_last_word(i_last_word),
         .i_data_write(i_data_write),
         .i_data_word_mask(i_data_word_mask),
