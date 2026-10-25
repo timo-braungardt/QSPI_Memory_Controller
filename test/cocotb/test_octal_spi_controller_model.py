@@ -51,9 +51,9 @@ def check_write_enable(dut):
     return dut.Memory.bottom.WREN.value
 
 
-def config_transaction(dut, opcode, address=0, data=0, only_one_byte=True, num_bytes=1):
+def config_transaction(dut, opcode, address=0, data=0, only_one_word=True, num_bytes=1):
     dut.i_address.value = address
-    dut.i_last_word.value = only_one_byte
+    dut.i_last_word.value = only_one_word
     dut.i_num_bytes.value = num_bytes
 
     if opcode == OPCODE.write:
@@ -169,7 +169,7 @@ async def read_test(dut):
 
     MemoryModelHelper.set_memory_s70kl1283(dut.Memory, address, test_data.get_test_array())
 
-    config_transaction(dut, OPCODE.read, address=address, data=test_data.get_test_number())
+    config_transaction(dut, OPCODE.read, address=address, data=test_data.get_test_number(), only_one_word=True)
     await trigger_go(dut)
     await wait_for_idle(dut)
 
@@ -214,7 +214,9 @@ async def write_burst_test(dut, num_bytes):
     print(test_data.get_test_array())
     address = 0x002000
 
-    config_transaction(dut, OPCODE.write, address=address, data=test_data.get_test_number_word(0, DATA_WIDTH_BYTES), only_one_byte=False, num_bytes=test_data.num_bytes)
+    has_only_one_word = True if num_bytes <= DATA_WIDTH_BYTES else False
+
+    config_transaction(dut, OPCODE.write, address=address, data=test_data.get_test_number_word(0, DATA_WIDTH_BYTES), only_one_word=has_only_one_word)
     await trigger_go(dut)
     await handle_write_burst(dut, test_data)
     await T_rwr
@@ -235,10 +237,12 @@ async def read_burst_test(dut, num_bytes):
     test_data = DummyData(num_bytes)
     print(test_data.get_test_array())
     address = 0x002010
+
+    has_only_one_word = True if num_bytes <= DATA_WIDTH_BYTES else False
     
     MemoryModelHelper.set_memory_s70kl1283(dut.Memory, address, test_data.get_test_array())
 
-    config_transaction(dut, OPCODE.read, address=address, data=test_data.get_test_number(), only_one_byte=False, num_bytes=test_data.num_bytes)
+    config_transaction(dut, OPCODE.read, address=address, data=test_data.get_test_number(), only_one_word=has_only_one_word)
     await trigger_go(dut)
     recieved_data = await handle_read_burst(dut, test_data.num_bytes)
     assert recieved_data == test_data.get_test_array()
