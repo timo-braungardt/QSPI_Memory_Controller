@@ -38,7 +38,12 @@ module OctalSPI_quad #(
     output           o_bus_clock_neg,
     output reg [3:0] o_chip_select_neg,
 
+    /* verilator lint_off UNUSEDSIGNAL */
+    // the bits [3:1] are not used, because with the current setup we cannot react to the chips individually
+    // for this we would need 4 seperated clocks
+    // to fix this, we need to set the default delay of the chips to always be the same and not be dependant on the chip refresh.
     input  [3:0] i_data_strobe,
+    /* verilator lint_on UNUSEDSIGNAL */
     output [3:0] o_data_strobe,
     output [3:0] o_data_strobe_output_enable, // 0 input, 1 output
 
@@ -121,9 +126,6 @@ module OctalSPI_quad #(
     assign o_data_strobe = data_strobe_out_reg;
     assign data_strobe_in = i_data_strobe[0];   // ToDo: this is not perfect, because the chips may have different delays - better set them to fixed delay (issue #owas)
     assign o_data_strobe_output_enable = {4{en_data_strobe}};
-
-    (* dont_touch = "true" *)
-    reg temp_data_strobe_debug;
 
     assign o_bus_clock = bus_clock_p2_reg;
     assign o_bus_clock_neg = ~bus_clock_p2_reg;
@@ -255,7 +257,6 @@ module OctalSPI_quad #(
             has_latency_reg <= has_latency_nxt;
             data_strobe_out_reg <= data_strobe_out_nxt;
             en_data_out_reg <= en_data_out_nxt;
-            temp_data_strobe_debug <= data_strobe_in;
         end
     end
 

@@ -22,7 +22,10 @@ module OSPIController_quad #(
     input reset_neg,
     input go,
 
+    /* verilator lint_off UNUSEDSIGNAL */
+    // because we have 4 chips in parallel, we discard the lowest 2 bits and always write/read and use byte masking
     input  [ADDRESS_LENGTH-1:0] i_address,
+    /* verilator lint_on UNUSEDSIGNAL */
     input                       i_write_enable,
     input                       i_last_word,
     input  [    STRB_WIDTH-1:0] i_data_word_mask,
