@@ -62,7 +62,7 @@ module OctalSPI_quad #(
     reg [    STRB_WIDTH-1:0] data_strobe_out_nxt;
     (* dont_touch = "true" *)
     wire data_strobe_in;
-    reg recieved_next_byte_reg;
+    reg  recieved_next_word_reg;
 
     reg has_latency_reg;
     reg has_latency_nxt;
@@ -130,8 +130,8 @@ module OctalSPI_quad #(
     assign o_bus_clock = bus_clock_p2_reg;
     assign o_bus_clock_neg = ~bus_clock_p2_reg;
     assign o_finish = (state_reg == FINISH);
-    assign o_recieved_next_byte = recieved_next_byte_reg;
-    assign o_need_next_byte = (state_reg == SEND_DATA);
+    assign o_recieved_next_word = recieved_next_word_reg;
+    assign o_need_next_word = (state_reg == SEND_DATA);
 
 
     always @(*) begin : clock_logic
@@ -289,14 +289,14 @@ module OctalSPI_quad #(
     always @(posedge clk) begin : data_register
         if (~reset_neg) begin
             data_out_reg <= 0;
-            recieved_next_byte_reg <= 0;
+            recieved_next_word_reg <= 0;
         end else begin
             data_out_reg <= data_out_nxt;
-            recieved_next_byte_reg <= 1'b0;
+            recieved_next_word_reg <= 1'b0;
 
             if (state_reg == RECEIVE_DATA) begin
                 data_read_reg <= data_in;
-                recieved_next_byte_reg <= 1'b1;
+                recieved_next_word_reg <= 1'b1;
             end
         end
     end

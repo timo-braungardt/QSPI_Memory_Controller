@@ -78,10 +78,6 @@ module OSPIController_quad #(
     reg                       read_next_word_reg;
     reg                       last_word_nxt;
     reg                       last_word_reg;
-    reg  [  DATA_BYTES-1 : 0] byte_index_nxt;
-    reg  [  DATA_BYTES-1 : 0] byte_index_reg;
-    reg  [          BYTE-1:0] byte_pointer;
-    reg  [    STRB_WIDTH-1:0] byte_pointer_mask;
     wire [    DATA_WIDTH-1:0] read_word;
     reg                       last_byte_nxt;
     reg                       last_byte_reg;
@@ -153,7 +149,7 @@ module OSPIController_quad #(
         .i_config_write_data(config_write_data),
         .i_config_write_address(config_write_address),
         .i_last_word(last_byte_reg),
-        .i_data_word_mask(byte_pointer_mask),
+        .i_data_word_mask(data_mask_reg),
         .i_data_write(data_in_muxed_reg),
         .o_data_read(read_word),
         .o_finish(transmitter_finish),
@@ -262,10 +258,6 @@ module OSPIController_quad #(
         read_next_word_nxt = 0;
         write_next_word_nxt = 0;
         config_data_nxt = config_data_reg;
-
-        // select which byte is transfered to the transmitter
-        byte_pointer = data_in_muxed_reg[byte_index_reg*8+:8];
-        byte_pointer_mask = data_mask_reg[byte_index_reg];
 
         // to get the first data byte
         if (control_state_reg == IDLE) begin
