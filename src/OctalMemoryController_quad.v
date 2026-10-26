@@ -10,7 +10,7 @@ module OctalMemoryController_quad #(
     parameter DATA_WIDTH = 32,
     parameter STRB_WIDTH = (DATA_WIDTH / 8),
     parameter ID_WIDTH = 8,
-    parameter CHIP_TYPE = -1    // 1 is Infineon, 2 is APMemory
+    parameter CHIP_TYPE = -1    // 1 for simulation with Infineon model, 2 for hardware with APMemory
 ) (
     input clk,
     input reset,
