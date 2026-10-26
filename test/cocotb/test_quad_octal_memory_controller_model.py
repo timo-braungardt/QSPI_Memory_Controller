@@ -29,6 +29,12 @@ async def reset_model(dut):
 
     if dut.gen_memory[0].Memory.bottom.PoweredUp.value == 0:
         await dut.gen_memory[0].Memory.bottom.PoweredUp.value_change
+    if dut.gen_memory[1].Memory.bottom.PoweredUp.value == 0:
+        await dut.gen_memory[1].Memory.bottom.PoweredUp.value_change
+    if dut.gen_memory[2].Memory.bottom.PoweredUp.value == 0:
+        await dut.gen_memory[2].Memory.bottom.PoweredUp.value_change
+    if dut.gen_memory[3].Memory.bottom.PoweredUp.value == 0:
+        await dut.gen_memory[3].Memory.bottom.PoweredUp.value_change
 
 
 async def wait_for_idle(dut):
@@ -38,7 +44,7 @@ async def wait_for_idle(dut):
 
 
 @cocotb.test()
-@cocotb.parametrize(params=[(4, 0x0100)])#, (16, 0x0200), (128, 0x0300), (256, 0x1000),(512, 0x1100)])
+@cocotb.parametrize(params=[(8, 0x0100)])#, (16, 0x0200), (128, 0x0300), (256, 0x1000),(512, 0x1100)])
 async def write_alligned_test(dut, params):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
@@ -49,6 +55,7 @@ async def write_alligned_test(dut, params):
 
     num_bytes, addr = params
     test_data = DummyData(num_bytes)
+    test_data.generate_ordered_test_array(num_bytes)
 
     timeout = Timer(200, unit="us")
     write_task = cocotb.start_soon(axi_master.write(addr, test_data.get_test_array()))
@@ -58,15 +65,17 @@ async def write_alligned_test(dut, params):
         await FallingEdge(dut.Controller.spi_busy)
 
     await T_rwr
+
+    test_array = test_data.get_test_array()
     
     memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.gen_memory[0].Memory, addr, 1)
-    assert memory_data == test_data.get_test_array()
+    assert memory_data == [test_array[0]]
     memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.gen_memory[1].Memory, addr, 1)
-    assert memory_data == test_data.get_test_array()
+    assert memory_data == [test_array[1]]
     memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.gen_memory[2].Memory, addr, 1)
-    assert memory_data == test_data.get_test_array()
+    assert memory_data == [test_array[2]]
     memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.gen_memory[3].Memory, addr, 1)
-    assert memory_data == test_data.get_test_array()
+    assert memory_data == [test_array[3]]
 
 
 @cocotb.test()
@@ -88,7 +97,7 @@ async def read_alligned_test(dut, params):
     MemoryModelHelper.set_memory_s70kl1283(dut.gen_memory[3].Memory, addr, [test_data._array[3]])
 
     timeout = Timer(200, unit="us")
-    read_task = cocotb.start_soon(axi_master.read(addr, 1))
+    read_task = cocotb.start_soon(axi_master.read(addr, num_bytes))
     trigger = await First(read_task, timeout)
     assert trigger != timeout
     if dut.Controller.spi_busy.value == True:
