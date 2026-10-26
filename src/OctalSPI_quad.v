@@ -69,7 +69,7 @@ module OctalSPI_quad #(
 
     assign o_data = data_out_reg;
     assign data_in = i_data;
-    assign o_data_output_enable = en_data_out_reg;
+    assign o_data_output_enable = {4{en_data_out_reg}};
 
     // Bus Clock
     reg bus_clock_reg;
@@ -121,7 +121,7 @@ module OctalSPI_quad #(
     // ToDo: why was this in en_data_strobe?: | state_reg == WAIT_LATENCY 
     assign en_data_strobe  = (state_reg == SEND_DATA | (~i_config_read_data & (state_reg == CS_HIGH | state_reg == FINISH)));   // FINISH is needed, because otherwise the model does not store the value
     assign o_data_strobe = data_strobe_out_reg;
-    assign data_strobe_in = i_data_strobe;
+    assign data_strobe_in = i_data_strobe[0];   // ToDo: this is not perfect, because the chips may have different delays - better set them to fixed delay (issue #owas)
     assign o_data_strobe_output_enable = {4{en_data_strobe}};
 
     (* dont_touch = "true" *)
@@ -263,22 +263,30 @@ module OctalSPI_quad #(
 
 
     always @(*) begin : data_logic
-        integer i;
+        integer i, channel;
         data_out_nxt = data_out_reg;
+        data_strobe_out_nxt = data_strobe_out_reg;
 
         case (state_reg)
             SEND_OPCODE: begin
-                for (i = 0; i < BUS_WIDTH; i = i + 1) data_out_nxt[i] = i_opcode[i[2:0]];
+                for (channel = 0; channel < 4; channel = channel + 1) begin
+                    for (i = 0; i < BUS_WIDTH; i = i + 1)
+                    data_out_nxt[(channel*8)+i] = i_opcode[i[2:0]];
+                end
             end
 
             SEND_ADDRESS: begin
-                for (i = 0; i < BUS_WIDTH; i = i + 1)
-                data_out_nxt[i] = i_address[{count_reg[1:0], i[2:0]}];
+                for (channel = 0; channel < 4; channel = channel + 1) begin
+                    for (i = 0; i < BUS_WIDTH; i = i + 1)
+                    data_out_nxt[(channel*8)+i] = i_address[{count_reg[1:0], i[2:0]}];
+                end
             end
 
             SEND_DATA: begin
-                data_out_nxt = i_data_write;
-                data_strobe_out_nxt = i_data_word_mask;
+                for (channel = 0; channel < 4; channel = channel + 1) begin
+                    data_out_nxt[(channel*8)+:8] = i_data_write[(channel*8)+:8];
+                    data_strobe_out_nxt[channel] = i_data_word_mask[channel];
+                end
             end
 
             default: ;

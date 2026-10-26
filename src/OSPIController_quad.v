@@ -50,7 +50,6 @@ module OSPIController_quad #(
     // constants
     localparam integer OPCODE_LENGTH = 8;
     localparam DELAY_CYCLES = 10;
-    localparam BYTE = 8;
 
     // Chip specific hardcoded constants
     localparam CONFIG_ADDRESS = 32'h00800002;
@@ -250,7 +249,6 @@ module OSPIController_quad #(
 
 
     always @(*) begin : data_logic
-        byte_index_nxt = byte_index_reg;
         last_word_nxt = last_word_reg;
         data_in_muxed_nxt = data_in_muxed_reg;
         data_mask_nxt = data_mask_reg;
@@ -265,24 +263,17 @@ module OSPIController_quad #(
                 data_in_muxed_nxt = (config_is_config_operation) ? config_data_reg : i_data_write;
                 data_mask_nxt = i_data_word_mask;
                 last_word_nxt = (config_is_config_operation) ? 1'b1 : i_last_word;
-                byte_index_nxt = 0;
                 last_byte_nxt = 0;
             end
         end
 
-        if (control_state_reg != IDLE & (last_word_reg == 1 & byte_index_nxt == DATA_BYTES - 1))
-            last_byte_nxt = 1;
+        if (control_state_reg != IDLE & (last_word_reg == 1)) last_byte_nxt = 1;
 
         if (control_state_reg == WRITE | control_state_reg == READ | control_state_reg == WRITE_CONFIG) begin
             if (spi_write_next_byte | spi_read_next_byte) begin
-                // ToDo: is the -3 good design? (issue #12) we need it otherwise the transmitter puts out a wrong byte 
-                if (byte_index_reg == DATA_BYTES'(DATA_BYTES - 3))
-                    write_next_word_nxt = 1;     // ToDo: the DATA_BYTES can make problems, when it is too small (issue #10)
+                write_next_word_nxt = 1;     // ToDo: the DATA_BYTES can make problems, when it is too small (issue #10)
 
-                if (byte_index_reg == DATA_BYTES'(DATA_BYTES - 1) | (last_word_reg == 1 & byte_index_nxt == DATA_BYTES-1)) begin
-                    byte_index_nxt = 0;
-                    read_next_word_nxt = 1;
-                end else byte_index_nxt = byte_index_reg + 1;
+                read_next_word_nxt = 1;
 
                 data_in_muxed_nxt = (config_is_config_operation) ? config_data_reg : i_data_write;
                 data_mask_nxt = i_data_word_mask;
@@ -298,7 +289,6 @@ module OSPIController_quad #(
         data_in_muxed_reg <= data_in_muxed_nxt;
         data_mask_reg <= data_mask_nxt;
         last_word_reg <= last_word_nxt;
-        byte_index_reg <= byte_index_nxt;
         last_byte_reg <= last_byte_nxt;
         read_next_word_reg <= read_next_word_nxt;
         write_next_word_reg <= write_next_word_nxt;
@@ -312,7 +302,6 @@ module OSPIController_quad #(
             data_in_muxed_reg <= 0;
             data_mask_reg <= 0;
             last_word_reg <= 0;
-            byte_index_reg <= 0;
             last_byte_reg <= 0;
             data_read_reg <= 0;
             read_next_word_reg <= 0;
