@@ -51,21 +51,21 @@ module OctalSPI_quad #(
     localparam BUS_WIDTH = 32;
 
     // Pin tristate stuff
-    reg en_data_out_reg;
-    reg en_data_out_nxt;
-    reg [BUS_WIDTH-1 : 0] data_out_reg;
-    reg [BUS_WIDTH-1 : 0] data_out_nxt;
+    reg                    en_data_out_reg;
+    reg                    en_data_out_nxt;
+    reg  [BUS_WIDTH-1 : 0] data_out_reg;
+    reg  [BUS_WIDTH-1 : 0] data_out_nxt;
     wire [BUS_WIDTH-1 : 0] data_in;
 
-    wire en_data_strobe;
-    reg [    STRB_WIDTH-1:0] data_strobe_out_reg;
-    reg [    STRB_WIDTH-1:0] data_strobe_out_nxt;
+    wire                   en_data_strobe;
+    reg  [ STRB_WIDTH-1:0] data_strobe_out_reg;
+    reg  [ STRB_WIDTH-1:0] data_strobe_out_nxt;
     (* dont_touch = "true" *)
-    wire data_strobe_in;
-    reg  recieved_next_word_reg;
+    wire                   data_strobe_in;
+    reg                    recieved_next_word_reg;
 
-    reg has_latency_reg;
-    reg has_latency_nxt;
+    reg                    has_latency_reg;
+    reg                    has_latency_nxt;
 
     assign o_data = data_out_reg;
     assign data_in = i_data;
@@ -76,8 +76,6 @@ module OctalSPI_quad #(
     reg bus_clock_nxt;
     reg bus_clock_p2_reg;  // the bus clock has to be shifted a bit to guarantee that the data is present on the bus
     reg bus_clock_p2_nxt;
-    integer clock_count_reg;
-    integer clock_count_nxt;
 
     // states transmission FSM
     localparam NUM_STATES = 9;

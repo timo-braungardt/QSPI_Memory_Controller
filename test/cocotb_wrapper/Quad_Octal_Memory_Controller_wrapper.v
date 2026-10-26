@@ -66,7 +66,6 @@ module Quad_Octal_Memory_Controller_wrapper #(
 
     wire [DATA_WIDTH-1:0] mem_data;
     wire [STRB_WIDTH-1:0] mem_data_strobe;
-    wire [STRB_WIDTH-1:0] mem_chip_select_neg;
 
     wire [DATA_WIDTH-1:0] control_i_data;
     wire [DATA_WIDTH-1:0] control_o_data;
@@ -155,14 +154,14 @@ module Quad_Octal_Memory_Controller_wrapper #(
     generate
         for (index = 0; index < 4; index = index + 1) begin : gen_memory
             s70kl1283 Memory (
-                .DQ7 (mem_data[index*BYTE+7]),
-                .DQ6 (mem_data[index*BYTE+6]),
-                .DQ5 (mem_data[index*BYTE+5]),
-                .DQ4 (mem_data[index*BYTE+4]),
-                .DQ3 (mem_data[index*BYTE+3]),
-                .DQ2 (mem_data[index*BYTE+2]),
-                .DQ1 (mem_data[index*BYTE+1]),
-                .DQ0 (mem_data[index*BYTE]),
+                .DQ7 (mem_data[(index*BYTE)+7]),
+                .DQ6 (mem_data[(index*BYTE)+6]),
+                .DQ5 (mem_data[(index*BYTE)+5]),
+                .DQ4 (mem_data[(index*BYTE)+4]),
+                .DQ3 (mem_data[(index*BYTE)+3]),
+                .DQ2 (mem_data[(index*BYTE)+2]),
+                .DQ1 (mem_data[(index*BYTE)+1]),
+                .DQ0 (mem_data[(index*BYTE)]),
                 .RWDS(mem_data_strobe[index]),
 
                 .CSNeg(chip_select_neg[index]),

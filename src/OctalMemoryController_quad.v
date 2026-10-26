@@ -10,7 +10,7 @@ module OctalMemoryController_quad #(
     parameter DATA_WIDTH = 32,
     parameter STRB_WIDTH = (DATA_WIDTH / 8),
     parameter ID_WIDTH = 8,
-    parameter CHIP_TYPE = -1    // 1 for simulation with Infineon model, 2 for hardware with APMemory
+    parameter CHIP_TYPE = -1  // 1 for simulation with Infineon model, 2 for hardware with APMemory
 ) (
     input clk,
     input reset,
@@ -20,14 +20,14 @@ module OctalMemoryController_quad #(
     output o_spi_bus_clock_neg,
     output [3:0] o_spi_chip_select_neg,
     output o_spi_reset_neg,
-    
-    input [3:0] i_data_strobe,
-    output [3:0] o_data_strobe,
-    output [3:0] o_data_strobe_output_enable,     // 0 input, 1 output
 
-    input  [(8*4)-1:0] i_data,
-    output  [(8*4)-1:0] o_data,
-    output [3:0] o_data_output_enable,   // 0 input, 1 output
+    input  [STRB_WIDTH-1:0] i_data_strobe,
+    output [STRB_WIDTH-1:0] o_data_strobe,
+    output [STRB_WIDTH-1:0] o_data_strobe_output_enable, // 0 input, 1 output
+
+    input  [DATA_WIDTH-1:0] i_data,
+    output [DATA_WIDTH-1:0] o_data,
+    output [STRB_WIDTH-1:0] o_data_output_enable, // 0 input, 1 output
 
     // AXI Pins
     input  wire [  ID_WIDTH-1:0] s_axi_awid,     // write address channel
