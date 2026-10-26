@@ -16,6 +16,12 @@ groups:
       - src/OSPIController.v 
       - src/OctalSPI.v
       - src/AXIInterface.v
+  - top: OctalMemoryController_quad
+    files: 
+      - src/OctalMemoryController_quad.v
+      - src/OSPIController_quad.v 
+      - src/OctalSPI_quad.v
+      - src/AXIInterface.v
   - top: OctalMemoryController
     files: 
       - src/OctalMemoryController.v
