@@ -77,10 +77,10 @@ module Quad_Octal_Memory_Controller_wrapper #(
     genvar channel;
     generate
         for (channel = 0; channel < 4; channel = channel + 1) begin : gen_signals
-            assign mem_data[channel*BYTE +: BYTE] = (control_data_output_enable[channel]) ? control_o_data[channel*BYTE +: BYTE] : 1'bz;
+            assign #1 mem_data[channel*BYTE +: BYTE] = (control_data_output_enable[channel]) ? control_o_data[channel*BYTE +: BYTE] : 8'bz;
             assign control_i_data[channel*BYTE+:BYTE] = mem_data[channel*BYTE+:BYTE];
 
-            assign mem_data_strobe[channel] = (control_strobe_output_enable[channel]) ? control_o_data_strobe[channel] : 1'bz;
+            assign #1 mem_data_strobe[channel] = (control_strobe_output_enable[channel]) ? control_o_data_strobe[channel] : 1'bz;
             assign control_i_data_strobe[channel] = mem_data_strobe[channel];
         end
     endgenerate

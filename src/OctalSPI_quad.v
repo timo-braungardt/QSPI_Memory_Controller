@@ -67,7 +67,7 @@ module OctalSPI_quad #(
     reg has_latency_reg;
     reg has_latency_nxt;
 
-    assign #1 o_data = data_out_reg;
+    assign o_data = data_out_reg;
     assign data_in = i_data;
     assign o_data_output_enable = en_data_out_reg;
 
@@ -120,7 +120,7 @@ module OctalSPI_quad #(
 
     // ToDo: why was this in en_data_strobe?: | state_reg == WAIT_LATENCY 
     assign en_data_strobe  = (state_reg == SEND_DATA | (~i_config_read_data & (state_reg == CS_HIGH | state_reg == FINISH)));   // FINISH is needed, because otherwise the model does not store the value
-    assign #1 o_data_strobe = data_strobe_out_reg;
+    assign o_data_strobe = data_strobe_out_reg;
     assign data_strobe_in = i_data_strobe;
     assign o_data_strobe_output_enable = {4{en_data_strobe}};
 
