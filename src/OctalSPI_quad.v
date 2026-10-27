@@ -123,7 +123,6 @@ module OctalSPI_quad #(
     localparam integer NUM_SHORT_LATENCY_CYCLES = (CHIP_TYPE == 1) ? LATENCY_CYCLES + 2 : LATENCY_CYCLES - 2;   // ToDo think about a better switch (issue #12)
     localparam integer NUM_LONG_LATENCY_CYCLES = LATENCY_CYCLES * 2 + 2;
     //localparam integer READ_LATENCY_IN_CYCLE = 1; // (issue #15)
-    localparam integer TEMP_OPERATION_CYCLES = 1;   // transfer 2 bytes // ToDo: make dynamic handshake (issue #12)
 
     // ToDo: why was this in en_data_strobe?: | state_reg == WAIT_LATENCY 
     assign en_data_strobe  = (state_reg == SEND_DATA | (~i_config_read_data & (state_reg == CS_HIGH | state_reg == FINISH)));   // FINISH is needed, because otherwise the model does not store the value
@@ -283,8 +282,7 @@ module OctalSPI_quad #(
 
             // this could also be swapped to an combinatorial check for the state of SEND_DATA to assign to the output
             WAIT_LATENCY: begin
-                if (i_config_write_data & count_reg == 0)
-                need_next_word_nxt = 1'b1;
+                if (i_config_write_data & count_reg == 0) need_next_word_nxt = 1'b1;
             end
 
             SEND_DATA: begin
@@ -292,10 +290,10 @@ module OctalSPI_quad #(
                     data_strobe_out_nxt = 4'b1111;
                 end else begin
 
-                for (channel = 0; channel < 4; channel = channel + 1) begin
-                    data_out_nxt[(channel*8)+:8] = i_data_write[(channel*8)+:8];
-                    data_strobe_out_nxt[channel] = i_data_word_mask[channel];
-                end
+                    for (channel = 0; channel < 4; channel = channel + 1) begin
+                        data_out_nxt[(channel*8)+:8] = i_data_write[(channel*8)+:8];
+                        data_strobe_out_nxt[channel] = i_data_word_mask[channel];
+                    end
                 end
                 need_next_word_nxt = 1'b1;
             end
