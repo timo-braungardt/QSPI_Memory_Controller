@@ -288,9 +288,14 @@ module OctalSPI_quad #(
             end
 
             SEND_DATA: begin
+                if (i_last_word & ~bus_clock_p2_reg & count_reg == 0) begin
+                    data_strobe_out_nxt = 4'b1111;
+                end else begin
+
                 for (channel = 0; channel < 4; channel = channel + 1) begin
                     data_out_nxt[(channel*8)+:8] = i_data_write[(channel*8)+:8];
                     data_strobe_out_nxt[channel] = i_data_word_mask[channel];
+                end
                 end
                 need_next_word_nxt = 1'b1;
             end
