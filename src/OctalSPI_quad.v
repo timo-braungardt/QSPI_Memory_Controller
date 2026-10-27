@@ -108,6 +108,7 @@ module OctalSPI_quad #(
     reg                          need_next_word_reg;
     reg                          need_buffer_word_nxt;
     reg                          need_buffer_word_reg;
+    wire    [ADDRESS_LENGTH-1:0] word_alligned_address;
 
     assign o_data_read = data_read_reg;
 
@@ -135,6 +136,11 @@ module OctalSPI_quad #(
     assign o_finish = (state_reg == FINISH);
     assign o_recieved_next_word = recieved_next_word_reg;
     assign o_need_next_word = need_next_word_reg;
+
+    localparam WORD_LENGTH = $clog2(STRB_WIDTH);
+    assign word_alligned_address = {i_address[ADDRESS_LENGTH-1 : WORD_LENGTH], {WORD_LENGTH{1'b0}}};
+    reg is_transfer_front_padded_nxt;
+    reg is_transfer_front_padded_reg;
 
 
     always @(*) begin : clock_logic
@@ -264,6 +270,7 @@ module OctalSPI_quad #(
         data_strobe_out_nxt = data_strobe_out_reg;
         need_buffer_word_nxt = need_buffer_word_reg;
         need_next_word_nxt = 1'b0;
+        is_transfer_front_padded_nxt = is_transfer_front_padded_reg;
 
         case (state_reg)
             SEND_OPCODE: begin
@@ -276,20 +283,25 @@ module OctalSPI_quad #(
             SEND_ADDRESS: begin
                 for (channel = 0; channel < 4; channel = channel + 1) begin
                     for (i = 0; i < BUS_WIDTH; i = i + 1)
-                    data_out_nxt[(channel*8)+i] = i_address[{count_reg[1:0], i[2:0]}];
+                    data_out_nxt[(channel*8)+i] = word_alligned_address[{count_reg[1:0], i[2:0]}];
                 end
+                is_transfer_front_padded_nxt = i_address[WORD_LENGTH];
             end
 
             // this could also be swapped to an combinatorial check for the state of SEND_DATA to assign to the output
             WAIT_LATENCY: begin
-                if (i_config_write_data & count_reg == 0) need_next_word_nxt = 1'b1;
+                if (i_config_write_data & count_reg == 0 & ~is_transfer_front_padded_reg)
+                    need_next_word_nxt = 1'b1;
             end
 
             SEND_DATA: begin
-                if (i_last_word & ~bus_clock_p2_reg & count_reg == 0) begin
+                if (is_transfer_front_padded_reg & count_reg == 1) begin
+                    data_strobe_out_nxt = 4'b1111;
+                end
+                else if (i_last_word & ~bus_clock_p2_reg & count_reg == 0 & ~is_transfer_front_padded_reg) begin
                     data_strobe_out_nxt = 4'b1111;
                 end else begin
-
+                    is_transfer_front_padded_nxt = 0;
                     for (channel = 0; channel < 4; channel = channel + 1) begin
                         data_out_nxt[(channel*8)+:8] = i_data_write[(channel*8)+:8];
                         data_strobe_out_nxt[channel] = i_data_word_mask[channel];
@@ -309,11 +321,13 @@ module OctalSPI_quad #(
             recieved_next_word_reg <= 0;
             need_buffer_word_reg <= 0;
             need_next_word_reg <= 0;
+            is_transfer_front_padded_reg <= 0;
         end else begin
             data_out_reg <= data_out_nxt;
             recieved_next_word_reg <= 1'b0;
             need_buffer_word_reg <= need_buffer_word_nxt;
             need_next_word_reg <= need_next_word_nxt;
+            is_transfer_front_padded_reg <= is_transfer_front_padded_nxt;
 
             if (state_reg == RECEIVE_DATA) begin
                 data_read_reg <= data_in;
