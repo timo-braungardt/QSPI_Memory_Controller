@@ -115,7 +115,7 @@ module OSPIController_quad #(
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE_ANY_REG = 8'h00;
     //localparam [OPCODE_LENGTH -1 : 0] OPCODE_LONG_ADDRESS_ENABLE = 8'h00;
 
-    assign o_next_word = write_next_word_reg;
+    assign o_next_word = spi_write_next_byte;//write_next_word_reg;  passthrough because now with every clock we write one word
     assign o_recieved_next_word = read_next_word_reg;
     localparam WORD_LENGTH = $clog2(DATA_BYTES);
     assign word_alligned_address = {i_address[ADDRESS_LENGTH-1 : WORD_LENGTH], {WORD_LENGTH{1'b0}}};

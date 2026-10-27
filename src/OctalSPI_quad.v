@@ -104,6 +104,10 @@ module OctalSPI_quad #(
     integer                      count_nxt;
     integer                      latency_offset;
     reg     [    DATA_WIDTH-1:0] data_read_reg;
+    reg                          need_next_word_nxt;
+    reg                          need_next_word_reg;
+    reg                          need_buffer_word_nxt;
+    reg                          need_buffer_word_reg;
 
     assign o_data_read = data_read_reg;
 
@@ -131,7 +135,7 @@ module OctalSPI_quad #(
     assign o_bus_clock_neg = ~bus_clock_p2_reg;
     assign o_finish = (state_reg == FINISH);
     assign o_recieved_next_word = recieved_next_word_reg;
-    assign o_need_next_word = (state_reg == SEND_DATA);
+    assign o_need_next_word = need_next_word_reg;
 
 
     always @(*) begin : clock_logic
@@ -206,9 +210,7 @@ module OctalSPI_quad #(
 
                 en_data_out_nxt = ~i_config_read_data;
                 if (count_reg == 0) begin
-                    count_nxt = TEMP_OPERATION_CYCLES;
-
-
+                    count_nxt = 1;
                     if (i_config_read_data) state_nxt = RECEIVE_DATA;
                     else if (i_config_write_data) state_nxt = SEND_DATA;
                     else state_nxt = CS_HIGH;
@@ -216,20 +218,16 @@ module OctalSPI_quad #(
             end
 
             RECEIVE_DATA: begin
-                count_nxt = count_reg - 1;
-
                 if (i_last_word) begin
                     state_nxt = CS_HIGH;
                 end
             end
 
             SEND_DATA: begin
-                count_nxt = count_reg - 1;
-
+                count_nxt = 0;
                 // we check the clock, because we always have to send two bytes
                 // on the first byte sent out, the clock is always low  ToDo: (issue #12) maybe better description, maybe unnecessary because the clock shift is not needed?
-                if (i_last_word & bus_clock_p2_reg) begin
-                    count_nxt = 0;  // otherwise underflow - can this be synthesised elegantly?
+                if (i_last_word & bus_clock_p2_reg & count_reg == 0) begin
                     state_nxt = CS_HIGH;
                 end
             end
@@ -265,6 +263,8 @@ module OctalSPI_quad #(
         integer i, channel;
         data_out_nxt = data_out_reg;
         data_strobe_out_nxt = data_strobe_out_reg;
+        need_buffer_word_nxt = need_buffer_word_reg;
+        need_next_word_nxt = 1'b0;
 
         case (state_reg)
             SEND_OPCODE: begin
@@ -281,11 +281,17 @@ module OctalSPI_quad #(
                 end
             end
 
+            WAIT_LATENCY: begin
+                if (i_config_write_data & count_reg <= 1)
+                need_next_word_nxt = 1'b1;
+            end
+
             SEND_DATA: begin
                 for (channel = 0; channel < 4; channel = channel + 1) begin
                     data_out_nxt[(channel*8)+:8] = i_data_write[(channel*8)+:8];
                     data_strobe_out_nxt[channel] = i_data_word_mask[channel];
                 end
+                need_next_word_nxt = 1'b1;
             end
 
             default: ;
@@ -297,9 +303,13 @@ module OctalSPI_quad #(
         if (~reset_neg) begin
             data_out_reg <= 0;
             recieved_next_word_reg <= 0;
+            need_buffer_word_reg <= 0;
+            need_next_word_reg <= 0;
         end else begin
             data_out_reg <= data_out_nxt;
             recieved_next_word_reg <= 1'b0;
+            need_buffer_word_reg <= need_buffer_word_nxt;
+            need_next_word_reg <= need_next_word_nxt;
 
             if (state_reg == RECEIVE_DATA) begin
                 data_read_reg <= data_in;
