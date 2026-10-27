@@ -48,7 +48,6 @@ module AXIInterface #(
     input wire clk,
     input wire rst_neg,
 
-    /* verilator lint_off UNUSEDSIGNAL */
     // Control Interface Pins
     input  wire                  i_write_word_ready,
     input  wire                  i_read_word_ready,
@@ -60,6 +59,7 @@ module AXIInterface #(
     output wire [DATA_WIDTH-1:0] o_write_data,
     input  wire [DATA_WIDTH-1:0] i_read_data,
 
+    /* verilator lint_off UNUSEDSIGNAL */
     // AXI Pins
     input wire [ID_WIDTH-1:0] s_axi_awid,  // write address channel
     input wire [ADDR_WIDTH-1:0] s_axi_awaddr,
