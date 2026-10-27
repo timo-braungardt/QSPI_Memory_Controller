@@ -136,6 +136,40 @@ async def read_alligned_test(dut, params):
     data = read_task.result()
     assert list(data.data) == test_data.get_test_array()
 
+#broken test
+@cocotb.test()
+async def write_length_test(dut):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await Timer(50, unit="ns")
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    await reset_model(dut)
+
+    num_bytes = 4 
+    addr = 0x0008
+    test_data = DummyData(num_bytes)
+
+    # step: write
+    timeout = Timer(100, unit="us")
+    write_task = cocotb.start_soon(axi_master.write(addr, test_data.get_test_array()))
+    trigger = await First(write_task, timeout)
+    assert trigger != timeout
+    if dut.Controller.spi_busy.value == True:
+        await FallingEdge(dut.Controller.spi_busy)
+    await T_rwr
+
+    memory_data = get_memory_quad(dut, addr, test_data.num_bytes*2)
+    temp_test_data = list(test_data.get_test_array())
+    temp_test_data.extend([0xff] *4)
+    assert memory_data == temp_test_data
+
+    memory_data = get_memory_quad(dut, addr -1, 8)
+    assert memory_data == [0xff] *8
+
+    memory_data = get_memory_quad(dut, addr +1, 8)
+    assert memory_data == [0xff] *8
+
 
 def test_quad_octal_memory_controller_model(wave=False):
     """
