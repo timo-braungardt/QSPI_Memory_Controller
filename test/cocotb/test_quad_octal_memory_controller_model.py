@@ -135,7 +135,7 @@ async def read_alligned_test(dut, params):
     data = read_task.result()
     assert list(data.data) == test_data.get_test_array()
 
-#broken test
+
 @cocotb.test()
 async def write_length_test(dut):
     c = Clock(dut.clk, 20, "ns")
@@ -170,7 +170,6 @@ async def write_length_test(dut):
     assert memory_data == [0xff] *8
 
 
-#broken
 @cocotb.test()
 async def write_byte_masking(dut):
     c = Clock(dut.clk, 20, "ns")
