@@ -20,6 +20,45 @@ T_rwr = Timer(35, unit="ns")  # read-write recovery time from the datasheet
 # to wait after one transaction this much is pesimistic, we can already issue 4 cycles of the next command
 
 
+def get_memory_quad(dut, addr, num_bytes):
+    read_length = num_bytes // 4
+    memory_data = []
+
+    memory_data_0 = MemoryModelHelper.get_memory_s70kl1283(dut.gen_memory[0].Memory, addr, read_length)
+    memory_data_1 = MemoryModelHelper.get_memory_s70kl1283(dut.gen_memory[1].Memory, addr, read_length)
+    memory_data_2 = MemoryModelHelper.get_memory_s70kl1283(dut.gen_memory[2].Memory, addr, read_length)
+    memory_data_3 = MemoryModelHelper.get_memory_s70kl1283(dut.gen_memory[3].Memory, addr, read_length)
+
+    for i in range(read_length):
+        memory_data.append(memory_data_0[i])
+        memory_data.append(memory_data_1[i])
+        memory_data.append(memory_data_2[i])
+        memory_data.append(memory_data_3[i])
+
+    return memory_data
+
+
+def set_memory_quad(dut, addr, data):
+    write_length = data.num_bytes // 4
+    test_data = list(data.get_test_array())
+
+    test_data_0 = []
+    test_data_1 = []
+    test_data_2 = []
+    test_data_3 = []
+
+    for i in range(write_length):
+        test_data_0.append(test_data.pop(0))
+        test_data_1.append(test_data.pop(0))
+        test_data_2.append(test_data.pop(0))
+        test_data_3.append(test_data.pop(0))
+
+    MemoryModelHelper.set_memory_s70kl1283(dut.gen_memory[0].Memory, addr, test_data_0)
+    MemoryModelHelper.set_memory_s70kl1283(dut.gen_memory[1].Memory, addr, test_data_1)
+    MemoryModelHelper.set_memory_s70kl1283(dut.gen_memory[2].Memory, addr, test_data_2)
+    MemoryModelHelper.set_memory_s70kl1283(dut.gen_memory[3].Memory, addr, test_data_3)
+
+
 async def reset_model(dut):
     dut.test_number.value = dut.test_number.value + 1
     dut.reset.value = 1
@@ -68,14 +107,8 @@ async def write_alligned_test(dut, params):
 
     test_array = test_data.get_test_array()
     
-    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.gen_memory[0].Memory, addr, 1)
-    assert memory_data == [test_array[0]]
-    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.gen_memory[1].Memory, addr, 1)
-    assert memory_data == [test_array[1]]
-    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.gen_memory[2].Memory, addr, 1)
-    assert memory_data == [test_array[2]]
-    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.gen_memory[3].Memory, addr, 1)
-    assert memory_data == [test_array[3]]
+    memory_data = get_memory_quad(dut, addr, num_bytes)
+    assert memory_data == test_array
 
 
 @cocotb.test()
@@ -91,10 +124,7 @@ async def read_alligned_test(dut, params):
     num_bytes, addr = params
     test_data = DummyData(num_bytes)
 
-    MemoryModelHelper.set_memory_s70kl1283(dut.gen_memory[0].Memory, addr, [test_data._array[0]])
-    MemoryModelHelper.set_memory_s70kl1283(dut.gen_memory[1].Memory, addr, [test_data._array[1]])
-    MemoryModelHelper.set_memory_s70kl1283(dut.gen_memory[2].Memory, addr, [test_data._array[2]])
-    MemoryModelHelper.set_memory_s70kl1283(dut.gen_memory[3].Memory, addr, [test_data._array[3]])
+    set_memory_quad(dut, addr, test_data)
 
     timeout = Timer(200, unit="us")
     read_task = cocotb.start_soon(axi_master.read(addr, num_bytes))
