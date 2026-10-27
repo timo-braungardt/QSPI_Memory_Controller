@@ -207,6 +207,83 @@ async def write_byte_masking(dut):
     assert memory_data[3] == 0xCC
 
 
+@cocotb.test()
+@cocotb.parametrize(params=[(4, 0x0104)])
+async def unalligned_access_front_test(dut, params):
+    """
+    With the octal spi we always have to write two bytes.
+    This test checks if we correctly padd the first byte when we write to an 'uneven' address.
+    """
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await Timer(50, unit="ns")
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    await reset_model(dut)
+
+    num_bytes, addr = params
+    test_data = DummyData(num_bytes)
+
+    overwrite_data = DummyData(num_bytes*2)
+    overwrite_data._array = [0xff]*(num_bytes*2)
+    set_memory_quad(dut, addr-1, overwrite_data)
+
+    timeout = Timer(200, unit="us")
+    write_task = cocotb.start_soon(axi_master.write(addr, test_data.get_test_array()))
+    trigger = await First(write_task, timeout)
+    assert trigger != timeout
+    if dut.Controller.spi_busy.value == True:
+        await FallingEdge(dut.Controller.spi_busy)
+
+    await T_rwr
+
+    
+    memory_data = get_memory_quad(dut, addr, num_bytes*2)
+    temp_test_data = []
+    temp_test_data.extend([0xff] *4)
+    temp_test_data.extend(list(test_data.get_test_array()))
+    assert memory_data == temp_test_data
+
+
+@cocotb.test()
+@cocotb.parametrize(params=[(8, 0x0104)])
+async def unalligned_access_front_back_test(dut, params):
+    """
+    With the octal spi we always have to write two bytes.
+    This test checks if we correctly padd the first byte when we write to an 'uneven' address.
+    """
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await Timer(50, unit="ns")
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    await reset_model(dut)
+
+    num_bytes, addr = params
+    test_data = DummyData(num_bytes)
+
+    overwrite_data = DummyData(num_bytes*2)
+    overwrite_data._array = [0xff]*(num_bytes*2)
+    set_memory_quad(dut, addr-1, overwrite_data)
+
+    timeout = Timer(200, unit="us")
+    write_task = cocotb.start_soon(axi_master.write(addr, test_data.get_test_array()))
+    trigger = await First(write_task, timeout)
+    assert trigger != timeout
+    if dut.Controller.spi_busy.value == True:
+        await FallingEdge(dut.Controller.spi_busy)
+
+    await T_rwr
+
+    
+    memory_data = get_memory_quad(dut, addr, num_bytes*2)
+    temp_test_data = []
+    temp_test_data.extend([0xff] *4)
+    temp_test_data.extend(list(test_data.get_test_array()))
+    temp_test_data.extend([0xff] *4)
+    assert memory_data == temp_test_data
+
+
 def test_quad_octal_memory_controller_model(wave=False):
     """
     Integration test of all modules in memory controller.
