@@ -171,6 +171,37 @@ async def write_length_test(dut):
     assert memory_data == [0xff] *8
 
 
+#broken
+@cocotb.test()
+async def write_byte_masking(dut):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await Timer(50, unit="ns")
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    await reset_model(dut)
+
+    addr = 0x0010
+
+    test_data = DummyData(4)
+    test_data._array = [0]*4
+    
+    set_memory_quad(dut, addr, test_data)
+    await axi_master.write(addr+1, b'\xAA\xBB')   # WSTRB = 0b0110
+    await axi_master.write(addr+3, b'\xCC')       # WSTRB = 0b1000
+    assert False
+    if dut.Controller.spi_busy.value == True:
+        await FallingEdge(dut.Controller.spi_busy)
+
+    await T_rwr
+    
+    memory_data = get_memory_quad(dut, addr, 8)
+    assert memory_data[0] == 0
+    assert memory_data[1] == 0xAA
+    assert memory_data[2] == 0xBB
+    assert memory_data[3] == 0xCC
+
+
 def test_quad_octal_memory_controller_model(wave=False):
     """
     Integration test of all modules in memory controller.
