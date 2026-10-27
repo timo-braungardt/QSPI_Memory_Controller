@@ -281,8 +281,9 @@ module OctalSPI_quad #(
                 end
             end
 
+            // this could also be swapped to an combinatorial check for the state of SEND_DATA to assign to the output
             WAIT_LATENCY: begin
-                if (i_config_write_data & count_reg <= 1)
+                if (i_config_write_data & count_reg == 0)
                 need_next_word_nxt = 1'b1;
             end
 

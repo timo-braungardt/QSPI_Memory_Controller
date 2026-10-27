@@ -94,7 +94,6 @@ async def write_alligned_test(dut, params):
 
     num_bytes, addr = params
     test_data = DummyData(num_bytes)
-    test_data.generate_ordered_test_array(num_bytes)
 
     timeout = Timer(200, unit="us")
     write_task = cocotb.start_soon(axi_master.write(addr, test_data.get_test_array()))
@@ -188,11 +187,18 @@ async def write_byte_masking(dut):
     
     set_memory_quad(dut, addr, test_data)
     await axi_master.write(addr+1, b'\xAA\xBB')   # WSTRB = 0b0110
-    await axi_master.write(addr+3, b'\xCC')       # WSTRB = 0b1000
-    assert False
     if dut.Controller.spi_busy.value == True:
         await FallingEdge(dut.Controller.spi_busy)
+    await T_rwr
 
+    memory_data = get_memory_quad(dut, addr, 8)
+    assert memory_data[0] == 0
+    assert memory_data[1] == 0xAA
+    assert memory_data[2] == 0xBB
+
+    await axi_master.write(addr+3, b'\xCC')       # WSTRB = 0b1000
+    if dut.Controller.spi_busy.value == True:
+        await FallingEdge(dut.Controller.spi_busy)
     await T_rwr
     
     memory_data = get_memory_quad(dut, addr, 8)
