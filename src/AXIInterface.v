@@ -171,12 +171,19 @@ module AXIInterface #(
     assign s_axi_rlast = s_axi_rlast_reg;//PIPELINE_OUTPUT ? s_axi_rlast_pipe_reg : s_axi_rlast_reg;
     assign s_axi_rvalid = PIPELINE_OUTPUT ? s_axi_rvalid_pipe_reg : s_axi_rvalid_reg;
 
-    assign o_last_word = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE) ? s_axi_wlast : s_axi_rlast;
     assign o_write_enable = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE);
     assign o_address = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE) ? write_addr_next : read_addr_next;
     assign o_write_data = s_axi_wdata;
     assign o_start_transaction = ((s_axi_awready && s_axi_awvalid) | (s_axi_arready && s_axi_arvalid));
 
+    wire read_last_word;
+    assign read_last_word = (s_axi_rlast_reg | (s_axi_arvalid & s_axi_arlen == 0));
+    wire write_last_word;
+    assign write_last_word = s_axi_wlast;
+
+    // if we are in the read state or if we recieve a read command, pass the write data to the controller
+    // otherwise pass the read data
+    assign o_last_word = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE) ? write_last_word : read_last_word;
 
     always @* begin
         write_state_next = WRITE_STATE_IDLE;

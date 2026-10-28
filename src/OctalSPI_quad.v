@@ -56,6 +56,8 @@ module OctalSPI_quad #(
     localparam BUS_WIDTH = 32;
 
     // Pin tristate stuff
+    reg                    last_word_reg;
+    reg                    last_word_nxt;
     reg                    en_data_out_reg;
     reg                    en_data_out_nxt;
     reg  [BUS_WIDTH-1 : 0] data_out_reg;
@@ -223,7 +225,7 @@ module OctalSPI_quad #(
             end
 
             RECEIVE_DATA: begin
-                if (i_last_word) begin
+                if (last_word_reg) begin
                     state_nxt = CS_HIGH;
                 end
             end
@@ -232,7 +234,7 @@ module OctalSPI_quad #(
                 count_nxt = 0;
                 // we check the clock, because we always have to send two bytes
                 // on the first byte sent out, the clock is always low  ToDo: (issue #12) maybe better description, maybe unnecessary because the clock shift is not needed?
-                if (i_last_word & bus_clock_p2_reg & count_reg == 0) begin
+                if (last_word_reg & bus_clock_p2_reg & count_reg == 0) begin
                     state_nxt = CS_HIGH;
                 end
             end
@@ -271,6 +273,7 @@ module OctalSPI_quad #(
         need_buffer_word_nxt = need_buffer_word_reg;
         need_next_word_nxt = 1'b0;
         is_transfer_front_padded_nxt = is_transfer_front_padded_reg;
+        last_word_nxt = 1'b0;
 
         case (state_reg)
             SEND_OPCODE: begin
@@ -294,14 +297,20 @@ module OctalSPI_quad #(
                     need_next_word_nxt = 1'b1;
             end
 
+            RECEIVE_DATA: begin
+                last_word_nxt = i_last_word;
+            end
+
             SEND_DATA: begin
+                last_word_nxt = last_word_reg;
                 if (is_transfer_front_padded_reg & count_reg == 1) begin
                     data_strobe_out_nxt = 4'b1111;
                 end
-                else if (i_last_word & ~bus_clock_p2_reg & count_reg == 0 & ~is_transfer_front_padded_reg) begin
+                else if (last_word_reg & ~bus_clock_p2_reg & count_reg == 0 & ~is_transfer_front_padded_reg) begin
                     data_strobe_out_nxt = 4'b1111;
                 end else begin
                     is_transfer_front_padded_nxt = 0;
+                    last_word_nxt = i_last_word;
                     for (channel = 0; channel < 4; channel = channel + 1) begin
                         data_out_nxt[(channel*8)+:8] = i_data_write[(channel*8)+:8];
                         data_strobe_out_nxt[channel] = i_data_word_mask[channel];
@@ -318,12 +327,14 @@ module OctalSPI_quad #(
     always @(posedge clk) begin : data_register
         if (~reset_neg) begin
             data_out_reg <= 0;
+            last_word_reg <= 0;
             recieved_next_word_reg <= 0;
             need_buffer_word_reg <= 0;
             need_next_word_reg <= 0;
             is_transfer_front_padded_reg <= 0;
         end else begin
             data_out_reg <= data_out_nxt;
+            last_word_reg <= last_word_nxt;
             recieved_next_word_reg <= 1'b0;
             need_buffer_word_reg <= need_buffer_word_nxt;
             need_next_word_reg <= need_next_word_nxt;
