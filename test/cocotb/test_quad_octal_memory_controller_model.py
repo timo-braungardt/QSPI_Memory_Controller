@@ -284,6 +284,82 @@ async def unalligned_access_front_back_test(dut, params):
     assert memory_data == temp_test_data
 
 
+@cocotb.test()
+@cocotb.parametrize(params=[(8, 0x0200)])
+async def read_write_alligned_test(dut, params):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await Timer(50, unit="ns")
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    await reset_model(dut)
+
+    # write
+    num_bytes, addr = params
+    test_data = DummyData(num_bytes)
+
+    timeout = Timer(200, unit="us")
+    write_task = cocotb.start_soon(axi_master.write(addr, test_data.get_test_array()))
+    trigger = await First(write_task, timeout)
+    assert trigger != timeout
+    if dut.Controller.spi_busy.value == True:
+        await FallingEdge(dut.Controller.spi_busy)
+
+    await T_rwr
+
+    test_array = test_data.get_test_array()
+    
+    memory_data = get_memory_quad(dut, addr, num_bytes)
+    assert memory_data == test_array
+
+    # read
+    timeout = Timer(200, unit="us")
+    read_task = cocotb.start_soon(axi_master.read(addr, num_bytes))
+    trigger = await First(read_task, timeout)
+    assert trigger != timeout
+    if dut.Controller.spi_busy.value == True:
+        timeout = Timer(100, unit="us")
+        await First(FallingEdge(dut.Controller.spi_busy), timeout)
+    data = read_task.result()
+    assert list(data.data) == test_data.get_test_array()
+
+
+@cocotb.test()
+@cocotb.parametrize(params=[(8, 0x0200)])
+async def read_read_alligned_test(dut, params):
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    await Timer(50, unit="ns")
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    await reset_model(dut)
+
+    num_bytes, addr = params
+    test_data = DummyData(num_bytes)
+
+    set_memory_quad(dut, addr, test_data)
+
+    timeout = Timer(200, unit="us")
+    read_task = cocotb.start_soon(axi_master.read(addr, num_bytes))
+    trigger = await First(read_task, timeout)
+    assert trigger != timeout
+    if dut.Controller.spi_busy.value == True:
+        timeout = Timer(100, unit="us")
+        await First(FallingEdge(dut.Controller.spi_busy), timeout)
+    data = read_task.result()
+    assert list(data.data) == test_data.get_test_array()
+
+    timeout = Timer(200, unit="us")
+    read_task = cocotb.start_soon(axi_master.read(addr, num_bytes))
+    trigger = await First(read_task, timeout)
+    assert trigger != timeout
+    if dut.Controller.spi_busy.value == True:
+        timeout = Timer(100, unit="us")
+        await First(FallingEdge(dut.Controller.spi_busy), timeout)
+    data = read_task.result()
+    assert list(data.data) == test_data.get_test_array()
+
+
 def test_quad_octal_memory_controller_model(wave=False):
     """
     Integration test of all modules in memory controller.
