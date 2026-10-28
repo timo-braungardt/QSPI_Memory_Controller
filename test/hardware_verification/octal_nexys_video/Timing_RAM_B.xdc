@@ -58,12 +58,12 @@ create_generated_clock -name bus_clk -source [get_pins -of_objects [get_cells -h
 #    (Vivado warns for every register it cannot pack)
 ##############################################################################
 #set_property IOB TRUE [get_ports {io_spi_b_data[*]}]
-#set_property IOB TRUE [get_ports io_spi_b_data_strobe]
+#set_property IOB TRUE [get_ports io_spi_b_datastrobe]
 #set_property IOB TRUE [get_ports o_spi_b_chipselect_neg]
 
 
 ##############################################################################
-# 4. Write path: FPGA -> PSRAM (DQ, DM on io_spi_b_data_strobe, CE#)
+# 4. Write path: FPGA -> PSRAM (DQ, DM on io_spi_b_datastrobe, CE#)
 #    The PSRAM samples DQ/DM on BOTH clock edges (DDR), so constrain both.
 #    max = setup requirement + data trace (max) - clock trace (min)
 #    min = data trace (min) - clock trace (max) - hold requirement
@@ -71,7 +71,7 @@ create_generated_clock -name bus_clk -source [get_pins -of_objects [get_cells -h
 set out_max [expr {$psram_tDS + $pcb_dq_max - $pcb_clk_min}]
 set out_min [expr {$pcb_dq_min - $pcb_clk_max - $psram_tDH}]
 
-set dq_out_ports [get_ports {io_spi_b_data[*] io_spi_b_data_strobe}]
+set dq_out_ports [get_ports {io_spi_b_data[*] io_spi_b_datastrobe}]
 
 set_output_delay -clock bus_clk -max $out_max $dq_out_ports
 set_output_delay -clock bus_clk -min $out_min $dq_out_ports
@@ -120,7 +120,7 @@ set_input_delay -clock bus_clk -clock_fall -min $in_min -add_delay $dq_in_ports
 
 # DQS is not used for read capture (only sampled into a debug register).
 # Remove this line if you start using DQS in the controller.
-set_false_path -from [get_ports io_spi_b_data_strobe]
+set_false_path -from [get_ports io_spi_b_datastrobe]
 
 # RESET# is static, the PSRAM has no differential clock.
 set_false_path -to [get_ports {o_spi_reset_neg o_spi_bus_clock_neg}]
