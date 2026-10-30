@@ -164,9 +164,8 @@ module OctalSPI_quad #(
         bus_clock_p2_nxt = 1'b0;
 
         if (state_reg != IDLE & state_reg != CS_LOW & state_reg != CS_HIGH & state_reg != FINISH) begin
-            //if ((state_reg == SEND_DATA && (~data_out_valid_reg && ~data_write_valid_reg)) || (state_reg == RECEIVE_DATA && ~i_data_read_ready)) begin
-            if (1 == 0) begin
-                // when no valid write data is available, stop the bus clock
+            if (state_reg == SEND_DATA && ~data_write_valid_reg && ~last_word_reg) begin
+                // when no valid write data is available, and we are not on the last byte, stop the bus clock
                 bus_clock_nxt = bus_clock_reg;
                 bus_clock_p2_nxt = bus_clock_p2_reg;
             end else begin
