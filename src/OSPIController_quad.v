@@ -27,12 +27,17 @@ module OSPIController_quad #(
     /* verilator lint_on UNUSEDSIGNAL */
     input                       i_write_enable,
     input                       i_last_word,
+
     input  [    STRB_WIDTH-1:0] i_data_word_mask,
     input  [    DATA_WIDTH-1:0] i_data_write,
+    input                       i_data_write_valid,
+    output                      o_data_write_ready,
+
+    output                      o_data_read_valid,
+    input                       i_data_read_ready,
     output [    DATA_WIDTH-1:0] o_data_read,
+    
     output                      o_busy,
-    output                      o_next_word,
-    output                      o_recieved_next_word,
 
     // SPI Pins
     output o_bus_clock,
@@ -66,17 +71,19 @@ module OSPIController_quad #(
     reg  [    DATA_WIDTH-1:0] config_data_reg;
     reg  [    DATA_WIDTH-1:0] data_in_muxed_nxt;
     reg  [    DATA_WIDTH-1:0] data_in_muxed_reg;
+    reg                       data_in_valid_muxed_nxt;
+    reg                       data_in_valid_muxed_reg;
     reg  [    STRB_WIDTH-1:0] data_mask_nxt;
     reg  [    STRB_WIDTH-1:0] data_mask_reg;
+    reg  [    DATA_WIDTH-1:0] data_read_nxt;
     reg  [    DATA_WIDTH-1:0] data_read_reg;
+    wire                      spi_read_ready;
     wire                      start_transmission;
     wire                      transmitter_finish;
     wire                      spi_write_next_byte;
     wire                      spi_read_next_byte;
-    reg                       write_next_word_nxt;
-    reg                       write_next_word_reg;
-    reg                       read_next_word_nxt;
-    reg                       read_next_word_reg;
+    reg                       data_read_valid_nxt;
+    reg                       data_read_valid_reg;
     reg                       last_word_nxt;
     reg                       last_word_reg;
     wire [    DATA_WIDTH-1:0] read_word;
@@ -111,8 +118,9 @@ module OSPIController_quad #(
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE_ANY_REG = 8'h00;
     //localparam [OPCODE_LENGTH -1 : 0] OPCODE_LONG_ADDRESS_ENABLE = 8'h00;
 
-    assign o_next_word = (write_next_word_reg | spi_write_next_byte);
-    assign o_recieved_next_word = read_next_word_reg;
+    assign o_data_write_ready = (~data_in_valid_muxed_reg || spi_write_next_byte);
+    assign spi_read_ready = (~data_read_valid_reg || i_data_read_ready);
+    assign o_data_read_valid  = data_read_valid_reg;
 
     // Temp counter for correct reset
     reg reset_spi;
@@ -144,13 +152,18 @@ module OSPIController_quad #(
         .i_config_read_data(config_read_data),
         .i_config_write_data(config_write_data),
         .i_config_write_address(config_write_address),
+
         .i_last_word(last_word_reg),
+        .o_finish(transmitter_finish),
+
         .i_data_word_mask(data_mask_reg),
         .i_data_write(data_in_muxed_reg),
+        .i_data_write_valid(data_in_valid_muxed_reg),
+        .o_data_write_ready(spi_write_next_byte),
+
         .o_data_read(read_word),
-        .o_finish(transmitter_finish),
-        .o_need_next_word(spi_write_next_byte),
-        .o_recieved_next_word(spi_read_next_byte),
+        .o_data_read_valid(spi_read_next_byte),
+        .i_data_read_ready(spi_read_ready),
 
         // SPI Pins
         .o_bus_clock(o_bus_clock),
@@ -173,7 +186,6 @@ module OSPIController_quad #(
     assign config_write_address = (control_state_reg == READ || control_state_reg == WRITE || control_state_reg == WRITE_CONFIG);
     assign o_busy = (control_state_reg != IDLE);
     assign o_data_read = data_read_reg;
-
 
     integer delay_fsm;  // ToDo: make this more beautifull - the state machine probably needs multiple delays. (issue #10)
     always @(*) begin : control_logic
@@ -245,37 +257,34 @@ module OSPIController_quad #(
     end
 
 
+    // implementation of an adapted valid-handshake pipeline logic
     always @(*) begin : data_logic
         last_word_nxt = last_word_reg;
         data_in_muxed_nxt = data_in_muxed_reg;
+        data_in_valid_muxed_nxt = data_in_valid_muxed_reg;
         data_mask_nxt = data_mask_reg;
-        read_next_word_nxt = 0;
-        write_next_word_nxt = 0;
+        data_read_valid_nxt = 0;
         config_data_nxt = config_data_reg;
+        data_read_nxt = data_read_reg;
 
-        // to get the first data byte
-        if (control_state_reg == IDLE) begin
-            if (go) begin
-                data_in_muxed_nxt = (config_is_config_operation) ? config_data_reg : i_data_write;
-                data_mask_nxt = i_data_word_mask;
-                write_next_word_nxt = 1;    // save the data and request the next data on the bus
+        if (o_data_write_ready) begin
+            if (~config_is_config_operation) begin
                 last_word_nxt = i_last_word;
+                data_in_muxed_nxt = i_data_write;
+                data_in_valid_muxed_nxt = i_data_write_valid;
+                data_mask_nxt = i_data_word_mask;
+            end else begin
+                last_word_nxt = 1'b1;  // only ever write one word for config
+                data_in_muxed_nxt = config_data_reg;
+                data_in_valid_muxed_nxt = 1'b1;
+                data_mask_nxt = {STRB_WIDTH{1'b1}};  // always write all data
             end
-            else
-                last_word_nxt = 0;
         end
 
-        if (control_state_reg == WRITE | control_state_reg == READ | control_state_reg == WRITE_CONFIG) begin
-            if (spi_write_next_byte | spi_read_next_byte) begin
-                write_next_word_nxt = 1;     // ToDo: the DATA_BYTES can make problems, when it is too small (issue #10)
-                read_next_word_nxt = 1;
-
-                data_in_muxed_nxt = (config_is_config_operation) ? config_data_reg : i_data_write;
-                data_mask_nxt = i_data_word_mask;
-                // only set to 1, never reset to 0
-                if (i_last_word)
-                    last_word_nxt = 1'b1;
-            end
+        if (o_data_read_valid) begin
+            last_word_nxt = i_last_word;
+            data_read_valid_nxt = spi_read_next_byte;
+            data_read_nxt = read_word;
         end
     end
 
@@ -284,23 +293,20 @@ module OSPIController_quad #(
 
     always @(posedge clk) begin : data_register
         data_in_muxed_reg <= data_in_muxed_nxt;
+        data_in_valid_muxed_reg <= data_in_valid_muxed_nxt;
         data_mask_reg <= data_mask_nxt;
         last_word_reg <= last_word_nxt;
-        read_next_word_reg <= read_next_word_nxt;
-        write_next_word_reg <= write_next_word_nxt;
+        data_read_valid_reg <= data_read_valid_nxt;
         config_data_reg <= config_data_nxt;
-
-        if (spi_read_next_byte) begin
-            data_read_reg <= read_word;
-        end
+        data_read_reg <= data_read_nxt;
 
         if (!reset_neg) begin
             data_in_muxed_reg <= 0;
+            data_in_valid_muxed_reg <= 0;
             data_mask_reg <= 0;
             last_word_reg <= 0;
             data_read_reg <= 0;
-            read_next_word_reg <= 0;
-            write_next_word_reg <= 0;
+            data_read_valid_reg <= 0;
             config_data_reg <= {
                 24'd0, CONFIG_QSPI_ENABLE
             };  // this is set only on reset - it should be more configurable (issue #16)

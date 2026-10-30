@@ -77,6 +77,7 @@ module OctalMemoryController_quad #(
     wire [ADDR_WIDTH-1:0] axi_address;
     wire [DATA_WIDTH-1:0] axi_data_read;
     wire [DATA_WIDTH-1:0] axi_data_write;
+    wire                  axi_data_write_valid;
     wire axi_write_enable;
     wire axi_last_word;
     wire axi_start_transaction;
@@ -94,12 +95,17 @@ module OctalMemoryController_quad #(
         .i_address(axi_address),
         .i_write_enable(axi_write_enable),
         .i_last_word(axi_last_word),
+
         .i_data_write(axi_data_write),
         .i_data_word_mask(~s_axi_wstrb), // the axi write strobe signals are inverted to the octal-spi signals
+        .i_data_write_valid(axi_data_write_valid),
+        .o_data_write_ready(spi_next_word),
+
         .o_data_read(axi_data_read),
+        .o_data_read_valid(spi_recieved_next_word),
+        .i_data_read_ready(s_axi_arready),
+
         .o_busy(spi_busy),
-        .o_next_word(spi_next_word),
-        .o_recieved_next_word(spi_recieved_next_word),
 
         // SPI Pins
         .o_bus_clock(o_spi_bus_clock),
@@ -133,6 +139,7 @@ module OctalMemoryController_quad #(
         .o_start_transaction(axi_start_transaction),
         .o_address(axi_address),
         .o_write_data(axi_data_write),
+        .o_write_data_valid(axi_data_write_valid),
         .i_read_data(axi_data_read),
 
         // AXI Pins

@@ -57,6 +57,7 @@ module AXIInterface #(
     output wire                  o_start_transaction,
     output wire [ADDR_WIDTH-1:0] o_address,
     output wire [DATA_WIDTH-1:0] o_write_data,
+    output wire                  o_write_data_valid,
     input  wire [DATA_WIDTH-1:0] i_read_data,
 
     /* verilator lint_off UNUSEDSIGNAL */
@@ -174,6 +175,7 @@ module AXIInterface #(
     assign o_write_enable = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE);
     assign o_address = (s_axi_awvalid | write_state_reg != WRITE_STATE_IDLE) ? write_addr_next : read_addr_next;
     assign o_write_data = s_axi_wdata;
+    assign o_write_data_valid = s_axi_wvalid;
     assign o_start_transaction = ((s_axi_awready && s_axi_awvalid) | (s_axi_arready && s_axi_arvalid));
 
     wire read_last_word;
@@ -226,25 +228,20 @@ module AXIInterface #(
                     if (write_count_reg > 0) begin
                         write_state_next = WRITE_STATE_BURST;
                     end else begin
-                        if (s_axi_bready || !s_axi_bvalid) begin
-                            s_axi_bid_next = write_id_reg;
-                            s_axi_bvalid_next = 1'b1;
-                            s_axi_awready_next = 1'b1;
-                            write_state_next = WRITE_STATE_IDLE;
-                        end else begin
                             write_state_next = WRITE_STATE_RESP;
-                        end
                     end
                 end else begin
-                    write_state_next = WRITE_STATE_BURST;
+                    write_state_next = (i_busy) ? WRITE_STATE_BURST : WRITE_STATE_RESP;
                 end
             end
             WRITE_STATE_RESP: begin
-                if (s_axi_bready || !s_axi_bvalid) begin
-                    s_axi_bid_next = write_id_reg;
-                    s_axi_bvalid_next = 1'b1;
-                    s_axi_awready_next = 1'b1;
-                    write_state_next = WRITE_STATE_IDLE;
+                if(~i_busy) begin
+                    if (s_axi_bready || !s_axi_bvalid) begin
+                        s_axi_bid_next = write_id_reg;
+                        s_axi_bvalid_next = 1'b1;
+                        s_axi_awready_next = 1'b1;
+                        write_state_next = WRITE_STATE_IDLE;
+                    end
                 end else begin
                     write_state_next = WRITE_STATE_RESP;
                 end
