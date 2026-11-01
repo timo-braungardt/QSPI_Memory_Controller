@@ -292,7 +292,7 @@ module OctalSPI_quad #(
         data_strobe_out_nxt = data_strobe_out_reg;
         is_transfer_front_padded_nxt = is_transfer_front_padded_reg;
         last_word_nxt = last_word_reg;
-        data_out_last_nxt = data_out_last_reg;
+        data_out_last_nxt = 1'b0;
 
         data_read_nxt = data_read_reg;
         data_mask_nxt = data_mask_reg;
@@ -331,6 +331,7 @@ module OctalSPI_quad #(
             end
 
             SEND_DATA: begin
+                data_out_last_nxt = data_out_last_reg;
                 // padding the first byte
                 if (is_transfer_front_padded_reg & count_reg == 1) begin
                     data_strobe_out_nxt = 4'b1111;
@@ -347,6 +348,10 @@ module OctalSPI_quad #(
                         data_out_last_nxt = last_word_reg;
                     end
                 end
+            end
+
+            RECEIVE_DATA: begin
+                data_out_last_nxt = last_word_reg;
             end
 
             default: ;

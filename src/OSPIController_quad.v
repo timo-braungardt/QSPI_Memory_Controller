@@ -281,7 +281,7 @@ module OSPIController_quad #(
             end
         end
 
-        if (o_data_read_valid) begin
+        if (i_data_read_ready) begin
             last_word_nxt = i_last_word;
             data_read_valid_nxt = spi_read_next_byte;
             data_read_nxt = read_word;

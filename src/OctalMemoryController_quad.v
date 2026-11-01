@@ -103,7 +103,7 @@ module OctalMemoryController_quad #(
 
         .o_data_read(axi_data_read),
         .o_data_read_valid(spi_recieved_next_word),
-        .i_data_read_ready(s_axi_arready),
+        .i_data_read_ready(s_axi_rready),
 
         .o_busy(spi_busy),
 
