@@ -80,6 +80,7 @@ module OctalSPI_quad #(
     reg  [    DATA_WIDTH-1:0] data_read_reg;
     reg                       data_read_valid_nxt;
     reg                       data_read_valid_reg;
+    wire                      data_read_ready;
 
     reg  [    STRB_WIDTH-1:0] data_mask_nxt;
     reg  [    STRB_WIDTH-1:0] data_mask_reg;
@@ -157,6 +158,7 @@ module OctalSPI_quad #(
     assign o_data_read = data_read_reg;
     assign o_data_read_valid = data_read_valid_reg;
     assign o_data_write_ready = (state_reg == SEND_DATA || ~data_write_valid_reg);
+    assign data_read_ready = (i_data_read_ready || ~data_read_valid_reg);
 
 
     always @(*) begin : clock_logic
@@ -164,7 +166,8 @@ module OctalSPI_quad #(
         bus_clock_p2_nxt = 1'b0;
 
         if (state_reg != IDLE & state_reg != CS_LOW & state_reg != CS_HIGH & state_reg != FINISH) begin
-            if (state_reg == SEND_DATA && ~data_write_valid_reg && ~last_word_reg) begin
+            if ((state_reg == SEND_DATA && ~data_write_valid_reg && ~last_word_reg) ||
+                (state_reg == RECEIVE_DATA && ~data_read_ready && ~last_word_reg)) begin
                 // when no valid write data is available, and we are not on the last byte, stop the bus clock
                 bus_clock_nxt = bus_clock_reg;
                 bus_clock_p2_nxt = bus_clock_p2_reg;
@@ -293,12 +296,13 @@ module OctalSPI_quad #(
         is_transfer_front_padded_nxt = is_transfer_front_padded_reg;
         last_word_nxt = last_word_reg;
         data_out_last_nxt = 1'b0;
+        data_out_nxt = data_out_reg;
 
         data_read_nxt = data_read_reg;
         data_mask_nxt = data_mask_reg;
         data_write_valid_nxt = data_write_valid_reg;
         data_out_valid_nxt = data_out_valid_reg;
-        data_read_valid_nxt = 1'b0;     // set to 0 or keep?
+        data_read_valid_nxt = data_read_valid_reg;     // set to 0 or keep?
 
         // do not take new data, when the byte is padded
         if (o_data_write_ready && ~(is_transfer_front_padded_reg & count_reg == 1)) begin
@@ -308,9 +312,9 @@ module OctalSPI_quad #(
             data_mask_nxt = i_data_word_mask;
         end
 
-        if (state_reg == RECEIVE_DATA && i_data_read_ready) begin
+        if (state_reg == RECEIVE_DATA && data_read_ready) begin
             last_word_nxt = i_last_word;
-            data_read_valid_nxt = 1'b1;
+            data_read_valid_nxt = 1'b1;     // we only read valid data
             data_read_nxt = i_data;
         end
 
@@ -352,6 +356,10 @@ module OctalSPI_quad #(
 
             RECEIVE_DATA: begin
                 data_out_last_nxt = last_word_reg;
+            end
+
+            FINISH: begin
+                data_read_valid_nxt = 0;
             end
 
             default: ;

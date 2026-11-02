@@ -78,6 +78,7 @@ module OctalMemoryController_quad #(
     wire [DATA_WIDTH-1:0] axi_data_read;
     wire [DATA_WIDTH-1:0] axi_data_write;
     wire                  axi_data_write_valid;
+    wire                  axi_data_read_ready;
     wire axi_write_enable;
     wire axi_last_word;
     wire axi_start_transaction;
@@ -103,7 +104,7 @@ module OctalMemoryController_quad #(
 
         .o_data_read(axi_data_read),
         .o_data_read_valid(spi_recieved_next_word),
-        .i_data_read_ready(s_axi_rready),
+        .i_data_read_ready(axi_data_read_ready),
 
         .o_busy(spi_busy),
 
@@ -132,7 +133,7 @@ module OctalMemoryController_quad #(
 
         // Control Interface Pins
         .i_write_word_ready(spi_next_word),
-        .i_read_word_ready(spi_recieved_next_word),
+        .i_read_word_valid(spi_recieved_next_word),
         .i_busy(spi_busy),
         .o_last_word(axi_last_word),
         .o_write_enable(axi_write_enable),
@@ -141,6 +142,7 @@ module OctalMemoryController_quad #(
         .o_write_data(axi_data_write),
         .o_write_data_valid(axi_data_write_valid),
         .i_read_data(axi_data_read),
+        .o_read_data_ready(axi_data_read_ready),
 
         // AXI Pins
         .s_axi_awid(s_axi_awid),

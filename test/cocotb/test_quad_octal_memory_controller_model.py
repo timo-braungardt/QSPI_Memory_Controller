@@ -395,7 +395,7 @@ async def write_idle_cycles_test(dut, params):
 
 @cocotb.test()
 @cocotb.parametrize(params=[(128, 0x0500)])
-async def read_idle_cycles_alligned_test(dut, params):
+async def read_idle_cycles_test(dut, params):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
 

@@ -77,7 +77,7 @@ module OSPIController_quad #(
     reg  [    STRB_WIDTH-1:0] data_mask_reg;
     reg  [    DATA_WIDTH-1:0] data_read_nxt;
     reg  [    DATA_WIDTH-1:0] data_read_reg;
-    wire                      spi_read_ready;
+    wire                      data_read_ready;
     wire                      start_transmission;
     wire                      transmitter_finish;
     wire                      spi_write_next_byte;
@@ -119,7 +119,7 @@ module OSPIController_quad #(
     //localparam [OPCODE_LENGTH -1 : 0] OPCODE_LONG_ADDRESS_ENABLE = 8'h00;
 
     assign o_data_write_ready = (~data_in_valid_muxed_reg || spi_write_next_byte);
-    assign spi_read_ready = (~data_read_valid_reg || i_data_read_ready);
+    assign data_read_ready = (~data_read_valid_reg || i_data_read_ready);
     assign o_data_read_valid  = data_read_valid_reg;
 
     // Temp counter for correct reset
@@ -163,7 +163,7 @@ module OSPIController_quad #(
 
         .o_data_read(read_word),
         .o_data_read_valid(spi_read_next_byte),
-        .i_data_read_ready(spi_read_ready),
+        .i_data_read_ready(data_read_ready),
 
         // SPI Pins
         .o_bus_clock(o_bus_clock),
@@ -263,7 +263,7 @@ module OSPIController_quad #(
         data_in_muxed_nxt = data_in_muxed_reg;
         data_in_valid_muxed_nxt = data_in_valid_muxed_reg;
         data_mask_nxt = data_mask_reg;
-        data_read_valid_nxt = 0;
+        data_read_valid_nxt = data_read_valid_reg;
         config_data_nxt = config_data_reg;
         data_read_nxt = data_read_reg;
 
@@ -281,7 +281,7 @@ module OSPIController_quad #(
             end
         end
 
-        if (i_data_read_ready) begin
+        if (data_read_ready) begin
             last_word_nxt = i_last_word;
             data_read_valid_nxt = spi_read_next_byte;
             data_read_nxt = read_word;
