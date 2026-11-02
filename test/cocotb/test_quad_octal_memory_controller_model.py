@@ -84,6 +84,35 @@ async def wait_for_idle(dut):
 
 
 @cocotb.test()
+async def apmemory_startup_test(dut):
+    dut.test_number.value = dut.test_number.value + 1
+    c = Clock(dut.clk, 20, "ns")
+    cocotb.start_soon(c.start())
+
+    dut.reset.value = 1
+    await Timer(200, unit="ns")  # system reset
+    dut.reset.value = 0
+
+    assert dut.Controller.o_spi_reset_neg.value == 0
+
+    await Timer(150, unit="us")  # t_PU
+    assert dut.chip_select_neg.value[0] == 1
+    assert dut.Controller.o_spi_reset_neg.value == 0
+    assert dut.Controller.spi_busy.value == 1
+
+    await Timer(  1, unit="us")  # t_RP
+    assert dut.chip_select_neg.value[0] == 1
+    assert dut.Controller.spi_busy.value == 1
+    await c.cycles(4)
+    assert dut.Controller.o_spi_reset_neg.value == 1
+
+    await Timer(  2, unit="us")  # t_RP
+    assert dut.chip_select_neg.value[0] == 1
+    assert dut.Controller.o_spi_reset_neg.value == 1
+    assert dut.Controller.spi_busy.value == 0
+
+
+@cocotb.test()
 @cocotb.parametrize(params=[(4, 0x0100), (8, 0x0200), (16, 0x0200), (128, 0x0300), (256, 0x1000),(512, 0x1100)])
 async def write_alligned_test(dut, params):
     c = Clock(dut.clk, 20, "ns")

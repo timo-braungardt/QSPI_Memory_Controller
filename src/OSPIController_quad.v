@@ -122,18 +122,39 @@ module OSPIController_quad #(
     assign data_read_ready = (~data_read_valid_reg || i_data_read_ready);
     assign o_data_read_valid  = data_read_valid_reg;
 
-    // Temp counter for correct reset
-    reg reset_spi;
-    assign o_reset_neg = reset_spi;
-    integer reset_counter;
+    // counter for correct reset
+    reg startup_reset_spi;
+    reg startup_ready_spi;
+    assign o_reset_neg = startup_reset_spi;
+    integer startup_counter;
+
+    // startup for ASP12808L is reset low for tPU + tRP (150µs + 1µs)
+    // and then wait 2µs after the reset to issue commands
+    localparam SYSTEM_CLOCK_PERIOD_ns = 20;
+    localparam APMEMORY_tPU_ns = 150000;
+    localparam APMEMORY_tRP_ns = 1000;
+    localparam APMEMORY_tRST_ns = 2000;
+
+    localparam RESET_HIGH_AFTER = (APMEMORY_tPU_ns + APMEMORY_tRP_ns) / SYSTEM_CLOCK_PERIOD_ns;
+    localparam WAIT_AFTER_RESET = (APMEMORY_tRST_ns / SYSTEM_CLOCK_PERIOD_ns) + RESET_HIGH_AFTER;
 
     always @(posedge clk) begin
-        if (!reset_neg) reset_counter <= 0;
-        else begin
-            if (reset_counter != 20000) begin
-                reset_counter <= reset_counter + 1;
-                reset_spi <= 1'b0;
-            end else reset_spi <= 1'b1;
+        if (!reset_neg) begin
+            startup_counter <= 0;
+            startup_reset_spi <= 1'b0;
+            startup_ready_spi <= 1'b0;
+        end else begin
+            if (startup_counter == WAIT_AFTER_RESET) begin
+                startup_reset_spi <= 1'b1;
+                startup_ready_spi <= 1'b1;
+            end else begin
+                startup_counter <= startup_counter + 1;
+                startup_ready_spi <= 1'b0;
+
+                if (startup_counter <= RESET_HIGH_AFTER) begin
+                    startup_reset_spi <= 1'b0;
+                end else startup_reset_spi <= 1'b1;
+            end
         end
     end
 
@@ -184,7 +205,7 @@ module OSPIController_quad #(
     assign config_read_data = (control_state_reg == READ);
     assign config_write_data = (control_state_reg == WRITE || control_state_reg == WRITE_CONFIG);
     assign config_write_address = (control_state_reg == READ || control_state_reg == WRITE || control_state_reg == WRITE_CONFIG);
-    assign o_busy = (control_state_reg != IDLE);
+    assign o_busy = (control_state_reg != IDLE | ~startup_ready_spi);
     assign o_data_read = data_read_reg;
 
     integer delay_fsm;  // ToDo: make this more beautifull - the state machine probably needs multiple delays. (issue #10)
