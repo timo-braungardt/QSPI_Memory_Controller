@@ -82,7 +82,7 @@ module OSPIController #(
     reg  [     DATA_BYTES-1 : 0] byte_index_nxt;
     reg  [     DATA_BYTES-1 : 0] byte_index_reg;
     reg  [             BYTE-1:0] byte_pointer;
-    reg  [       STRB_WIDTH-1:0] byte_pointer_mask;
+    reg                          byte_pointer_mask;
     wire [             BYTE-1:0] read_byte;
     reg                          last_byte_nxt;
     reg                          last_byte_reg;
