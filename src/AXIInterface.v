@@ -136,8 +136,6 @@ module AXIInterface #(
     reg [1:0] write_state_reg;
     reg [1:0] write_state_next;
 
-    reg mem_rd_en;
-
     reg [ID_WIDTH-1:0] read_id_reg, read_id_next;
     reg [ADDR_WIDTH-1:0] read_addr_reg, read_addr_next;
     reg [7:0] read_count_reg, read_count_next;
@@ -284,8 +282,6 @@ module AXIInterface #(
 
     always @* begin
         read_state_next = READ_STATE_IDLE;
-
-        mem_rd_en = 1'b0;
 
         s_axi_rid_next = s_axi_rid_reg;
         s_axi_rlast_next = 1'b0;
