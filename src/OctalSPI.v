@@ -214,12 +214,13 @@ module OctalSPI #(
             end
 
             SEND_DATA: begin
-                count_nxt = count_reg - 1;
+                count_nxt = 0;
 
                 // we check the clock, because we always have to send two bytes
                 // on the first byte sent out, the clock is always low  ToDo: (issue #12) maybe better description, maybe unnecessary because the clock shift is not needed?
-                if (i_last_byte & bus_clock_p2_reg) begin
-                    count_nxt = 0;  // otherwise underflow - can this be synthesised elegantly?
+                // additionally we check for the count, so if we only write one byte, we do not already skip to the next state and skip the bus clock
+                // probably this should be reworked as well (issue #12)
+                if (i_last_byte & bus_clock_p2_reg & count_reg == 0) begin
                     state_nxt = CS_HIGH;
                 end
             end
