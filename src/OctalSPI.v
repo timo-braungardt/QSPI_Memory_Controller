@@ -13,7 +13,7 @@ The data input does not have to be buffered. It can be sampled at the system clo
 module OctalSPI #(
     parameter ADDRESS_LENGTH = 32,  // address is always 32 bit long
     parameter BYTE = 8,
-    parameter CHIP_TYPE = -1    // 1 is Infineon, 2 is APMemory
+    parameter CHIP_TYPE = -1  // 1 is Infineon, 2 is APMemory
 ) (
     input clk,
     input reset_neg,
@@ -33,11 +33,17 @@ module OctalSPI #(
     output                      o_recieved_next_byte,
 
     // OctalSPI Pins
-    output             o_bus_clock,
-    output             o_bus_clock_neg,
-    output reg         o_chip_select_neg,
-    inout      [7 : 0] io_data,
-    inout              io_data_strobe
+    output     o_bus_clock,
+    output     o_bus_clock_neg,
+    output reg o_chip_select_neg,
+
+    input  i_spi_data_strobe,
+    output o_spi_data_strobe,
+    output o_spi_data_strobe_output_enable,
+
+    input  [BYTE-1:0] i_spi_data,
+    output [BYTE-1:0] o_spi_data,
+    output            o_spi_data_output_enable
 );
 
     // constants
@@ -48,20 +54,15 @@ module OctalSPI #(
     reg en_data_out_nxt;
     reg [BUS_WIDTH-1 : 0] data_out_reg;
     reg [BUS_WIDTH-1 : 0] data_out_nxt;
-    wire [BUS_WIDTH-1 : 0] data_in;
 
     wire en_data_strobe;
     reg data_strobe_out_reg;
     reg data_strobe_out_nxt;  // ToDo: The signal has to be driven for write (issue #15) 0 is write, 1 is mask
     (* dont_touch = "true" *)
-    wire data_strobe_in;
     reg recieved_next_byte_reg;
 
     reg has_latency_reg;
     reg has_latency_nxt;
-
-    assign #1 io_data = (en_data_out_reg) ? data_out_reg : {BUS_WIDTH{1'bZ}};  // ToDo: this is bad, because the buffer behaviour is not in the top (issue #12)
-    assign data_in = io_data;
 
     // Bus Clock
     reg bus_clock_reg;
@@ -112,8 +113,7 @@ module OctalSPI #(
 
     // ToDo: why was this in en_data_strobe?: | state_reg == WAIT_LATENCY 
     assign en_data_strobe  = (state_reg == SEND_DATA | (~i_config_read_data & (state_reg == CS_HIGH | state_reg == FINISH)));   // FINISH is needed, because otherwise the model does not store the value
-    assign #1 io_data_strobe = (en_data_strobe) ? data_strobe_out_reg : 1'bZ; // ToDo: this is bad, because the buffer behaviour is not in the top (issue #12)
-    assign data_strobe_in = io_data_strobe;
+
     (* dont_touch = "true" *)
     reg temp_data_strobe_debug;
 
@@ -122,6 +122,10 @@ module OctalSPI #(
     assign o_finish = (state_reg == FINISH);
     assign o_recieved_next_byte = recieved_next_byte_reg;
     assign o_need_next_byte = (state_reg == SEND_DATA);
+    assign o_spi_data_output_enable = en_data_out_reg;
+    assign o_spi_data = data_out_reg;
+    assign o_spi_data_strobe_output_enable = en_data_strobe;
+    assign o_spi_data_strobe = data_strobe_out_reg;
 
 
     always @(*) begin : clock_logic
@@ -175,7 +179,7 @@ module OctalSPI #(
                     if (i_config_write_address) begin
                         count_nxt = ADDRESS_CYCLES - 1;
                         state_nxt = SEND_ADDRESS;
-                        has_latency_nxt = (CHIP_TYPE == 1) ? data_strobe_in : 1'b0;     // ToDo change (issue #12)
+                        has_latency_nxt = (CHIP_TYPE == 1) ? i_spi_data_strobe : 1'b0;     // ToDo change (issue #12)
                     end else state_nxt = CS_HIGH;
                 end
             end
@@ -194,7 +198,7 @@ module OctalSPI #(
             WAIT_LATENCY: begin
                 count_nxt = count_reg - 1;
 
-                    en_data_out_nxt = ~i_config_read_data;
+                en_data_out_nxt = ~i_config_read_data;
                 if (count_reg == 0) begin
                     count_nxt = TEMP_OPERATION_CYCLES;
 
@@ -248,7 +252,7 @@ module OctalSPI #(
             has_latency_reg <= has_latency_nxt;
             data_strobe_out_reg <= data_strobe_out_nxt;
             en_data_out_reg <= en_data_out_nxt;
-            temp_data_strobe_debug <= data_strobe_in;
+            temp_data_strobe_debug <= i_spi_data_strobe;
         end
     end
 
@@ -286,7 +290,7 @@ module OctalSPI #(
             recieved_next_byte_reg <= 1'b0;
 
             if (state_reg == RECEIVE_DATA) begin
-                data_read_reg <= data_in;
+                data_read_reg <= i_spi_data;
                 recieved_next_byte_reg <= 1'b1;
             end
         end
@@ -298,7 +302,7 @@ module OctalSPI #(
     /* verilator lint_off MODMISSING */
     generate
         if (CHIP_TYPE != 1 && CHIP_TYPE != 2) begin : g_chip_check
-            CHIP_must_be_set illegal_instance();
+            CHIP_must_be_set illegal_instance ();
         end
     endgenerate
     /* verilator lint_on MODMISSING */

@@ -16,7 +16,7 @@ module OSPIController #(
     parameter DATA_WIDTH = 32,
     parameter DATA_BYTES = DATA_WIDTH / 8,
     parameter STRB_WIDTH = DATA_WIDTH / 8,
-    parameter CHIP_TYPE = -1    // 1 is Infineon, 2 is APMemory
+    parameter CHIP_TYPE = -1  // 1 is Infineon, 2 is APMemory
 ) (
     input clk,
     input reset_neg,
@@ -37,15 +37,14 @@ module OSPIController #(
     output o_bus_clock_neg,
     output o_chip_select_neg,
     output o_reset_neg,
-    inout  io_data_strobe,
-    inout  io_data0_manager_serial_out,
-    inout  io_data1_manager_serial_in,
-    inout  io_data2,
-    inout  io_data3,
-    inout  io_data4,
-    inout  io_data5,
-    inout  io_data6,
-    inout  io_data7
+
+    input  i_spi_data_strobe,
+    output o_spi_data_strobe,
+    output o_spi_data_strobe_output_enable,
+
+    input [7:0] i_spi_data,
+    output [7:0] o_spi_data,
+    output o_spi_data_output_enable
 );
 
     // constants
@@ -61,41 +60,41 @@ module OSPIController #(
     localparam DATA_BYTES_MSB = $clog2(DATA_BYTES);
 
     // Logic stuff
-    reg  [    OPCODE_LENGTH-1:0] opcode_nxt;
-    reg  [    OPCODE_LENGTH-1:0] opcode_reg;
-    reg  [   ADDRESS_LENGTH-1:0] address_nxt;
-    reg  [   ADDRESS_LENGTH-1:0] address_reg;
-    reg  [       DATA_WIDTH-1:0] config_data_nxt;
-    reg  [       DATA_WIDTH-1:0] config_data_reg;
-    reg  [       DATA_WIDTH-1:0] data_in_muxed_nxt;
-    reg  [       DATA_WIDTH-1:0] data_in_muxed_reg;
-    reg  [       STRB_WIDTH-1:0] data_mask_nxt;
-    reg  [       STRB_WIDTH-1:0] data_mask_reg;
-    reg  [       DATA_WIDTH-1:0] data_read_reg;
-    wire                         start_transmission;
-    wire                         transmitter_finish;
-    wire                         spi_write_next_byte;
-    wire                         spi_read_next_byte;
-    reg                          write_next_word_nxt;
-    reg                          write_next_word_reg;
-    reg                          read_next_word_nxt;
-    reg                          read_next_word_reg;
-    reg                          last_word_nxt;
-    reg                          last_word_reg;
-    reg  [ DATA_BYTES_MSB-1 : 0] byte_index_nxt;
-    reg  [ DATA_BYTES_MSB-1 : 0] byte_index_reg;
-    reg  [             BYTE-1:0] byte_pointer;
-    reg                          byte_pointer_mask;
-    wire [             BYTE-1:0] read_byte;
-    reg                          last_byte_nxt;
-    reg                          last_byte_reg;
-    wire [   ADDRESS_LENGTH-1:0] word_alligned_address;
+    reg  [   OPCODE_LENGTH-1:0] opcode_nxt;
+    reg  [   OPCODE_LENGTH-1:0] opcode_reg;
+    reg  [  ADDRESS_LENGTH-1:0] address_nxt;
+    reg  [  ADDRESS_LENGTH-1:0] address_reg;
+    reg  [      DATA_WIDTH-1:0] config_data_nxt;
+    reg  [      DATA_WIDTH-1:0] config_data_reg;
+    reg  [      DATA_WIDTH-1:0] data_in_muxed_nxt;
+    reg  [      DATA_WIDTH-1:0] data_in_muxed_reg;
+    reg  [      STRB_WIDTH-1:0] data_mask_nxt;
+    reg  [      STRB_WIDTH-1:0] data_mask_reg;
+    reg  [      DATA_WIDTH-1:0] data_read_reg;
+    wire                        start_transmission;
+    wire                        transmitter_finish;
+    wire                        spi_write_next_byte;
+    wire                        spi_read_next_byte;
+    reg                         write_next_word_nxt;
+    reg                         write_next_word_reg;
+    reg                         read_next_word_nxt;
+    reg                         read_next_word_reg;
+    reg                         last_word_nxt;
+    reg                         last_word_reg;
+    reg  [DATA_BYTES_MSB-1 : 0] byte_index_nxt;
+    reg  [DATA_BYTES_MSB-1 : 0] byte_index_reg;
+    reg  [            BYTE-1:0] byte_pointer;
+    reg                         byte_pointer_mask;
+    wire [            BYTE-1:0] read_byte;
+    reg                         last_byte_nxt;
+    reg                         last_byte_reg;
+    wire [  ADDRESS_LENGTH-1:0] word_alligned_address;
 
     // Config stuff - ToDo: this should be later configured using a second port (issue #16)
-    wire                         config_write_address;
-    wire                         config_write_data;
-    wire                         config_read_data;
-    reg                          config_is_config_operation;
+    wire                        config_write_address;
+    wire                        config_write_data;
+    wire                        config_read_data;
+    reg                         config_is_config_operation;
 
     // states control FSM
     localparam NUM_STATES = 6;
@@ -111,7 +110,7 @@ module OSPIController #(
     reg [INDEX_STATES_MSB:0] control_state_reg;
     reg [INDEX_STATES_MSB:0] control_state_nxt;
 
-    localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ_INFINEON = 8'hEE;    // Infineon
+    localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ_INFINEON = 8'hEE;  // Infineon
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ_APMEMORY = 8'h20;    // AP Memory    ToDo: cleanup (issue #12)
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ = (CHIP_TYPE == 1) ? OPCODE_READ_INFINEON : OPCODE_READ_APMEMORY;
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE_ENABLE = 8'h06;
@@ -131,55 +130,51 @@ module OSPIController #(
     assign o_reset_neg = reset_spi;
     integer reset_counter;
 
-    always @(posedge clk ) begin
-        if (!reset_neg)
-            reset_counter <= 0;
+    always @(posedge clk) begin
+        if (!reset_neg) reset_counter <= 0;
         else begin
             if (reset_counter != 20000) begin
-                reset_counter <= reset_counter +1;
+                reset_counter <= reset_counter + 1;
                 reset_spi <= 1'b0;
-            end
-            else
-                reset_spi <= 1'b1;
+            end else reset_spi <= 1'b1;
         end
     end
 
-    
-        OctalSPI #(
-            .ADDRESS_LENGTH(ADDRESS_LENGTH),
-            .CHIP_TYPE(CHIP_TYPE)
-        ) SPI_Transmitter (
-            .clk(clk),
-            .reset_neg(reset_neg),
-            .start_transmission(start_transmission),
 
-            .i_address(address_reg),
-            .i_opcode(opcode_reg),
-            .i_config_read_data(config_read_data),
-            .i_config_write_data(config_write_data),
-            .i_config_write_address(config_write_address),
-            .i_last_byte(last_byte_reg),
-            .i_data_byte_mask(byte_pointer_mask),
-            .i_data_write(byte_pointer),
-            .o_data_read(read_byte),
-            .o_finish(transmitter_finish),
-            .o_need_next_byte(spi_write_next_byte),
-            .o_recieved_next_byte(spi_read_next_byte),
+    OctalSPI #(
+        .ADDRESS_LENGTH(ADDRESS_LENGTH),
+        .CHIP_TYPE(CHIP_TYPE)
+    ) SPI_Transmitter (
+        .clk(clk),
+        .reset_neg(reset_neg),
+        .start_transmission(start_transmission),
 
-            // SPI Pins
-            .o_bus_clock(o_bus_clock),
-            .o_bus_clock_neg(o_bus_clock_neg),
-            .o_chip_select_neg(o_chip_select_neg),
-            .io_data({io_data7, 
-                        io_data6, 
-                        io_data5, 
-                        io_data4, 
-                        io_data3, 
-                        io_data2, 
-                        io_data1_manager_serial_in, 
-                        io_data0_manager_serial_out}),
-            .io_data_strobe(io_data_strobe)
-        );
+        .i_address(address_reg),
+        .i_opcode(opcode_reg),
+        .i_config_read_data(config_read_data),
+        .i_config_write_data(config_write_data),
+        .i_config_write_address(config_write_address),
+        .i_last_byte(last_byte_reg),
+        .i_data_byte_mask(byte_pointer_mask),
+        .i_data_write(byte_pointer),
+        .o_data_read(read_byte),
+        .o_finish(transmitter_finish),
+        .o_need_next_byte(spi_write_next_byte),
+        .o_recieved_next_byte(spi_read_next_byte),
+
+        // SPI Pins
+        .o_bus_clock(o_bus_clock),
+        .o_bus_clock_neg(o_bus_clock_neg),
+        .o_chip_select_neg(o_chip_select_neg),
+
+        .i_spi_data_strobe(i_spi_data_strobe),
+        .o_spi_data_strobe(o_spi_data_strobe),
+        .o_spi_data_strobe_output_enable(o_spi_data_strobe_output_enable),
+
+        .i_spi_data(i_spi_data),
+        .o_spi_data(o_spi_data),
+        .o_spi_data_output_enable(o_spi_data_output_enable)
+    );
 
 
     assign start_transmission = (control_state_reg != IDLE && control_state_reg != WAIT);
@@ -285,12 +280,14 @@ module OSPIController #(
             end
         end
 
-        if (control_state_reg != IDLE && (last_word_reg == 1 && byte_index_nxt ==  DATA_BYTES_MSB'(DATA_BYTES - 1))) last_byte_nxt = 1;
+        if (control_state_reg != IDLE && (last_word_reg == 1 && byte_index_nxt ==  DATA_BYTES_MSB'(DATA_BYTES - 1)))
+            last_byte_nxt = 1;
 
         if (control_state_reg == WRITE | control_state_reg == READ | control_state_reg == WRITE_CONFIG) begin
             if (spi_write_next_byte | spi_read_next_byte) begin
                 // ToDo: is the -3 good design? (issue #12) we need it otherwise the transmitter puts out a wrong byte 
-                if (byte_index_reg == DATA_BYTES_MSB'(DATA_BYTES -3)) write_next_word_nxt = 1;     // ToDo: the DATA_BYTES can make problems, when it is too small (issue #10)
+                if (byte_index_reg == DATA_BYTES_MSB'(DATA_BYTES - 3))
+                    write_next_word_nxt = 1;     // ToDo: the DATA_BYTES can make problems, when it is too small (issue #10)
 
                 if (byte_index_reg == DATA_BYTES_MSB'(DATA_BYTES - 1) || (last_word_reg == 1 && byte_index_nxt ==  DATA_BYTES_MSB'(DATA_BYTES - 1))) begin
                     byte_index_nxt = 0;

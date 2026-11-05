@@ -60,16 +60,27 @@ module Octal_Memory_Controller_wrapper #(
 
     wire [7:0] data;
     wire data_strobe;
+    wire [7:0] spi_i_data, spi_o_data;
+    wire spi_i_data_strobe, spi_o_data_strobe;
+    wire spi_data_output_enable, spi_data_strobe_output_enable;
     wire bus_clock, bus_clock_neg, chip_select_neg;
     integer test_number = 0;
 
     localparam INFINEON_CHIP = 1;
     localparam APMEMORY_CHIP = 2;
 
+    // the #1 delay is necessary for simulation, so that the data changes after the clock edge.
+    // in hardware this has to be done with the timing constraints
+    assign #1 data = (spi_data_output_enable) ? spi_o_data : 8'bz;
+    assign spi_i_data = data;
+
+    assign #1 data_strobe = (spi_data_strobe_output_enable) ? spi_o_data_strobe : 1'bz;
+    assign spi_i_data_strobe = data_strobe;
+
     OctalMemoryController #(
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
-        .CHIP_TYPE(INFINEON_CHIP)
+        .CHIP_TYPE (INFINEON_CHIP)
     ) Controller (
         .clk  (clk),
         .reset(reset),
@@ -78,15 +89,14 @@ module Octal_Memory_Controller_wrapper #(
         .o_spi_bus_clock(bus_clock),
         .o_spi_bus_clock_neg(bus_clock_neg),
         .o_spi_chip_select_neg(chip_select_neg),
-        .io_spi_data_strobe(data_strobe),
-        .io_spi_data0_manager_serial_out(data[0]),
-        .io_spi_data1_manager_serial_in(data[1]),
-        .io_spi_data2(data[2]),
-        .io_spi_data3(data[3]),
-        .io_spi_data4(data[4]),
-        .io_spi_data5(data[5]),
-        .io_spi_data6(data[6]),
-        .io_spi_data7(data[7]),
+
+        .i_spi_data_strobe(spi_i_data_strobe),
+        .o_spi_data_strobe(spi_o_data_strobe),
+        .o_spi_data_strobe_output_enable(spi_data_strobe_output_enable),
+
+        .i_spi_data(spi_i_data),
+        .o_spi_data(spi_o_data),
+        .o_spi_data_output_enable(spi_data_output_enable),
 
         // AXI Pins
         .s_axi_awid(s_axi_awid),

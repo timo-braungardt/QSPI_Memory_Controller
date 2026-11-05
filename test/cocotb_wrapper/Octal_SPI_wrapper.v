@@ -17,7 +17,10 @@ module Octal_SPI_wrapper #(
     reg reset_neg = 1'b0;
 
     wire [7:0] data;
-    wire manager_serial_out, manager_serial_in, bus_clock, bus_clock_neg, chip_select_neg, data_strobe;
+    wire bus_clock, bus_clock_neg, chip_select_neg, data_strobe;
+    wire [7:0] spi_i_data, spi_o_data;
+    wire spi_i_data_strobe, spi_o_data_strobe;
+    wire spi_data_output_enable, spi_data_strobe_output_enable;
     wire i_config_read_data, i_config_write_data,i_config_write_address,o_finish,o_need_next_byte,o_recieved_next_byte;
 
     reg [ADDR_WIDTH-1:0] i_address;
@@ -30,6 +33,14 @@ module Octal_SPI_wrapper #(
 
     localparam INFINEON_CHIP = 1;
     localparam APMEMORY_CHIP = 2;
+
+    // the #1 delay is necessary for simulation, so that the data changes after the clock edge.
+    // in hardware this has to be done with the timing constraints
+    assign #1 data = (spi_data_output_enable) ? spi_o_data : 8'bz;
+    assign spi_i_data = data;
+
+    assign #1 data_strobe = (spi_data_strobe_output_enable) ? spi_o_data_strobe : 1'bz;
+    assign spi_i_data_strobe = data_strobe;
 
     OctalSPI #(
         .CHIP_TYPE(INFINEON_CHIP)
@@ -55,8 +66,14 @@ module Octal_SPI_wrapper #(
         .o_bus_clock(bus_clock),
         .o_bus_clock_neg(bus_clock_neg),
         .o_chip_select_neg(chip_select_neg),
-        .io_data(data),
-        .io_data_strobe(data_strobe)
+
+        .i_spi_data_strobe(spi_i_data_strobe),
+        .o_spi_data_strobe(spi_o_data_strobe),
+        .o_spi_data_strobe_output_enable(spi_data_strobe_output_enable),
+
+        .i_spi_data(spi_i_data),
+        .o_spi_data(spi_o_data),
+        .o_spi_data_output_enable(spi_data_output_enable)
     );
 
 
