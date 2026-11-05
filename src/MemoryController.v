@@ -11,7 +11,6 @@ module MemoryController #(
     parameter STRB_WIDTH = (DATA_WIDTH / 8),
     parameter ID_WIDTH = 8,
     parameter MAX_NUM_BYTES = $clog2(1024),
-    parameter INTERFACE_TYPE = "SPI",
     parameter CHIP_TYPE = -1    // 1 is Infineon, 2 is APMemory
 ) (
     input clk,
@@ -106,76 +105,35 @@ module MemoryController #(
     assign spi_number_bytes_muxed = (axi_write_enable) ? spi_number_bytes_write : spi_number_bytes_read;
 
 
-    generate
-        if (INTERFACE_TYPE == "SPI") begin : gen_SPI_Interface
-            SPIController #(
-                .ADDRESS_LENGTH(ADDR_WIDTH),
-                .DATA_WIDTH(DATA_WIDTH),
-                .MAX_NUM_BYTES(MAX_NUM_BYTES)
-            ) SPI_Controller (
-                .clk(clk),
-                .reset_neg(!reset),
-                .go(axi_start_transaction),
+    SPIController #(
+        .ADDRESS_LENGTH(ADDR_WIDTH),
+        .DATA_WIDTH(DATA_WIDTH),
+        .MAX_NUM_BYTES(MAX_NUM_BYTES)
+    ) SPI_Controller (
+        .clk(clk),
+        .reset_neg(!reset),
+        .go(axi_start_transaction),
 
-                .i_address(axi_address),
-                .i_write_enable(axi_write_enable),
-                .i_last_word(axi_last_word),
-                .i_num_bytes(spi_number_bytes_muxed),
-                .i_data_write(axi_data_write),
-                .o_data_read(axi_data_read),
-                .o_busy(spi_busy),
-                .o_next_word(spi_next_word),
-                .o_recieved_next_word(spi_recieved_next_word),
+        .i_address(axi_address),
+        .i_write_enable(axi_write_enable),
+        .i_last_word(axi_last_word),
+        .i_num_bytes(spi_number_bytes_muxed),
+        .i_data_write(axi_data_write),
+        .o_data_read(axi_data_read),
+        .o_busy(spi_busy),
+        .o_next_word(spi_next_word),
+        .o_recieved_next_word(spi_recieved_next_word),
 
-                // SPI Pins
-                .o_bus_clock(o_spi_bus_clock),
-                .o_chip_select_neg(o_spi_chip_select_neg),
-                .o_reset_neg(o_spi_reset_neg),
-                .io_data0_manager_serial_out(io_spi_data0_manager_serial_out),
-                .io_data1_manager_serial_in(io_spi_data1_manager_serial_in),
-                .io_data2(io_spi_data2),
-                .io_data3(io_spi_data3)
-            );
-            assign o_spi_bus_clock_neg = 0;
-        end else if (INTERFACE_TYPE == "OSPI") begin : gen_Octal_SPI_Interface
-            OSPIController #(
-                .ADDRESS_LENGTH(ADDR_WIDTH),
-                .DATA_WIDTH(DATA_WIDTH),
-                .MAX_NUM_BYTES(MAX_NUM_BYTES),
-                .CHIP_TYPE(CHIP_TYPE)
-            ) SPI_Controller (
-                .clk(clk),
-                .reset_neg(!reset),
-                .go(axi_start_transaction),
-
-                .i_address(axi_address),
-                .i_write_enable(axi_write_enable),
-                .i_last_word(axi_last_word),
-                .i_num_bytes(spi_number_bytes_muxed),
-                .i_data_write(axi_data_write),
-                .i_data_word_mask(~s_axi_wstrb), // the axi write strobe signals are inverted to the octal-spi signals
-                .o_data_read(axi_data_read),
-                .o_busy(spi_busy),
-                .o_next_word(spi_next_word),
-                .o_recieved_next_word(spi_recieved_next_word),
-
-                // SPI Pins
-                .o_bus_clock(o_spi_bus_clock),
-                .o_bus_clock_neg(o_spi_bus_clock_neg),
-                .o_chip_select_neg(o_spi_chip_select_neg),
-                .o_reset_neg(o_spi_reset_neg),
-                .io_data_strobe(io_spi_data_strobe),
-                .io_data0_manager_serial_out(io_spi_data0_manager_serial_out),
-                .io_data1_manager_serial_in(io_spi_data1_manager_serial_in),
-                .io_data2(io_spi_data2),
-                .io_data3(io_spi_data3),
-                .io_data4(io_spi_data4),
-                .io_data5(io_spi_data5),
-                .io_data6(io_spi_data6),
-                .io_data7(io_spi_data7)
-            );
-        end
-    endgenerate
+        // SPI Pins
+        .o_bus_clock(o_spi_bus_clock),
+        .o_chip_select_neg(o_spi_chip_select_neg),
+        .o_reset_neg(o_spi_reset_neg),
+        .io_data0_manager_serial_out(io_spi_data0_manager_serial_out),
+        .io_data1_manager_serial_in(io_spi_data1_manager_serial_in),
+        .io_data2(io_spi_data2),
+        .io_data3(io_spi_data3)
+    );
+    assign o_spi_bus_clock_neg = 0;
 
 
     AXIInterface #(
