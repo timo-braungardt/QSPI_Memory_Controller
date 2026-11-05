@@ -37,10 +37,11 @@ module SPIController #(
     output o_bus_clock,
     output o_chip_select_neg,
     output o_reset_neg,
-    inout  io_data0_manager_serial_out,
-    inout  io_data1_manager_serial_in,
-    inout  io_data2,
-    inout  io_data3
+
+    input [3:0] i_spi_data,
+    output [3:0] o_spi_data,
+    output o_spi_data_output_enable,
+    output       o_spi_quad_mode_output_enable
 );
 
     // constants
@@ -138,10 +139,11 @@ module SPIController #(
         // SPI Pins
         .o_bus_clock(o_bus_clock),
         .o_chip_select_neg(o_chip_select_neg),
-        .io_data0_manager_serial_out(io_data0_manager_serial_out),
-        .io_data1_manager_serial_in(io_data1_manager_serial_in),
-        .io_data2(io_data2),
-        .io_data3(io_data3)
+
+        .i_spi_data(i_spi_data),
+        .o_spi_data(o_spi_data),
+        .o_spi_data_output_enable(o_spi_data_output_enable),
+        .o_spi_quad_mode_output_enable(o_spi_quad_mode_output_enable)
     );
 
 

@@ -18,7 +18,17 @@ module SPIController_wrapper #(
     integer num_bytes;
 
     wire [3:0] data;
+    wire [3:0] spi_i_data, spi_o_data;
+    wire spi_data_output_enable, spi_quad_mode_output_enable;
     wire bus_clock, chip_select_neg;
+
+    assign spi_i_data = data;
+
+    assign data[0] = (spi_data_output_enable) ? spi_o_data[0] : 1'bZ;   // MOSI
+    assign data[1] = (spi_data_output_enable) ? (spi_quad_mode_output_enable) ? spi_o_data[1] : 1'bZ : 1'bZ;    // MISO
+    assign data[2] = (spi_data_output_enable) ? (spi_quad_mode_output_enable) ? spi_o_data[2] : 1'bZ : 1'bZ;
+    assign data[3] = (spi_data_output_enable) ? (spi_quad_mode_output_enable) ? spi_o_data[3] : 1'bZ : 1'bZ;
+
 
     SPIController #(
         .ADDRESS_LENGTH(ADDRESS_LENGTH),
@@ -39,10 +49,10 @@ module SPIController_wrapper #(
 
         .o_bus_clock(bus_clock),
         .o_chip_select_neg(chip_select_neg),
-        .io_data0_manager_serial_out(data[0]),
-        .io_data1_manager_serial_in(data[1]),
-        .io_data2(data[2]),
-        .io_data3(data[3])
+        .i_spi_data(spi_i_data),
+        .o_spi_data(spi_o_data),
+        .o_spi_data_output_enable(spi_data_output_enable),
+        .o_spi_quad_mode_output_enable(spi_quad_mode_output_enable)
     );
 
 

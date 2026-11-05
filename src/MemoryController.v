@@ -20,15 +20,11 @@ module MemoryController #(
     output o_spi_bus_clock_neg,
     output o_spi_chip_select_neg,
     output o_spi_reset_neg,
-    inout  io_spi_data_strobe,
-    inout  io_spi_data0_manager_serial_out,
-    inout  io_spi_data1_manager_serial_in,
-    inout  io_spi_data2,
-    inout  io_spi_data3,
-    inout  io_spi_data4,
-    inout  io_spi_data5,
-    inout  io_spi_data6,
-    inout  io_spi_data7,
+
+    input [3:0] i_spi_data,
+    output [3:0] o_spi_data,
+    output o_spi_data_output_enable,
+    output       o_spi_quad_mode_output_enable,
 
     // AXI Pins
     input  wire [  ID_WIDTH-1:0] s_axi_awid,     // write address channel
@@ -127,10 +123,11 @@ module MemoryController #(
         .o_bus_clock(o_spi_bus_clock),
         .o_chip_select_neg(o_spi_chip_select_neg),
         .o_reset_neg(o_spi_reset_neg),
-        .io_data0_manager_serial_out(io_spi_data0_manager_serial_out),
-        .io_data1_manager_serial_in(io_spi_data1_manager_serial_in),
-        .io_data2(io_spi_data2),
-        .io_data3(io_spi_data3)
+
+        .i_spi_data(i_spi_data),
+        .o_spi_data(o_spi_data),
+        .o_spi_data_output_enable(o_spi_data_output_enable),
+        .o_spi_quad_mode_output_enable(o_spi_quad_mode_output_enable)
     );
     assign o_spi_bus_clock_neg = 0;
 
