@@ -4,6 +4,7 @@ files:
   - src/SPIController.v
   - src/MemoryController.v
   - src/OSPIController.v
+  - src/OctalMemoryController.v
   - test/cocotb_wrapper/AXI_SPI_wrapper.v
   - test/cocotb_wrapper/HyperRAM_wrapper.v
   - test/cocotb_wrapper/SPI_wrapper.v

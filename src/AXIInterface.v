@@ -59,6 +59,7 @@ module AXIInterface #(
     output wire [DATA_WIDTH-1:0] o_write_data,
     input  wire [DATA_WIDTH-1:0] i_read_data,
 
+    /* verilator lint_off UNUSEDSIGNAL */
     // AXI Pins
     input wire [ID_WIDTH-1:0] s_axi_awid,  // write address channel
     input wire [ADDR_WIDTH-1:0] s_axi_awaddr,
@@ -99,6 +100,7 @@ module AXIInterface #(
     output wire                  s_axi_rlast,
     output wire                  s_axi_rvalid,
     input  wire                  s_axi_rready
+    /* verilator lint_on UNUSEDSIGNAL */
 );
 
     localparam VALID_ADDR_WIDTH = ADDR_WIDTH - $clog2(STRB_WIDTH);
