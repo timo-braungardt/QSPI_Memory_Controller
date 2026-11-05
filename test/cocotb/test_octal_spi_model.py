@@ -128,8 +128,8 @@ async def write_test(dut):
     await wait_for_idle(dut)
     await T_rwr
 
-    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, address, 1)
-    assert memory_data == test_data.get_test_array()
+    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, address, 2)
+    assert memory_data == test_data.get_test_array().append(0xff)   # the controller shall only write one byte
 
 
 @cocotb.test()
