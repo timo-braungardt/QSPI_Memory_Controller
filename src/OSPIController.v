@@ -57,6 +57,9 @@ module OSPIController #(
     localparam CONFIG_ADDRESS = 32'h00800002;
     localparam CONFIG_QSPI_ENABLE = 8'b00000010;
 
+    // derived constants
+    localparam DATA_BYTES_MSB = $clog2(DATA_BYTES);
+
     // Logic stuff
     reg  [    OPCODE_LENGTH-1:0] opcode_nxt;
     reg  [    OPCODE_LENGTH-1:0] opcode_reg;
@@ -79,10 +82,10 @@ module OSPIController #(
     reg                          read_next_word_reg;
     reg                          last_word_nxt;
     reg                          last_word_reg;
-    reg  [     DATA_BYTES-1 : 0] byte_index_nxt;
-    reg  [     DATA_BYTES-1 : 0] byte_index_reg;
+    reg  [ DATA_BYTES_MSB-1 : 0] byte_index_nxt;
+    reg  [ DATA_BYTES_MSB-1 : 0] byte_index_reg;
     reg  [             BYTE-1:0] byte_pointer;
-    reg  [       STRB_WIDTH-1:0] byte_pointer_mask;
+    reg                          byte_pointer_mask;
     wire [             BYTE-1:0] read_byte;
     reg                          last_byte_nxt;
     reg                          last_byte_reg;
@@ -282,14 +285,14 @@ module OSPIController #(
             end
         end
 
-        if (control_state_reg != IDLE & (last_word_reg == 1 & byte_index_nxt == DATA_BYTES-1)) last_byte_nxt = 1;
+        if (control_state_reg != IDLE && (last_word_reg == 1 && byte_index_nxt ==  DATA_BYTES_MSB'(DATA_BYTES - 1))) last_byte_nxt = 1;
 
         if (control_state_reg == WRITE | control_state_reg == READ | control_state_reg == WRITE_CONFIG) begin
             if (spi_write_next_byte | spi_read_next_byte) begin
                 // ToDo: is the -3 good design? (issue #12) we need it otherwise the transmitter puts out a wrong byte 
-                if (byte_index_reg == DATA_BYTES'(DATA_BYTES -3)) write_next_word_nxt = 1;     // ToDo: the DATA_BYTES can make problems, when it is too small (issue #10)
+                if (byte_index_reg == DATA_BYTES_MSB'(DATA_BYTES -3)) write_next_word_nxt = 1;     // ToDo: the DATA_BYTES can make problems, when it is too small (issue #10)
 
-                if (byte_index_reg == DATA_BYTES'(DATA_BYTES - 1) | (last_word_reg == 1 & byte_index_nxt == DATA_BYTES-1)) begin
+                if (byte_index_reg == DATA_BYTES_MSB'(DATA_BYTES - 1) || (last_word_reg == 1 && byte_index_nxt ==  DATA_BYTES_MSB'(DATA_BYTES - 1))) begin
                     byte_index_nxt = 0;
                     read_next_word_nxt = 1;
                 end else byte_index_nxt = byte_index_reg + 1;
