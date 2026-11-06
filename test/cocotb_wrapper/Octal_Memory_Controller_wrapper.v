@@ -13,7 +13,7 @@ module Octal_Memory_Controller_wrapper #(
     parameter PIPELINE_OUTPUT = 1'b0
 ) (
     input clk,
-    input reset,
+    input reset_neg,
 
     // AXI Pins
     input  wire [  ID_WIDTH-1:0] s_axi_awid,     // write address channel
@@ -83,7 +83,7 @@ module Octal_Memory_Controller_wrapper #(
         .CHIP_TYPE (INFINEON_CHIP)
     ) Controller (
         .clk  (clk),
-        .reset(reset),
+        .reset_neg(reset_neg),
 
         // SPI Pins
         .o_spi_bus_clock(bus_clock),
@@ -151,7 +151,7 @@ module Octal_Memory_Controller_wrapper #(
         .CSNeg(chip_select_neg),
         .CK(bus_clock),
         .CKn(bus_clock_neg),
-        .RESETNeg(~reset)
+        .RESETNeg(reset_neg)
     );
 
 

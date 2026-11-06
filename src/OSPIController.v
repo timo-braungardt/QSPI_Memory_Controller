@@ -126,8 +126,8 @@ module OSPIController #(
     assign word_alligned_address = {i_address[ADDRESS_LENGTH-1 : WORD_LENGTH], {WORD_LENGTH{1'b0}}};
 
     // Temp counter for correct reset
-    reg reset_spi;
-    assign o_reset_neg = reset_spi;
+    reg reset_neg_spi;
+    assign o_reset_neg = reset_neg_spi;
     integer reset_counter;
 
     always @(posedge clk) begin
@@ -135,8 +135,8 @@ module OSPIController #(
         else begin
             if (reset_counter != 20000) begin
                 reset_counter <= reset_counter + 1;
-                reset_spi <= 1'b0;
-            end else reset_spi <= 1'b1;
+                reset_neg_spi <= 1'b0;
+            end else reset_neg_spi <= 1'b1;
         end
     end
 

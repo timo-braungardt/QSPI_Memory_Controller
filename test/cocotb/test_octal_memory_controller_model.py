@@ -22,9 +22,9 @@ T_rwr = Timer(35, unit="ns")  # read-write recovery time from the datasheet
 
 async def reset_model(dut):
     dut.test_number.value = dut.test_number.value + 1
-    dut.reset.value = 1
+    dut.reset_neg.value = 0
     await Timer(200, unit="ns")  # t_RP
-    dut.reset.value = 0
+    dut.reset_neg.value = 1
     await Timer(200, unit="ns")  # t_RH
 
     if dut.Memory.bottom.PoweredUp.value == 0:
@@ -44,7 +44,7 @@ async def write_alligned_test(dut, params):
     cocotb.start_soon(c.start())
 
     await Timer(50, unit="ns")
-    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset_neg, reset_active_level=False)
     await reset_model(dut)
 
     num_bytes, addr = params
@@ -70,7 +70,7 @@ async def read_alligned_test(dut, params):
     cocotb.start_soon(c.start())
 
     await Timer(50, unit="ns")
-    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset_neg, reset_active_level=False)
     await reset_model(dut)
 
     num_bytes, addr = params
@@ -96,7 +96,7 @@ async def readwrite_unalligned_test(dut, params):
     cocotb.start_soon(c.start())
 
     await Timer(50, unit="ns")
-    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset_neg, reset_active_level=False)
     await reset_model(dut)
 
     num_bytes, addr = params
@@ -130,7 +130,7 @@ async def write_length_test(dut):
     cocotb.start_soon(c.start())
 
     await Timer(50, unit="ns")
-    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset_neg, reset_active_level=False)
     await reset_model(dut)
 
     num_bytes = 4 
@@ -162,7 +162,7 @@ async def write_byte_masking(dut):
     cocotb.start_soon(c.start())
 
     await Timer(50, unit="ns")
-    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset_neg, reset_active_level=False)
     await reset_model(dut)
 
     addr = 0x0010

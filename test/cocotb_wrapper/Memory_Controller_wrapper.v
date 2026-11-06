@@ -7,7 +7,7 @@ module Memory_Controller_wrapper #(
     parameter ID_WIDTH   = 8
 ) (
     input clk,
-    input reset,
+    input reset_neg,
 
     // SPI Pins
     output o_spi_bus_clock,
@@ -81,7 +81,7 @@ module Memory_Controller_wrapper #(
         .DATA_WIDTH(DATA_WIDTH)
     ) Controller (
         .clk  (clk),
-        .reset(reset),
+        .reset_neg(reset_neg),
 
         // SPI Pins
         .o_spi_bus_clock(o_spi_bus_clock),

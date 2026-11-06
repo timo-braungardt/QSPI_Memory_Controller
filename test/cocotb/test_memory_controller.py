@@ -17,9 +17,9 @@ NUM_BYTES = DATA_WIDTH // 8
 
 
 async def reset_dut(dut):
-    dut.reset.value = 1
+    dut.reset_neg.value = 0
     await ClockCycles(dut.clk, 4, rising=True)
-    dut.reset.value = 0
+    dut.reset_neg.value = 1
     await ClockCycles(dut.clk, 1, rising=True)
 
 
@@ -40,7 +40,7 @@ async def write_test(dut, num_bytes):
     # the reset is here, because otherwise the axi manager loggs too many resets
     await reset_dut(dut)
 
-    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset_neg, reset_active_level=False)
     spi_subordinate = SpiFlashMemory(
         SpiBus(
             entity=dut,
@@ -75,7 +75,7 @@ async def read_test(dut, num_bytes):
     cocotb.start_soon(c.start())
     await reset_dut(dut)
 
-    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset_neg, reset_active_level=False)
     spi_subordinate = SpiFlashMemory(
         SpiBus(
             entity=dut,
@@ -113,7 +113,7 @@ async def write_burst_test(dut, num_bytes):
     # the reset is here, because otherwise the axi manager loggs too many resets
     await reset_dut(dut)
 
-    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset_neg, reset_active_level=False)
     spi_subordinate = SpiFlashMemory(
         SpiBus(
             entity=dut,
@@ -149,7 +149,7 @@ async def read_burst_test(dut, num_bytes):
     cocotb.start_soon(c.start())
     await reset_dut(dut)
 
-    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset_neg, reset_active_level=False)
     spi_subordinate = SpiFlashMemory(
         SpiBus(
             entity=dut,

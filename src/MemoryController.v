@@ -13,7 +13,7 @@ module MemoryController #(
     parameter MAX_NUM_BYTES = $clog2(1024)
 ) (
     input clk,
-    input reset,
+    input reset_neg,
 
     // SPI Pins
     output o_spi_bus_clock,
@@ -106,7 +106,7 @@ module MemoryController #(
         .MAX_NUM_BYTES(MAX_NUM_BYTES)
     ) SPI_Controller (
         .clk(clk),
-        .reset_neg(!reset),
+        .reset_neg(reset_neg),
         .go(axi_start_transaction),
 
         .i_address(axi_address),
@@ -139,7 +139,7 @@ module MemoryController #(
         .STRB_WIDTH(STRB_WIDTH)
     ) AXI_Interface (
         .clk(clk),
-        .rst_neg(!reset),
+        .rst_neg(reset_neg),
 
         // Control Interface Pins
         .i_write_word_ready(spi_next_word),

@@ -20,9 +20,9 @@ T_pp_typ = Timer(480, unit="us")  # program time typical from the datasheet
 
 
 async def reset_model(dut):
-    dut.reset.value = 1
+    dut.reset_neg.value = 0
     await Timer(250, unit="ns")  # t_RP
-    dut.reset.value = 0
+    dut.reset_neg.value = 1
     await Timer(500, unit="us")  # t_RH
 
     if dut.Memory.PoweredUp.value == 0:
@@ -42,7 +42,7 @@ async def readwrite_alligned_test(dut, params):
     cocotb.start_soon(c.start())
 
     await Timer(50, unit="ns")
-    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset_neg, reset_active_level=False)
     await reset_model(dut)
 
     num_bytes, addr = params
@@ -77,7 +77,7 @@ async def readwrite_unalligned_test(dut, params):
     cocotb.start_soon(c.start())
 
     await Timer(50, unit="ns")
-    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset_neg, reset_active_level=False)
     await reset_model(dut)
 
     num_bytes, addr = params
