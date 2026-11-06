@@ -359,11 +359,12 @@ def test_spi_transmitter():
     """
     sim = os.getenv("SIM", "icarus")
     proj_path = Path(__file__).resolve().parent
-    sources = [proj_path / "../../src/SPITransmitter.v"]
+    sources = [proj_path / "../../src/SPITransmitter.v", 
+               proj_path / "../../test/cocotb_wrapper/SPITransmitter_wrapper.v"]
 
     runner = get_runner(sim)
-    runner.build(sources=sources, hdl_toplevel="SPITransmitter", always=True, waves=True)
-    runner.test(hdl_toplevel="SPITransmitter", test_module="test_spi_transmitter", waves=True)
+    runner.build(sources=sources, hdl_toplevel="SPITransmitter_wrapper", always=True, waves=True)
+    runner.test(hdl_toplevel="SPITransmitter_wrapper", test_module="test_spi_transmitter", waves=True)
 
 
 if __name__ == "__main__":

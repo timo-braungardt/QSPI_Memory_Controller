@@ -122,7 +122,7 @@ def test_memory_controller_model(wave=False):
         proj_path / "../../src/SPITransmitter.v",
         proj_path / "../../src/AXIInterface.v",
         proj_path / "../../src/MemoryController.v",
-        proj_path / "../../test/cocotb_wrapper/Memory_Controller_wrapper.v",
+        proj_path / "../../test/cocotb_wrapper/Memory_Controller_model_wrapper.v",
         proj_path / required_file,
     ]
 
@@ -139,13 +139,13 @@ def test_memory_controller_model(wave=False):
 
     runner.build(
         sources=sources,
-        hdl_toplevel="Memory_Controller_wrapper",
+        hdl_toplevel="Memory_Controller_model_wrapper",
         always=True,
         waves=True,
         parameters=parameters,
     )
     runner.test(
-        hdl_toplevel="Memory_Controller_wrapper",
+        hdl_toplevel="Memory_Controller_model_wrapper",
         test_module="test_memory_controller_model",
         parameters=parameters,
         gui=wave,

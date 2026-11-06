@@ -1,0 +1,133 @@
+`timescale 1ns / 100ps
+
+module Memory_Controller_wrapper #(
+    parameter ADDR_WIDTH = 24,
+    parameter DATA_WIDTH = 32,
+    parameter STRB_WIDTH = (DATA_WIDTH / 8),
+    parameter ID_WIDTH   = 8
+) (
+    input clk,
+    input reset,
+
+    // SPI Pins
+    output o_spi_bus_clock,
+    output o_spi_bus_clock_neg,
+    output o_spi_chip_select_neg,
+    output o_spi_reset_neg,
+
+    inout io_spi_data0_manager_serial_out,
+    inout io_spi_data1_manager_serial_in,
+    inout io_spi_data2,
+    inout io_spi_data3,
+
+    // AXI Pins
+    input  wire [  ID_WIDTH-1:0] s_axi_awid,     // write address channel
+    input  wire [ADDR_WIDTH-1:0] s_axi_awaddr,
+    input  wire [           7:0] s_axi_awlen,
+    input  wire [           2:0] s_axi_awsize,
+    input  wire [           1:0] s_axi_awburst,
+    input  wire                  s_axi_awlock,
+    input  wire [           3:0] s_axi_awcache,
+    input  wire [           2:0] s_axi_awprot,
+    input  wire                  s_axi_awvalid,
+    output wire                  s_axi_awready,
+
+    input  wire [DATA_WIDTH-1:0] s_axi_wdata,   // write data channel
+    input  wire [STRB_WIDTH-1:0] s_axi_wstrb,
+    input  wire                  s_axi_wlast,
+    input  wire                  s_axi_wvalid,
+    output wire                  s_axi_wready,
+
+    output wire [ID_WIDTH-1:0] s_axi_bid,     // write response channel
+    output wire [         1:0] s_axi_bresp,
+    output wire                s_axi_bvalid,
+    input  wire                s_axi_bready,
+
+    input  wire [  ID_WIDTH-1:0] s_axi_arid,     // read address channel
+    input  wire [ADDR_WIDTH-1:0] s_axi_araddr,
+    input  wire [           7:0] s_axi_arlen,
+    input  wire [           2:0] s_axi_arsize,
+    input  wire [           1:0] s_axi_arburst,
+    input  wire                  s_axi_arlock,
+    input  wire [           3:0] s_axi_arcache,
+    input  wire [           2:0] s_axi_arprot,
+    input  wire                  s_axi_arvalid,
+    output wire                  s_axi_arready,
+
+    output wire [  ID_WIDTH-1:0] s_axi_rid,     // read data channel
+    output wire [DATA_WIDTH-1:0] s_axi_rdata,
+    output wire [           1:0] s_axi_rresp,
+    output wire                  s_axi_rlast,
+    output wire                  s_axi_rvalid,
+    input  wire                  s_axi_rready
+);
+
+    wire [3:0] data;
+    wire [3:0] spi_i_data, spi_o_data;
+    wire spi_data_output_enable, spi_quad_mode_output_enable;
+
+    assign spi_i_data = {
+        io_spi_data3, io_spi_data2, io_spi_data1_manager_serial_in, io_spi_data0_manager_serial_out
+    };
+
+    assign io_spi_data0_manager_serial_out = (spi_data_output_enable) ? spi_o_data[0] : 1'bZ;  // MOSI
+    assign io_spi_data1_manager_serial_in = (spi_data_output_enable) ? (spi_quad_mode_output_enable) ? spi_o_data[1] : 1'bZ : 1'bZ;    // MISO
+    assign io_spi_data2 = (spi_data_output_enable) ? (spi_quad_mode_output_enable) ? spi_o_data[2] : 1'bZ : 1'bZ;
+    assign io_spi_data3 = (spi_data_output_enable) ? (spi_quad_mode_output_enable) ? spi_o_data[3] : 1'bZ : 1'bZ;
+
+
+    MemoryController #(
+        .ADDR_WIDTH(ADDR_WIDTH),
+        .DATA_WIDTH(DATA_WIDTH)
+    ) Controller (
+        .clk  (clk),
+        .reset(reset),
+
+        // SPI Pins
+        .o_spi_bus_clock(o_spi_bus_clock),
+        .o_spi_chip_select_neg(o_spi_chip_select_neg),
+        .i_spi_data(spi_i_data),
+        .o_spi_data(spi_o_data),
+        .o_spi_data_output_enable(spi_data_output_enable),
+        .o_spi_quad_mode_output_enable(spi_quad_mode_output_enable),
+
+        // AXI Pins
+        .s_axi_awid(s_axi_awid),
+        .s_axi_awaddr(s_axi_awaddr),
+        .s_axi_awlen(s_axi_awlen),
+        .s_axi_awsize(s_axi_awsize),
+        .s_axi_awburst(s_axi_awburst),
+        .s_axi_awlock(s_axi_awlock),
+        .s_axi_awcache(s_axi_awcache),
+        .s_axi_awprot(s_axi_awprot),
+        .s_axi_awvalid(s_axi_awvalid),
+        .s_axi_awready(s_axi_awready),
+        .s_axi_wdata(s_axi_wdata),
+        .s_axi_wstrb(s_axi_wstrb),
+        .s_axi_wlast(s_axi_wlast),
+        .s_axi_wvalid(s_axi_wvalid),
+        .s_axi_wready(s_axi_wready),
+        .s_axi_bid(s_axi_bid),
+        .s_axi_bresp(s_axi_bresp),
+        .s_axi_bvalid(s_axi_bvalid),
+        .s_axi_bready(s_axi_bready),
+        .s_axi_arid(s_axi_arid),
+        .s_axi_araddr(s_axi_araddr),
+        .s_axi_arlen(s_axi_arlen),
+        .s_axi_arsize(s_axi_arsize),
+        .s_axi_arburst(s_axi_arburst),
+        .s_axi_arlock(s_axi_arlock),
+        .s_axi_arcache(s_axi_arcache),
+        .s_axi_arprot(s_axi_arprot),
+        .s_axi_arvalid(s_axi_arvalid),
+        .s_axi_arready(s_axi_arready),
+        .s_axi_rid(s_axi_rid),
+        .s_axi_rdata(s_axi_rdata),
+        .s_axi_rresp(s_axi_rresp),
+        .s_axi_rlast(s_axi_rlast),
+        .s_axi_rvalid(s_axi_rvalid),
+        .s_axi_rready(s_axi_rready)
+    );
+
+
+endmodule

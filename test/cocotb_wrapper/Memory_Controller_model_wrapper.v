@@ -1,6 +1,6 @@
 `timescale 1ns / 100ps
 
-module Memory_Controller_wrapper #(
+module Memory_Controller_model_wrapper #(
     parameter ADDR_WIDTH = 24,
     parameter DATA_WIDTH = 32,
     parameter STRB_WIDTH = (DATA_WIDTH / 8),
