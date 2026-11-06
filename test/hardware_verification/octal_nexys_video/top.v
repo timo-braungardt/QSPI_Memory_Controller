@@ -1,9 +1,7 @@
 module top #(
     parameter ADDR_WIDTH = 32,
     parameter DATA_WIDTH = 32,
-    parameter ID_WIDTH = 1,
-    parameter MAX_NUM_BYTES = $clog2(1024),
-    parameter INTERFACE_TYPE = "OSPI"
+    parameter ID_WIDTH = 1
 ) (
     input clk,
     input reset,
@@ -65,43 +63,61 @@ module top #(
     wire axi_rready;
     
     wire sys_clk;
+    wire sync_reset_neg;
 
 
     clk_wiz_0 mmcm (
         .clk_out1(sys_clk),          
-        .reset(reset),
+        .reset(~sync_reset_neg),
         .clk_in1(clk)
     );
+
+
+    ResetSynchronizer Synchronizer (
+        .clk(clk),
+        .async_reset_neg(reset),
+        .o_reset_neg(sync_reset_neg)
+    );
+    
+    wire [7:0] data;
+    wire data_strobe;
+    wire [7:0] spi_i_data, spi_o_data;
+    wire spi_i_data_strobe, spi_o_data_strobe;
+    wire spi_data_output_enable, spi_data_strobe_output_enable;
+    
+    // the #1 delay is necessary for simulation, so that the data changes after the clock edge.
+    // in hardware this has to be done with the timing constraints
+    assign #1 io_spi_data = (spi_data_output_enable) ? spi_o_data : 8'bz;
+    assign spi_i_data = io_spi_data;
+
+    assign #1 io_spi_data_strobe = (spi_data_strobe_output_enable) ? spi_o_data_strobe : 1'bz;
+    assign spi_i_data_strobe = io_spi_data_strobe;
 
 
     localparam INFINEON_CHIP = 1;
     localparam APMEMORY_CHIP = 2;
 
-    MemoryController #(
+    OctalMemoryController #(
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
-        .ID_WIDTH(ID_WIDTH),
-        .MAX_NUM_BYTES(MAX_NUM_BYTES),
-        .INTERFACE_TYPE(INTERFACE_TYPE),
-        .CHIP_TYPE(APMEMORY_CHIP)
+        .CHIP_TYPE (APMEMORY_CHIP)
     ) Controller (
         .clk  (sys_clk),
-        .reset(reset),
+        .reset_neg(sync_reset_neg),
 
         // SPI Pins
         .o_spi_bus_clock(o_spi_bus_clock),
         .o_spi_bus_clock_neg(o_spi_bus_clock_neg),
         .o_spi_chip_select_neg(o_spi_chip_select_neg),
         .o_spi_reset_neg(o_spi_reset_neg),
-        .io_spi_data_strobe(io_spi_data_strobe),
-        .io_spi_data0_manager_serial_out(io_spi_data[0]),
-        .io_spi_data1_manager_serial_in(io_spi_data[1]),
-        .io_spi_data2(io_spi_data[2]),
-        .io_spi_data3(io_spi_data[3]),
-        .io_spi_data4(io_spi_data[4]),
-        .io_spi_data5(io_spi_data[5]),
-        .io_spi_data6(io_spi_data[6]),
-        .io_spi_data7(io_spi_data[7]),
+
+        .i_spi_data_strobe(spi_i_data_strobe),
+        .o_spi_data_strobe(spi_o_data_strobe),
+        .o_spi_data_strobe_output_enable(spi_data_strobe_output_enable),
+
+        .i_spi_data(spi_i_data),
+        .o_spi_data(spi_o_data),
+        .o_spi_data_output_enable(spi_data_output_enable),
 
         // AXI Pins
         .s_axi_awid(axi_awid),
@@ -144,7 +160,7 @@ module top #(
 
     jtag_axi_0 JTAG_AXI_Module (
         .aclk(sys_clk),
-        .aresetn(~reset),
+        .aresetn(sync_reset_neg),
 
         .m_axi_awid(axi_awid),
         .m_axi_awaddr(axi_awaddr),

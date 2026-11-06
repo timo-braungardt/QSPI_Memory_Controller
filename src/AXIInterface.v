@@ -267,7 +267,7 @@ module AXIInterface #(
         endcase
     end
 
-    always @(posedge clk) begin
+    always @(posedge clk or negedge rst_neg) begin
         write_state_reg <= write_state_next;
 
         write_id_reg <= write_id_next;
@@ -354,7 +354,7 @@ module AXIInterface #(
         endcase
     end
 
-    always @(posedge clk) begin
+    always @(posedge clk or negedge rst_neg) begin
         read_state_reg <= read_state_next;
 
         read_id_reg <= read_id_next;
