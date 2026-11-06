@@ -78,7 +78,7 @@ async def handle_read_burst(dut, subordinate, test_data):
             dut.i_last_word.value = True
 
         assert dut.o_data_read.value == test_data.get_test_number_word(i * DATA_WIDTH_BYTES)
-        dut.data_read_reg.value = 0  # ToDo: the other bytes have to be masked (issue #18)
+        dut.Controller.data_read_reg.value = 0  # ToDo: the other bytes have to be masked (issue #18)
 
     if last_num_bytes != 0:
         timeout = Timer(100, unit="us")
@@ -108,7 +108,7 @@ async def spi_transmission_test(dut):
 
     await reset_dut(dut)
 
-    dut.config_quad_mode.value = False
+    dut.Controller.config_quad_mode.value = False
     spi_subordinate.num_bytes = 1
 
     dut.i_address.value = 0x800001
@@ -144,7 +144,7 @@ async def spi_read_test(dut, num_bytes):
 
     await reset_dut(dut)
 
-    dut.config_quad_mode.value = False
+    dut.Controller.config_quad_mode.value = False
 
     dut.i_address.value = 20
     dut.i_write_enable.value = False
@@ -183,7 +183,7 @@ async def spi_write_test(dut, num_bytes):
 
     await reset_dut(dut)
 
-    dut.config_quad_mode.value = False
+    dut.Controller.config_quad_mode.value = False
 
     dut.i_address.value = 21
     dut.i_data_write.value = test_data.get_test_number()
@@ -225,7 +225,7 @@ async def spi_endianness_test(dut, num_bytes):
 
     await reset_dut(dut)
 
-    dut.config_quad_mode.value = False
+    dut.Controller.config_quad_mode.value = False
 
     # write data
     dut.i_address.value = 21
@@ -286,7 +286,7 @@ async def write_test_burst_qspi(dut, num_bytes):
     dut.i_num_bytes.value = num_bytes - 1
     dut.i_data_write.value = test_data.get_test_number_word(0)
 
-    dut.config_quad_mode.value = False
+    dut.Controller.config_quad_mode.value = False
 
     await trigger_go(dut)
     # write enable
@@ -325,7 +325,7 @@ async def read_test_burst_qspi(dut, num_bytes):
     dut.i_last_word.value = False
     dut.i_num_bytes.value = num_bytes - 1
 
-    dut.config_quad_mode.value = False
+    dut.Controller.config_quad_mode.value = False
 
     spi_subordinate.data = test_data.get_test_array()
     await trigger_go(dut)
@@ -352,8 +352,8 @@ async def spi_dummy_cycles_test(dut):
 
     await reset_dut(dut)
 
-    dut.config_quad_mode.value = False
-    dut.config_dummy_cycles.value = 8
+    dut.Controller.config_quad_mode.value = False
+    dut.Controller.config_dummy_cycles.value = 8
 
     dut.i_address.value = 20
     dut.i_write_enable.value = False
@@ -394,8 +394,8 @@ async def qspi_enable_test(dut):
     dut.i_address.value = 0
     dut.i_data_write.value = 0
     dut.i_write_enable.value = False
-    dut.config_is_config_operation.value = True
-    dut.config_quad_mode.value = 0b000
+    dut.Controller.config_is_config_operation.value = True
+    dut.Controller.config_quad_mode.value = 0b000
     dut.i_last_word.value = True
     dut.i_num_bytes.value = 0b000
 
@@ -417,7 +417,7 @@ def test_spi_controller(data_width):
     """
     sim = os.getenv("SIM", "icarus")
     proj_path = Path(__file__).resolve().parent
-    sources = [proj_path / "../../src/SPIController.v", proj_path / "../../src/SPITransmitter.v"]
+    sources = [proj_path / "../../src/SPIController.v", proj_path / "../../src/SPITransmitter.v", proj_path / "../../test/cocotb_wrapper/SPIController_wrapper.v"]
 
     parameters = {}
     parameters["DATA_WIDTH"] = data_width
@@ -427,13 +427,13 @@ def test_spi_controller(data_width):
     runner = get_runner(sim)
     runner.build(
         sources=sources,
-        hdl_toplevel="SPIController",
+        hdl_toplevel="SPIController_wrapper",
         always=True,
         waves=True,
         parameters=parameters,
     )
     runner.test(
-        hdl_toplevel="SPIController",
+        hdl_toplevel="SPIController_wrapper",
         test_module="test_spi_controller",
         parameters=parameters,
         waves=True,

@@ -1,0 +1,82 @@
+proc write_data {address length data} {
+    create_hw_axi_txn write_txn [get_hw_axis hw_axi_1] -type write -address $address -len $length -data $data -force
+    run_hw_axi [get_hw_axi_txns write_txn]
+}
+
+proc read_data {address length} {
+    create_hw_axi_txn read_txn [get_hw_axis hw_axi_1] -type read -address $address -len $length -force
+    run_hw_axi read_txn
+    return [get_property DATA [get_hw_axi_txns read_txn]]
+}
+
+## assert function from https://wiki.tcl-lang.org/page/Assertions
+proc assert condition {
+    if {![uplevel 1 expr $condition]} {
+        return -code error "assertion failed: $condition"
+    }
+}
+
+proc setup_all_zero {} {
+    write_data 0 256 0x00000000
+}
+
+### ==================
+###   Test Functions
+### ==================
+proc test_write {} {
+    setup_all_zero
+    set data [read_data  0 4]
+    assert {$data == "{00000000}"}
+
+    write_data 0 3 0x55aa55aa
+    set data [read_data  0 4]
+    assert {{$data} == "{0000000055aa55aa55aa55aa55aa55aa}"}
+
+    write_data 2 1 0x11111111
+    set data [read_data  0 4]
+    assert {{$data} == "{0000000055aa55aa55aa1111111155aa}"}
+}
+
+
+proc test_backpreasure_ram_refresh {} {
+    # 4 cycles, so 80ns @ 50MHz system clock for refresh?
+    setup_all_zero
+    write_data 0 4 0x55aa55aa
+
+    #create_hw_axi_txn read_txn_short [get_hw_axis hw_axi_1] -type read -address 0 -len 1 -force
+    create_hw_axi_txn read_txn [get_hw_axis hw_axi_1] -type read -address 0 -len 256 -force
+    for {set i 0} {$i < 1000} {incr i} {
+        run_hw_axi -queue  [get_hw_axi_txns read_txn] [get_hw_axi_txns read_txn] [get_hw_axi_txns read_txn] [get_hw_axi_txns read_txn] [get_hw_axi_txns read_txn] [get_hw_axi_txns read_txn] [get_hw_axi_txns read_txn] [get_hw_axi_txns read_txn]
+    }
+
+    set data [read_data  0 4]
+    assert {{$data} == "{55aa55aa55aa55aa55aa55aa55aa55aa}"}
+}
+
+
+proc test_read_write_queue {} {
+    # 4 cycles, so 80ns @ 50MHz system clock for refresh?
+    setup_all_zero
+
+    create_hw_axi_txn write_txn [get_hw_axis hw_axi_1] -type write -address 0 -len 256 -data 0x55aa55aa -force
+    create_hw_axi_txn read_txn [get_hw_axis hw_axi_1] -type read -address 0 -len 256 -force
+
+    run_hw_axi -queue  [get_hw_axi_txns read_txn] [get_hw_axi_txns write_txn]
+    
+    set data [read_data  0 4]
+    assert {{$data} == "{55aa55aa55aa55aa55aa55aa55aa55aa}"}
+}
+
+
+### ===================
+###   Helper Function
+### ===================
+# get all test functions and run them
+set all_functions [info procs]
+foreach name $all_functions {
+        if { [string first "test_" $name] != -1 } {
+            puts "Running $name"
+            $name
+        }
+    }
+puts "Finished!"

@@ -7,7 +7,18 @@ module Memory_Controller_wrapper #(
     parameter ID_WIDTH   = 8
 ) (
     input clk,
-    input reset,
+    input reset_neg,
+
+    // SPI Pins
+    output o_spi_bus_clock,
+    output o_spi_bus_clock_neg,
+    output o_spi_chip_select_neg,
+    output o_spi_reset_neg,
+
+    inout io_spi_data0_manager_serial_out,
+    inout io_spi_data1_manager_serial_in,
+    inout io_spi_data2,
+    inout io_spi_data3,
 
     // AXI Pins
     input  wire [  ID_WIDTH-1:0] s_axi_awid,     // write address channel
@@ -52,22 +63,33 @@ module Memory_Controller_wrapper #(
 );
 
     wire [3:0] data;
-    wire bus_clock, chip_select_neg;
+    wire [3:0] spi_i_data, spi_o_data;
+    wire spi_data_output_enable, spi_quad_mode_output_enable;
+
+    assign spi_i_data = {
+        io_spi_data3, io_spi_data2, io_spi_data1_manager_serial_in, io_spi_data0_manager_serial_out
+    };
+
+    assign io_spi_data0_manager_serial_out = (spi_data_output_enable) ? spi_o_data[0] : 1'bZ;  // MOSI
+    assign io_spi_data1_manager_serial_in = (spi_data_output_enable) ? (spi_quad_mode_output_enable) ? spi_o_data[1] : 1'bZ : 1'bZ;    // MISO
+    assign io_spi_data2 = (spi_data_output_enable) ? (spi_quad_mode_output_enable) ? spi_o_data[2] : 1'bZ : 1'bZ;
+    assign io_spi_data3 = (spi_data_output_enable) ? (spi_quad_mode_output_enable) ? spi_o_data[3] : 1'bZ : 1'bZ;
+
 
     MemoryController #(
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH)
     ) Controller (
-        .clk(clk),
-        .reset(reset),
+        .clk  (clk),
+        .reset_neg(reset_neg),
 
         // SPI Pins
-        .o_spi_bus_clock(bus_clock),
-        .o_spi_chip_select_neg(chip_select_neg),
-        .io_spi_data0_manager_serial_out(data[0]),
-        .io_spi_data1_manager_serial_in(data[1]),
-        .io_spi_data2(data[2]),
-        .io_spi_data3(data[3]),
+        .o_spi_bus_clock(o_spi_bus_clock),
+        .o_spi_chip_select_neg(o_spi_chip_select_neg),
+        .i_spi_data(spi_i_data),
+        .o_spi_data(spi_o_data),
+        .o_spi_data_output_enable(spi_data_output_enable),
+        .o_spi_quad_mode_output_enable(spi_quad_mode_output_enable),
 
         // AXI Pins
         .s_axi_awid(s_axi_awid),
@@ -105,17 +127,6 @@ module Memory_Controller_wrapper #(
         .s_axi_rlast(s_axi_rlast),
         .s_axi_rvalid(s_axi_rvalid),
         .s_axi_rready(s_axi_rready)
-    );
-
-
-    s25hl512t Memory (
-        .SCK(bus_clock),
-        .RESETNeg(~reset),
-        .CSNeg(chip_select_neg),
-        .SI(data[0]),
-        .SO(data[1]),
-        .WPNeg(data[2]),
-        .IO3_RESETNeg(data[3])
     );
 
 

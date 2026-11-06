@@ -17,15 +17,15 @@ NUM_BYTES = DATA_WIDTH // 8
 
 
 async def reset_dut(dut):
-    dut.reset.value = 1
+    dut.reset_neg.value = 0
     await ClockCycles(dut.clk, 4, rising=True)
-    dut.reset.value = 0
+    dut.reset_neg.value = 1
     await ClockCycles(dut.clk, 1, rising=True)
 
 
 async def wait_for_idle(dut):
     timeout = Timer(100, unit="us")
-    trigger = await First(FallingEdge(dut.spi_busy), timeout)
+    trigger = await First(FallingEdge(dut.Controller.spi_busy), timeout)
     assert trigger != timeout
 
 
@@ -40,7 +40,7 @@ async def write_test(dut, num_bytes):
     # the reset is here, because otherwise the axi manager loggs too many resets
     await reset_dut(dut)
 
-    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset_neg, reset_active_level=False)
     spi_subordinate = SpiFlashMemory(
         SpiBus(
             entity=dut,
@@ -60,8 +60,8 @@ async def write_test(dut, num_bytes):
     write_task = cocotb.start_soon(axi_master.write(addr, test_data.get_test_array()))
     trigger = await First(write_task, timeout)
     assert trigger != timeout
-    if dut.spi_busy.value == True:
-        await FallingEdge(dut.spi_busy)
+    if dut.Controller.spi_busy.value == True:
+        await FallingEdge(dut.Controller.spi_busy)
     assert spi_subordinate.opcode == SpiFlashMemory.program
     assert spi_subordinate.address == 0x1000
     assert len(spi_subordinate.data) == test_data.num_bytes
@@ -75,7 +75,7 @@ async def read_test(dut, num_bytes):
     cocotb.start_soon(c.start())
     await reset_dut(dut)
 
-    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset_neg, reset_active_level=False)
     spi_subordinate = SpiFlashMemory(
         SpiBus(
             entity=dut,
@@ -96,9 +96,9 @@ async def read_test(dut, num_bytes):
     read_task = cocotb.start_soon(axi_master.read(addr, num_bytes))
     trigger = await First(read_task, timeout)
     assert trigger != timeout
-    if dut.spi_busy.value == True:
+    if dut.Controller.spi_busy.value == True:
         timeout = Timer(100, unit="us")
-        await First(FallingEdge(dut.spi_busy), timeout)
+        await First(FallingEdge(dut.Controller.spi_busy), timeout)
     assert spi_subordinate.opcode == SpiFlashMemory.read
     assert spi_subordinate.address == 0x1000
     data = read_task.result()
@@ -113,7 +113,7 @@ async def write_burst_test(dut, num_bytes):
     # the reset is here, because otherwise the axi manager loggs too many resets
     await reset_dut(dut)
 
-    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset_neg, reset_active_level=False)
     spi_subordinate = SpiFlashMemory(
         SpiBus(
             entity=dut,
@@ -134,8 +134,8 @@ async def write_burst_test(dut, num_bytes):
     write_task = cocotb.start_soon(axi_master.write(addr, test_data.get_test_array()))
     trigger = await First(write_task, timeout)
     assert trigger != timeout
-    if dut.spi_busy.value == True:
-        await FallingEdge(dut.spi_busy)
+    if dut.Controller.spi_busy.value == True:
+        await FallingEdge(dut.Controller.spi_busy)
     assert spi_subordinate.opcode == SpiFlashMemory.program
     assert spi_subordinate.address == 0x1000
     assert len(spi_subordinate.data) == test_data.num_bytes
@@ -149,7 +149,7 @@ async def read_burst_test(dut, num_bytes):
     cocotb.start_soon(c.start())
     await reset_dut(dut)
 
-    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset_neg, reset_active_level=False)
     spi_subordinate = SpiFlashMemory(
         SpiBus(
             entity=dut,
@@ -170,9 +170,9 @@ async def read_burst_test(dut, num_bytes):
     read_task = cocotb.start_soon(axi_master.read(addr, num_bytes))
     trigger = await First(read_task, timeout)
     assert trigger != timeout
-    if dut.spi_busy.value == True:
+    if dut.Controller.spi_busy.value == True:
         timeout = Timer(100, unit="us")
-        await First(FallingEdge(dut.spi_busy), timeout)
+        await First(FallingEdge(dut.Controller.spi_busy), timeout)
     assert spi_subordinate.opcode == SpiFlashMemory.read
     assert spi_subordinate.address == 0x1000
     data = read_task.result()
@@ -190,6 +190,7 @@ def test_memory_controller():
         proj_path / "../../src/SPITransmitter.v",
         proj_path / "../../src/AXIInterface.v",
         proj_path / "../../src/MemoryController.v",
+        proj_path / "../../test/cocotb_wrapper/Memory_Controller_wrapper.v",
     ]
 
     parameters = {}
@@ -200,13 +201,13 @@ def test_memory_controller():
     runner = get_runner(sim)
     runner.build(
         sources=sources,
-        hdl_toplevel="MemoryController",
+        hdl_toplevel="Memory_Controller_wrapper",
         always=True,
         waves=True,
         parameters=parameters,
     )
     runner.test(
-        hdl_toplevel="MemoryController",
+        hdl_toplevel="Memory_Controller_wrapper",
         test_module="test_memory_controller",
         parameters=parameters,
         waves=True,
