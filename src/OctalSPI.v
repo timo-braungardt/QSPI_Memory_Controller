@@ -100,14 +100,17 @@ module OctalSPI #(
     // constants
     localparam integer ADDRESS_CYCLES = 4;
     localparam integer OPCODE_CYCLES = 2;
-    localparam INFINEON_LATENCY_CYCLES = 7;
-    localparam APMEMORY_LATENCY_CYCLES = 5;
+
+    localparam INFINEON_LATENCY_CYCLES = 7 * 2;
+    localparam APMEMORY_LATENCY_CYCLES = 5 * 2;
+    localparam INFINEON_LATENCY_OFFSET = 3;
+    localparam APMEMORY_LATENCY_OFFSET = -1;
     // times two because of the two clock edges
-    localparam integer LATENCY_CYCLES = (CHIP_TYPE == 1) ? INFINEON_LATENCY_CYCLES * 2 : APMEMORY_LATENCY_CYCLES * 2;    // ToDo think about a better switch (issue #12)
-    // the first latency already begins after the sample point of the upper address
-    // therefore we have to subtract one cycle (-2) from the latency
-    localparam integer NUM_SHORT_LATENCY_CYCLES = (CHIP_TYPE == 1) ? LATENCY_CYCLES + 2 : LATENCY_CYCLES - 2;   // ToDo think about a better switch (issue #12)
-    localparam integer NUM_LONG_LATENCY_CYCLES = LATENCY_CYCLES * 2 + 2;
+    localparam integer LATENCY_CYCLES = (CHIP_TYPE == 1) ? INFINEON_LATENCY_CYCLES : APMEMORY_LATENCY_CYCLES;
+    localparam integer LATENCY_OFFSET = (CHIP_TYPE == 1) ? INFINEON_LATENCY_OFFSET : APMEMORY_LATENCY_OFFSET;
+
+    localparam integer NUM_SHORT_LATENCY_CYCLES = LATENCY_CYCLES + LATENCY_OFFSET;
+    localparam integer NUM_LONG_LATENCY_CYCLES = 2 * LATENCY_CYCLES + LATENCY_OFFSET;
     //localparam integer READ_LATENCY_IN_CYCLE = 1; // (issue #15)
     localparam integer TEMP_OPERATION_CYCLES = 1;   // transfer 2 bytes // ToDo: make dynamic handshake (issue #12)
 
@@ -156,9 +159,8 @@ module OctalSPI #(
         has_latency_nxt = has_latency_reg;
         en_data_out_nxt = en_data_out_reg;
 
-        // the read needs one more cycle after the latency until the memory puts out data
-        // therefore +2
-        latency_offset = (i_config_read_data) ? 1 : -1;     // ToDo change (issue #12)
+        // the write needs to put the data on the bus two cycles early, therefore -2
+        latency_offset = (i_config_write_data) ? -2 : 0;
 
         case (state_reg)
             IDLE: begin
