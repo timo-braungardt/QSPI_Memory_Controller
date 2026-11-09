@@ -386,9 +386,9 @@ create_generated_clock -name bus_clk -source [get_pins -of_objects [get_cells -h
 # 3. Keep the pad registers in the IOBs for stable, short pin delays
 #    (Vivado warns for every register it cannot pack)
 ##############################################################################
-set_property IOB TRUE [get_ports {io_spi_data[*]}]
-set_property IOB TRUE [get_ports io_spi_data_strobe]
-set_property IOB TRUE [get_ports o_spi_chip_select_neg]
+#set_property IOB TRUE [get_ports {io_spi_data[*]}]
+#set_property IOB TRUE [get_ports io_spi_data_strobe]
+#set_property IOB TRUE [get_ports o_spi_chip_select_neg]
 
 
 ##############################################################################
@@ -507,13 +507,7 @@ set_property MARK_DEBUG true [get_nets {Controller/gen_Octal_SPI_Interface.SPI_C
 set_property MARK_DEBUG true [get_nets {Controller/gen_Octal_SPI_Interface.SPI_Controller/control_state_reg[1]}]
 set_property MARK_DEBUG true [get_nets {Controller/gen_Octal_SPI_Interface.SPI_Controller/control_state_reg[2]}]
 set_property MARK_DEBUG true [get_nets {io_spi_data_TRI[0]}]
-create_debug_port u_ila_0 probe
-set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe7]
-set_property port_width 3 [get_debug_ports u_ila_0/probe7]
 connect_debug_port u_ila_0/probe7 [get_nets [list {Controller/gen_Octal_SPI_Interface.SPI_Controller/control_state_reg[0]} {Controller/gen_Octal_SPI_Interface.SPI_Controller/control_state_reg[1]} {Controller/gen_Octal_SPI_Interface.SPI_Controller/control_state_reg[2]}]]
-create_debug_port u_ila_0 probe
-set_property PROBE_TYPE DATA [get_debug_ports u_ila_0/probe8]
-set_property port_width 4 [get_debug_ports u_ila_0/probe8]
 connect_debug_port u_ila_0/probe8 [get_nets [list {Controller/gen_Octal_SPI_Interface.SPI_Controller/SPI_Transmitter/state_reg[0]} {Controller/gen_Octal_SPI_Interface.SPI_Controller/SPI_Transmitter/state_reg[1]} {Controller/gen_Octal_SPI_Interface.SPI_Controller/SPI_Transmitter/state_reg[2]} {Controller/gen_Octal_SPI_Interface.SPI_Controller/SPI_Transmitter/state_reg[3]}]]
 
 set_property MARK_DEBUG true [get_nets <const0>]
