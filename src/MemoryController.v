@@ -187,7 +187,7 @@ module MemoryController #(
 
         // Control Interface Pins
         .i_write_word_ready(spi_next_word),
-        .i_read_word_ready(spi_recieved_next_word),
+        .i_read_word_valid(spi_recieved_next_word),
         .i_busy(spi_busy),
         .o_last_word(axi_last_word),
         .o_write_enable(axi_write_enable),
