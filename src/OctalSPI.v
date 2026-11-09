@@ -291,6 +291,7 @@ module OctalSPI #(
         if (~reset_neg) begin
             data_out_reg <= 0;
             recieved_next_byte_reg <= 0;
+            data_read_reg <= 0;
         end else begin
             data_out_reg <= data_out_nxt;
             recieved_next_byte_reg <= 1'b0;

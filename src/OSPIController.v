@@ -131,7 +131,10 @@ module OSPIController #(
     integer reset_counter;
 
     always @(posedge clk or negedge reset_neg) begin
-        if (!reset_neg) reset_counter <= 0;
+        if (!reset_neg) begin
+            reset_counter <= 0;
+            reset_neg_spi <= 0;
+        end
         else begin
             if (reset_counter != 20000) begin
                 reset_counter <= reset_counter + 1;
@@ -314,6 +317,7 @@ module OSPIController #(
         read_next_word_reg <= read_next_word_nxt;
         write_next_word_reg <= write_next_word_nxt;
         config_data_reg <= config_data_nxt;
+        data_read_reg <= data_read_reg;
 
         if (spi_read_next_byte & ~last_byte_reg) begin
             data_read_reg[byte_index_reg*8+:8] <= read_byte;
