@@ -83,7 +83,7 @@ async def handle_write_burst(dut, test_data):
     for i in range(1, num_loops):
         await RisingEdge(dut.clk)
         dut.i_data_write.value = test_data[i]
-        if (num_loops - i - 1) == 0:
+        if (num_loops - i) == 0:
             dut.i_last_byte.value = True
     await RisingEdge(dut.clk)
     dut.i_last_byte.value = True
@@ -129,7 +129,10 @@ async def write_test(dut):
     await T_rwr
 
     memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, address, 2)
-    assert memory_data == test_data.get_test_array().append(0xff)   # the controller shall only write one byte
+    # the controller shall only write one byte
+    extended_test_data = test_data.get_test_array()
+    extended_test_data.append(0xff)
+    assert memory_data == extended_test_data
 
 
 @cocotb.test()
@@ -184,13 +187,14 @@ async def variable_latency_test(dut):
 
 
 @cocotb.test()
-async def write_burst_test(dut):
+@cocotb.parametrize(length=[6, 7])
+async def write_burst_test(dut, length):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
 
     await Timer(50, unit="ns")
     await reset_model(dut)
-    test_data = DummyData(6)
+    test_data = DummyData(length)
     address = 0x002000
 
     config_transaction(dut, OPCODE.write_enable)
@@ -212,8 +216,10 @@ async def write_burst_test(dut):
     await handle_write_burst(dut, test_data.get_test_array())
     await T_rwr
 
-    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, address, test_data.num_bytes)
-    assert memory_data == test_data.get_test_array()
+    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, address, test_data.num_bytes +1)
+    extended_test_data = test_data.get_test_array()
+    extended_test_data.append(0xff)
+    assert memory_data == extended_test_data
 
 
 @cocotb.test()

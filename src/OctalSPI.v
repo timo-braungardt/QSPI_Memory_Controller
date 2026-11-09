@@ -221,7 +221,7 @@ module OctalSPI #(
                 count_nxt = 0;
 
                 // we check the clock, because we always have to send two bytes
-                // on the first byte sent out, the clock is always low  ToDo: (issue #12) maybe better description, maybe unnecessary because the clock shift is not needed?
+                // on the first byte sent out, the clock is always low  ToDo: (issue #12) maybe better description
                 // additionally we check for the count, so if we only write one byte, we do not already skip to the next state and skip the bus clock
                 // probably this should be reworked as well (issue #12)
                 if (i_last_byte & bus_clock_p2_reg & count_reg == 0) begin
@@ -273,7 +273,11 @@ module OctalSPI #(
 
             SEND_DATA: begin
                 data_out_nxt = i_data_write;
-                data_strobe_out_nxt = i_data_byte_mask;
+                // if we wrote the last byte and we wrote an uneven ammount of bytes, we have to mask the next byte
+                if (i_last_byte & ~bus_clock_p2_reg & count_reg == 0)
+                    data_strobe_out_nxt = 1'b1;
+                else
+                    data_strobe_out_nxt = i_data_byte_mask;
             end
 
             default: ;
