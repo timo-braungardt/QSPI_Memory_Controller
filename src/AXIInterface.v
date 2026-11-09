@@ -170,7 +170,7 @@ module AXIInterface #(
     wire [VALID_ADDR_WIDTH-1:0] write_addr_valid = VALID_ADDR_WIDTH'(write_addr_reg >> SHIFT_ADDR_BY);
 
     assign s_axi_awready = s_axi_awready_reg;
-    //assign s_axi_wready = s_axi_wready_reg; // todo: is this good design? (issue #12)
+    //assign s_axi_wready = s_axi_wready_reg; // todo: rework axi-datapath (issue #14)
     assign s_axi_wready = i_write_word_ready; // the signal has to be passed through immediately from the controller to the axi interface - otherwise we have a clock cycle delay
     assign s_axi_bid = s_axi_bid_reg;
     assign s_axi_bresp = 2'b00;
