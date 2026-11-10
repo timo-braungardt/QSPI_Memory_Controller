@@ -2,8 +2,8 @@
 groups:
   - top: Basic_AXI_SPI
     files: 
-      - src/Basic_AXI_SPI.v
-      - src/BasicSPI.v
+      - experimental/Basic_AXI_SPI.v
+      - experimental/BasicSPI.v
   - top: QuadSPIController
     files: 
       - src/QuadSPIController.v

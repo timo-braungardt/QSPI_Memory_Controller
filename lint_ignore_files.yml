@@ -8,9 +8,9 @@ files:
   - test/cocotb_wrapper/AXI_SPI_wrapper.v
   - test/cocotb_wrapper/HyperRAM_wrapper.v
   - test/cocotb_wrapper/SPI_wrapper.v
-  - test/cocotb_wrapper/Quad_SPITransmitter_wrapper.v
-  - test/cocotb_wrapper/Quad_SPIController_model_wrapper.v
-  - test/cocotb_wrapper/Quad_SPIController_wrapper.v
+  - test/cocotb_wrapper/Quad_SPI_Transmitter_wrapper.v
+  - test/cocotb_wrapper/Quad_SPI_Controller_model_wrapper.v
+  - test/cocotb_wrapper/Quad_SPI_Controller_wrapper.v
   - test/cocotb_wrapper/Octal_SPI_wrapper.v
   - test/cocotb_wrapper/Octal_SPI_Controller_wrapper.v
   - test/cocotb_wrapper/Octal_Memory_Controller_wrapper.v
