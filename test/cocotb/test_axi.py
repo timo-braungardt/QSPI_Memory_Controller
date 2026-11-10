@@ -59,7 +59,7 @@ def test_axi():
     top_level = "Basic_AXI_SPI"
     sim = os.getenv("SIM", "icarus")
     proj_path = Path(__file__).resolve().parent
-    sources = [proj_path / f"../../src/{top_level}.v", proj_path / "../../src/BasicSPI.v"]
+    sources = [proj_path / f"../../experimental/{top_level}.v", proj_path / "../../experimental/BasicSPI.v"]
 
     runner = get_runner(sim)
     runner.build(sources=sources, hdl_toplevel=top_level, always=True, waves=True)

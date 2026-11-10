@@ -142,7 +142,7 @@ def test_hyperbus_model():
     sim = os.getenv("SIM", "icarus")
     proj_path = Path(__file__).resolve().parent
     sources = [
-        proj_path / "../../src/Hyperbus.v",
+        proj_path / "../../experimental/Hyperbus.v",
         proj_path / "../../test/cocotb_wrapper/HyperRAM_wrapper.v",
         proj_path
         / "../../test/memory_models/infineon-s27kl0641-simulationmodels-en/s27kl0641/model/s27kl0641.v",

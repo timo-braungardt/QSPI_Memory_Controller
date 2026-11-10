@@ -307,7 +307,7 @@ def test_spi_model(wave=False):
 
     proj_path = Path(__file__).resolve().parent
     sources = [
-        proj_path / "../../src/BasicSPI.v",
+        proj_path / "../../experimental/BasicSPI.v",
         proj_path / "../../test/cocotb_wrapper/SPI_wrapper.v",
         proj_path / required_file,
     ]

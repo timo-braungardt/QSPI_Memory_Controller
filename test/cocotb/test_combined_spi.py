@@ -451,7 +451,7 @@ def test_combined_spi():
     """
     sim = os.getenv("SIM", "icarus")
     proj_path = Path(__file__).resolve().parent
-    sources = [proj_path / "../../src/CombinedSPI.v"]
+    sources = [proj_path / "../../experimental/CombinedSPI.v"]
 
     runner = get_runner(sim)
     runner.build(sources=sources, hdl_toplevel="CombinedSPI", always=True, waves=True)

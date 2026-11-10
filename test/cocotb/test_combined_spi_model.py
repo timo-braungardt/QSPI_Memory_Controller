@@ -410,7 +410,7 @@ def test_combined_spi_model(wave=False):
 
     proj_path = Path(__file__).resolve().parent
     sources = [
-        proj_path / "../../src/CombinedSPI.v",
+        proj_path / "../../experimental/CombinedSPI.v",
         proj_path / "../../test/cocotb_wrapper/Combined_SPI_wrapper.v",
         proj_path / required_file,
     ]

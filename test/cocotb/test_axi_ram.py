@@ -202,7 +202,7 @@ def test_axi_ram(data_width):
     top_level = "AXI"
     sim = os.getenv("SIM", "icarus")
     proj_path = Path(__file__).resolve().parent
-    sources = [proj_path / f"../../src/{top_level}.v"]
+    sources = [proj_path / f"../../experimental/{top_level}.v"]
 
     parameters = {}
 

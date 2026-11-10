@@ -240,7 +240,7 @@ def test_basic_spi():
     """
     sim = os.getenv("SIM", "icarus")
     proj_path = Path(__file__).resolve().parent
-    sources = [proj_path / "../../src/BasicSPI.v"]
+    sources = [proj_path / "../../experimental/BasicSPI.v"]
 
     runner = get_runner(sim)
     runner.build(sources=sources, hdl_toplevel="BasicSPI", always=True, waves=True)

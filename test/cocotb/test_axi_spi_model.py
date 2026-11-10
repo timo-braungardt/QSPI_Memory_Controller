@@ -51,8 +51,8 @@ def test_axi_spi_model(wave=False):
 
     proj_path = Path(__file__).resolve().parent
     sources = [
-        proj_path / "../../src/BasicSPI.v",
-        proj_path / "../../src/Basic_AXI_SPI.v",
+        proj_path / "../../experimental/BasicSPI.v",
+        proj_path / "../../experimental/Basic_AXI_SPI.v",
         proj_path / "../../test/cocotb_wrapper/AXI_SPI_wrapper.v",
         proj_path / required_file,
     ]
