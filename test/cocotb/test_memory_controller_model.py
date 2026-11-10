@@ -20,9 +20,9 @@ T_pp_typ = Timer(480, unit="us")  # program time typical from the datasheet
 
 
 async def reset_model(dut):
-    dut.reset.value = 1
+    dut.reset_neg.value = 0
     await Timer(250, unit="ns")  # t_RP
-    dut.reset.value = 0
+    dut.reset_neg.value = 1
     await Timer(500, unit="us")  # t_RH
 
     if dut.Memory.PoweredUp.value == 0:
@@ -42,7 +42,7 @@ async def readwrite_alligned_test(dut, params):
     cocotb.start_soon(c.start())
 
     await Timer(50, unit="ns")
-    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset_neg, reset_active_level=False)
     await reset_model(dut)
 
     num_bytes, addr = params
@@ -77,7 +77,7 @@ async def readwrite_unalligned_test(dut, params):
     cocotb.start_soon(c.start())
 
     await Timer(50, unit="ns")
-    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset)
+    axi_master = AxiMaster(AxiBus.from_prefix(dut, "s_axi"), dut.clk, dut.reset_neg, reset_active_level=False)
     await reset_model(dut)
 
     num_bytes, addr = params
@@ -122,7 +122,7 @@ def test_memory_controller_model(wave=False):
         proj_path / "../../src/SPITransmitter.v",
         proj_path / "../../src/AXIInterface.v",
         proj_path / "../../src/MemoryController.v",
-        proj_path / "../../test/cocotb_wrapper/Memory_Controller_wrapper.v",
+        proj_path / "../../test/cocotb_wrapper/Memory_Controller_model_wrapper.v",
         proj_path / required_file,
     ]
 
@@ -139,13 +139,13 @@ def test_memory_controller_model(wave=False):
 
     runner.build(
         sources=sources,
-        hdl_toplevel="Memory_Controller_wrapper",
+        hdl_toplevel="Memory_Controller_model_wrapper",
         always=True,
         waves=True,
         parameters=parameters,
     )
     runner.test(
-        hdl_toplevel="Memory_Controller_wrapper",
+        hdl_toplevel="Memory_Controller_model_wrapper",
         test_module="test_memory_controller_model",
         parameters=parameters,
         gui=wave,

@@ -10,19 +10,21 @@ module MemoryController #(
     parameter DATA_WIDTH = 32,
     parameter STRB_WIDTH = (DATA_WIDTH / 8),
     parameter ID_WIDTH = 8,
-    parameter MAX_NUM_BYTES = $clog2(256)
+    parameter MAX_NUM_BYTES = $clog2(1024)
 ) (
     input clk,
-    input reset,
+    input reset_neg,
 
     // SPI Pins
     output o_spi_bus_clock,
+    output o_spi_bus_clock_neg,
     output o_spi_chip_select_neg,
-    output o_spi_reset,
-    inout  io_spi_data0_manager_serial_out,
-    inout  io_spi_data1_manager_serial_in,
-    inout  io_spi_data2,
-    inout  io_spi_data3,
+    output o_spi_reset_neg,
+
+    input [3:0] i_spi_data,
+    output [3:0] o_spi_data,
+    output o_spi_data_output_enable,
+    output       o_spi_quad_mode_output_enable,
 
     // AXI Pins
     input  wire [  ID_WIDTH-1:0] s_axi_awid,     // write address channel
@@ -72,7 +74,6 @@ module MemoryController #(
     wire [ADDR_WIDTH-1:0] axi_address;
     wire [DATA_WIDTH-1:0] axi_data_read;
     wire [DATA_WIDTH-1:0] axi_data_write;
-    wire [2:0] axi_write_width;
     wire [MAX_NUM_BYTES-1:0] spi_number_bytes_write;
     wire [MAX_NUM_BYTES-1:0] spi_number_bytes_read;
     wire [MAX_NUM_BYTES-1:0] spi_number_bytes_muxed;
@@ -87,12 +88,13 @@ module MemoryController #(
 
     // ToDo: arbitrary byte masking is not possible (yet?) with flash (issue #10)
     // ToDo: make it for arbitrary data width (issue #10)
+    localparam NUM_TRANS_PADDING_BITS = MAX_NUM_BYTES - 8;
     assign num_write_beats = s_axi_awlen + 8'd1;
-    assign num_write_bytes = num_write_beats << s_axi_awsize;
+    assign num_write_bytes = {{NUM_TRANS_PADDING_BITS{1'b0}}, num_write_beats} << s_axi_awsize;
     assign spi_number_bytes_write = (MAX_NUM_BYTES)'(num_write_bytes - 1);
 
     assign num_read_beats = s_axi_arlen + 8'd1;
-    assign num_read_bytes = num_read_beats << s_axi_arsize;
+    assign num_read_bytes = {{NUM_TRANS_PADDING_BITS{1'b0}}, num_read_beats} << s_axi_arsize;
     assign spi_number_bytes_read = (MAX_NUM_BYTES)'(num_read_bytes - 1);
 
     assign spi_number_bytes_muxed = (axi_write_enable) ? spi_number_bytes_write : spi_number_bytes_read;
@@ -104,7 +106,7 @@ module MemoryController #(
         .MAX_NUM_BYTES(MAX_NUM_BYTES)
     ) SPI_Controller (
         .clk(clk),
-        .reset_neg(!reset),
+        .reset_neg(reset_neg),
         .go(axi_start_transaction),
 
         .i_address(axi_address),
@@ -120,12 +122,14 @@ module MemoryController #(
         // SPI Pins
         .o_bus_clock(o_spi_bus_clock),
         .o_chip_select_neg(o_spi_chip_select_neg),
-        .o_reset(o_spi_reset),
-        .io_data0_manager_serial_out(io_spi_data0_manager_serial_out),
-        .io_data1_manager_serial_in(io_spi_data1_manager_serial_in),
-        .io_data2(io_spi_data2),
-        .io_data3(io_spi_data3)
+        .o_reset_neg(o_spi_reset_neg),
+
+        .i_spi_data(i_spi_data),
+        .o_spi_data(o_spi_data),
+        .o_spi_data_output_enable(o_spi_data_output_enable),
+        .o_spi_quad_mode_output_enable(o_spi_quad_mode_output_enable)
     );
+    assign o_spi_bus_clock_neg = 0;
 
 
     AXIInterface #(
@@ -135,7 +139,7 @@ module MemoryController #(
         .STRB_WIDTH(STRB_WIDTH)
     ) AXI_Interface (
         .clk(clk),
-        .rst_neg(!reset),
+        .rst_neg(reset_neg),
 
         // Control Interface Pins
         .i_write_word_ready(spi_next_word),

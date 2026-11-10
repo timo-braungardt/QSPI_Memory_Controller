@@ -58,6 +58,7 @@ module AXIInterface #(
     output wire [DATA_WIDTH-1:0] o_write_data,
     input  wire [DATA_WIDTH-1:0] i_read_data,
 
+    /* verilator lint_off UNUSEDSIGNAL */
     // AXI Pins
     input wire [ID_WIDTH-1:0] s_axi_awid,  // write address channel
     input wire [ADDR_WIDTH-1:0] s_axi_awaddr,
@@ -98,12 +99,13 @@ module AXIInterface #(
     output wire                  s_axi_rlast,
     output wire                  s_axi_rvalid,
     input  wire                  s_axi_rready
+    /* verilator lint_on UNUSEDSIGNAL */
 );
 
-    parameter VALID_ADDR_WIDTH = ADDR_WIDTH - $clog2(STRB_WIDTH);
-    parameter SHIFT_ADDR_BY = ADDR_WIDTH - VALID_ADDR_WIDTH;
-    parameter WORD_WIDTH = STRB_WIDTH;
-    parameter WORD_SIZE = DATA_WIDTH / WORD_WIDTH;
+    localparam VALID_ADDR_WIDTH = ADDR_WIDTH - $clog2(STRB_WIDTH);
+    localparam SHIFT_ADDR_BY = ADDR_WIDTH - VALID_ADDR_WIDTH;
+    localparam WORD_WIDTH = STRB_WIDTH;
+    localparam WORD_SIZE = DATA_WIDTH / WORD_WIDTH;
 
     // bus width assertions
     initial begin
@@ -167,7 +169,8 @@ module AXIInterface #(
     wire [VALID_ADDR_WIDTH-1:0] write_addr_valid = VALID_ADDR_WIDTH'(write_addr_reg >> SHIFT_ADDR_BY);
 
     assign s_axi_awready = s_axi_awready_reg;
-    assign s_axi_wready = s_axi_wready_reg;
+    //assign s_axi_wready = s_axi_wready_reg; // todo: rework axi-datapath (issue #14)
+    assign s_axi_wready = i_write_word_ready; // the signal has to be passed through immediately from the controller to the axi interface - otherwise we have a clock cycle delay
     assign s_axi_bid = s_axi_bid_reg;
     assign s_axi_bresp = 2'b00;
     assign s_axi_bvalid = s_axi_bvalid_reg;

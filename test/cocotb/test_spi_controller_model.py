@@ -141,7 +141,7 @@ def test_spi_controller_model(wave=False):
     sources = [
         proj_path / "../../src/SPIController.v",
         proj_path / "../../src/SPITransmitter.v",
-        proj_path / "../../test/cocotb_wrapper/SPIController_wrapper.v",
+        proj_path / "../../test/cocotb_wrapper/SPIController_model_wrapper.v",
         proj_path / required_file,
     ]
 
@@ -153,12 +153,12 @@ def test_spi_controller_model(wave=False):
 
     runner.build(
         sources=sources,
-        hdl_toplevel="SPIController_wrapper",
+        hdl_toplevel="SPIController_model_wrapper",
         always=True,
     )
 
     runner.test(
-        hdl_toplevel="SPIController_wrapper",
+        hdl_toplevel="SPIController_model_wrapper",
         test_module="test_spi_controller_model",
         gui=wave,
         pre_cmd=["source ../parameter_spi_controller_model.tcl"],
