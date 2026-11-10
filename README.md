@@ -1,5 +1,6 @@
 # QSPI Memory Controller
-A memory controller with an AXI-Interface for SPI, and PSRAM Devices.
+A memory controller with an AXI-Interface for SPI devices.  
+Currently OSPI PSRAM is supported by the `OctalMemoryController` module and SPI/QSPI by the `QuadMemoryController` in the `./src/` folder. 
 
 ## Timing Constraints
 > [!IMPORTANT]
