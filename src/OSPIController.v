@@ -112,7 +112,7 @@ module OSPIController #(
 
     // Chip specific opcodes
     localparam INFINEON_CHIP = 1;
-    localparam APMEMORY_CHIP = 2;
+    //localparam APMEMORY_CHIP = 2;
 
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ_INFINEON = 8'hEE;   // Infineon
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_READ_APMEMORY = 8'h20;   // AP Memory
