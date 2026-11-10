@@ -1,9 +1,9 @@
 # Files which should be ignored due to dependencies etc.
 files:
-  - src/Basic_AXI_SPI.v
-  - src/SPIController.v
-  - src/MemoryController.v
-  - src/OSPIController.v
+  - experimental/Basic_AXI_SPI.v
+  - src/QuadSPIController.v
+  - src/QuadMemoryController.v
+  - src/OctalSPIController.v
   - src/OctalMemoryController.v
   - test/cocotb_wrapper/AXI_SPI_wrapper.v
   - test/cocotb_wrapper/HyperRAM_wrapper.v
