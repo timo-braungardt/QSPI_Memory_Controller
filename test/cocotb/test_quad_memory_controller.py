@@ -179,18 +179,18 @@ async def read_burst_test(dut, num_bytes):
     assert list(data.data) == test_data.get_test_array()
 
 
-def test_memory_controller():
+def test_quad_memory_controller():
     """
     Integration test of all modules in memory controller.
     """
     sim = os.getenv("SIM", "icarus")
     proj_path = Path(__file__).resolve().parent
     sources = [
-        proj_path / "../../src/SPIController.v",
-        proj_path / "../../src/SPITransmitter.v",
+        proj_path / "../../src/QuadSPIController.v",
+        proj_path / "../../src/QuadSPITransmitter.v",
         proj_path / "../../src/AXIInterface.v",
-        proj_path / "../../src/MemoryController.v",
-        proj_path / "../../test/cocotb_wrapper/Memory_Controller_wrapper.v",
+        proj_path / "../../src/QuadMemoryController.v",
+        proj_path / "../../test/cocotb_wrapper/Quad_Memory_Controller_wrapper.v",
     ]
 
     parameters = {}
@@ -201,14 +201,14 @@ def test_memory_controller():
     runner = get_runner(sim)
     runner.build(
         sources=sources,
-        hdl_toplevel="Memory_Controller_wrapper",
+        hdl_toplevel="Quad_Memory_Controller_wrapper",
         always=True,
         waves=True,
         parameters=parameters,
     )
     runner.test(
-        hdl_toplevel="Memory_Controller_wrapper",
-        test_module="test_memory_controller",
+        hdl_toplevel="Quad_Memory_Controller_wrapper",
+        test_module="test_quad_memory_controller",
         parameters=parameters,
         waves=True,
         extra_env=extra_env,
@@ -216,4 +216,4 @@ def test_memory_controller():
 
 
 if __name__ == "__main__":
-    test_memory_controller()
+    test_quad_memory_controller()

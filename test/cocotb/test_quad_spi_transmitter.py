@@ -353,19 +353,19 @@ async def read_test_burst_qspi(dut, num_bytes):
     assert recieved_data == list(test_data)
 
 
-def test_spi_transmitter():
+def test_quad_spi_transmitter():
     """
     Test if the basics of the SPI protocol are implemented correctly.
     """
     sim = os.getenv("SIM", "icarus")
     proj_path = Path(__file__).resolve().parent
-    sources = [proj_path / "../../src/SPITransmitter.v", 
-               proj_path / "../../test/cocotb_wrapper/SPITransmitter_wrapper.v"]
+    sources = [proj_path / "../../src/QuadSPITransmitter.v", 
+               proj_path / "../../test/cocotb_wrapper/Quad_SPI_Transmitter_wrapper.v"]
 
     runner = get_runner(sim)
-    runner.build(sources=sources, hdl_toplevel="SPITransmitter_wrapper", always=True, waves=True)
-    runner.test(hdl_toplevel="SPITransmitter_wrapper", test_module="test_spi_transmitter", waves=True)
+    runner.build(sources=sources, hdl_toplevel="Quad_SPI_Transmitter_wrapper", always=True, waves=True)
+    runner.test(hdl_toplevel="Quad_SPI_Transmitter_wrapper", test_module="test_quad_spi_transmitter", waves=True)
 
 
 if __name__ == "__main__":
-    test_spi_transmitter()
+    test_quad_spi_transmitter()

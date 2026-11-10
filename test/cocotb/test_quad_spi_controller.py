@@ -411,13 +411,13 @@ async def qspi_enable_test(dut):
 
 
 @pytest.mark.parametrize("data_width", [32, 64])
-def test_spi_controller(data_width):
+def test_quad_spi_controller(data_width):
     """
     Test the spi controller against cocotb memory models.
     """
     sim = os.getenv("SIM", "icarus")
     proj_path = Path(__file__).resolve().parent
-    sources = [proj_path / "../../src/SPIController.v", proj_path / "../../src/SPITransmitter.v", proj_path / "../../test/cocotb_wrapper/SPIController_wrapper.v"]
+    sources = [proj_path / "../../src/QuadSPIController.v", proj_path / "../../src/QuadSPITransmitter.v", proj_path / "../../test/cocotb_wrapper/Quad_SPI_Controller_wrapper.v"]
 
     parameters = {}
     parameters["DATA_WIDTH"] = data_width
@@ -427,14 +427,14 @@ def test_spi_controller(data_width):
     runner = get_runner(sim)
     runner.build(
         sources=sources,
-        hdl_toplevel="SPIController_wrapper",
+        hdl_toplevel="Quad_SPI_Controller_wrapper",
         always=True,
         waves=True,
         parameters=parameters,
     )
     runner.test(
-        hdl_toplevel="SPIController_wrapper",
-        test_module="test_spi_controller",
+        hdl_toplevel="Quad_SPI_Controller_wrapper",
+        test_module="test_quad_spi_controller",
         parameters=parameters,
         waves=True,
         extra_env=extra_env,
@@ -442,4 +442,4 @@ def test_spi_controller(data_width):
 
 
 if __name__ == "__main__":
-    test_spi_controller()
+    test_quad_spi_controller()

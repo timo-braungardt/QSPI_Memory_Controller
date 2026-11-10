@@ -198,7 +198,7 @@ async def write_test(dut):
     assert qspi_subordinate.data == [0x80, 0x01]
 
 
-def test_quad_spi():
+def test_qspi():
     """
     Test if the basics of the Quad SPI protocol are implemented correctly.
     """
@@ -208,8 +208,8 @@ def test_quad_spi():
 
     runner = get_runner(sim)
     runner.build(sources=sources, hdl_toplevel="QuadSPI", always=True, waves=True)
-    runner.test(hdl_toplevel="QuadSPI", test_module="test_quad_spi", waves=True)
+    runner.test(hdl_toplevel="QuadSPI", test_module="test_qspi", waves=True)
 
 
 if __name__ == "__main__":
-    test_quad_spi()
+    test_qspi()

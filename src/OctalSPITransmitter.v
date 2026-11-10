@@ -1,6 +1,6 @@
 `timescale 1ps / 1ps
 /*
-OctalSPI
+OSPI Transmitter
 
 Implementation of the octal spi interface.
 
@@ -10,7 +10,7 @@ The data is shifted out at the same time as the bus clock, therefore buffer have
 The data input does not have to be buffered. It can be sampled at the system clock edges.
 */
 
-module OctalSPI #(
+module OctalSPITransmitter #(
     parameter ADDRESS_LENGTH = 32,  // address is always 32 bit long
     parameter BYTE = 8,
     parameter CHIP_TYPE = -1  // 1 is Infineon, 2 is APMemory

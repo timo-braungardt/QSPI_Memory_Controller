@@ -260,7 +260,7 @@ def test_octal_spi_model(wave=False):
 
     proj_path = Path(__file__).resolve().parent
     sources = [
-        proj_path / "../../src/OctalSPI.v",
+        proj_path / "../../src/OctalSPITransmitter.v",
         proj_path / "../../test/cocotb_wrapper/Octal_SPI_wrapper.v",
         proj_path / required_file,
     ]

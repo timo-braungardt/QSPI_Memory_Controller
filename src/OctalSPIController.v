@@ -1,6 +1,6 @@
 `timescale 1ns / 100ps
 /*
-SPI Controller
+OSPI Controller
 
 Module to handle the SPI-Flash interface via the SPI transmitter.
 What it does:
@@ -11,7 +11,7 @@ What it does:
  - counts how many bytes are transfered
 */
 
-module OSPIController #(
+module OctalSPIController #(
     parameter ADDRESS_LENGTH = 32,
     parameter DATA_WIDTH = 32,
     parameter DATA_BYTES = DATA_WIDTH / 8,
@@ -151,7 +151,7 @@ module OSPIController #(
     end
 
 
-    OctalSPI #(
+    OctalSPITransmitter #(
         .ADDRESS_LENGTH(ADDRESS_LENGTH),
         .CHIP_TYPE(CHIP_TYPE)
     ) SPI_Transmitter (

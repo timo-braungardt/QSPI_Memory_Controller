@@ -130,7 +130,7 @@ async def qspi_read_test(dut):
     assert dut.o_data_read.value == 0x34
 
 
-def test_spi_controller_model(wave=False):
+def test_quad_spi_controller_model(wave=False):
     required_file = Path(
         "../../test/memory_models/infineon-s25hl512t-qspi-verilog-model-simulationmodels-en/s25hl512tRel/src/s25hl512t.sv"
     )
@@ -139,9 +139,9 @@ def test_spi_controller_model(wave=False):
 
     proj_path = Path(__file__).resolve().parent
     sources = [
-        proj_path / "../../src/SPIController.v",
-        proj_path / "../../src/SPITransmitter.v",
-        proj_path / "../../test/cocotb_wrapper/SPIController_model_wrapper.v",
+        proj_path / "../../src/QuadSPIController.v",
+        proj_path / "../../src/QuadSPITransmitter.v",
+        proj_path / "../../test/cocotb_wrapper/Quad_SPI_Controller_model_wrapper.v",
         proj_path / required_file,
     ]
 
@@ -153,17 +153,17 @@ def test_spi_controller_model(wave=False):
 
     runner.build(
         sources=sources,
-        hdl_toplevel="SPIController_model_wrapper",
+        hdl_toplevel="Quad_SPI_Controller_model_wrapper",
         always=True,
     )
 
     runner.test(
-        hdl_toplevel="SPIController_model_wrapper",
-        test_module="test_spi_controller_model",
+        hdl_toplevel="Quad_SPI_Controller_model_wrapper",
+        test_module="test_quad_spi_controller_model",
         gui=wave,
         pre_cmd=["source ../parameter_spi_controller_model.tcl"],
     )
 
 
 if __name__ == "__main__":
-    test_spi_controller_model(True)
+    test_quad_spi_controller_model(True)

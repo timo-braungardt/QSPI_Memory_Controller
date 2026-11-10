@@ -1,11 +1,11 @@
 `timescale 1ns / 100ps
 /*
-SPI Transmitter
+QSPI Transmitter
 
-Module to convert a data word to the SPI protocoll.
+Module to convert a data word to the SPI and QSPI protocol.
 */
 
-module SPITransmitter #(
+module QuadSPITransmitter #(
     parameter ADDRESS_LENGTH = 24,
     parameter BYTE = 8
 ) (

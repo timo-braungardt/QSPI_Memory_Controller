@@ -1,6 +1,6 @@
 `timescale 1ns / 100ps
 /*
-SPI Controller
+QSPI Controller
 
 Module to handle the SPI-Flash interface via the SPI transmitter.
 What it does:
@@ -11,7 +11,7 @@ What it does:
  - counts how many bytes are transfered
 */
 
-module SPIController #(
+module QuadSPIController #(
     // Warining: the SPI flash chips start with a 24 bit address width.
     // ToDo: the automatic upgrade to 32bit address width is not yet implemented (issue #16)
     parameter ADDRESS_LENGTH = 24,
@@ -115,7 +115,7 @@ module SPIController #(
     assign o_recieved_next_word = read_next_word_reg;
 
 
-    SPITransmitter #(
+    QuadSPITransmitter #(
         .ADDRESS_LENGTH(ADDRESS_LENGTH)
     ) SPI_Transmitter (
         .clk(clk),

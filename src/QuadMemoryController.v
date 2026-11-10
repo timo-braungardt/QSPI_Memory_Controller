@@ -1,11 +1,11 @@
 `timescale 1ns / 100ps
 /*
-Memory Controller
+Quad Memory Controller
 
-Module to wrap all components together and connect the AXI to the SPI Controller.
+Module to wrap all components together and connect the AXI to the Quad SPI Controller.
 */
 
-module MemoryController #(
+module QuadMemoryController #(
     parameter ADDR_WIDTH = 24,
     parameter DATA_WIDTH = 32,
     parameter STRB_WIDTH = (DATA_WIDTH / 8),
@@ -100,7 +100,7 @@ module MemoryController #(
     assign spi_number_bytes_muxed = (axi_write_enable) ? spi_number_bytes_write : spi_number_bytes_read;
 
 
-    SPIController #(
+    QuadSPIController #(
         .ADDRESS_LENGTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
         .MAX_NUM_BYTES(MAX_NUM_BYTES)

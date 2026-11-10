@@ -1,6 +1,6 @@
 `timescale 1ns / 100ps
 
-module Memory_Controller_model_wrapper #(
+module Quad_Memory_Controller_model_wrapper #(
     parameter ADDR_WIDTH = 24,
     parameter DATA_WIDTH = 32,
     parameter STRB_WIDTH = (DATA_WIDTH / 8),
@@ -63,7 +63,7 @@ module Memory_Controller_model_wrapper #(
     assign data[2] = (spi_data_output_enable) ? (spi_quad_mode_output_enable) ? spi_o_data[2] : 1'bZ : 1'bZ;
     assign data[3] = (spi_data_output_enable) ? (spi_quad_mode_output_enable) ? spi_o_data[3] : 1'bZ : 1'bZ;
 
-    MemoryController #(
+    QuadMemoryController #(
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH)
     ) Controller (

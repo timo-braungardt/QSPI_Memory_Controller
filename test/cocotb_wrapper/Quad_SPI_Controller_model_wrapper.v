@@ -1,6 +1,6 @@
 `timescale 1ns / 100ps
 
-module SPIController_model_wrapper #(
+module Quad_SPI_Controller_model_wrapper #(
     parameter ADDRESS_LENGTH = 24,
     parameter DATA_WIDTH = 8
 );

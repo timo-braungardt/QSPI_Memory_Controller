@@ -105,7 +105,7 @@ async def readwrite_unalligned_test(dut, params):
     assert list(data.data) == test_data.get_test_array()
 
 
-def test_memory_controller_model(wave=False):
+def test_quad_memory_controller_model(wave=False):
     """
     Integration test of all modules in memory controller.
     """
@@ -118,11 +118,11 @@ def test_memory_controller_model(wave=False):
 
     proj_path = Path(__file__).resolve().parent
     sources = [
-        proj_path / "../../src/SPIController.v",
-        proj_path / "../../src/SPITransmitter.v",
+        proj_path / "../../src/QuadSPIController.v",
+        proj_path / "../../src/QuadSPITransmitter.v",
         proj_path / "../../src/AXIInterface.v",
-        proj_path / "../../src/MemoryController.v",
-        proj_path / "../../test/cocotb_wrapper/Memory_Controller_model_wrapper.v",
+        proj_path / "../../src/QuadMemoryController.v",
+        proj_path / "../../test/cocotb_wrapper/Quad_Memory_Controller_model_wrapper.v",
         proj_path / required_file,
     ]
 
@@ -139,17 +139,17 @@ def test_memory_controller_model(wave=False):
 
     runner.build(
         sources=sources,
-        hdl_toplevel="Memory_Controller_model_wrapper",
+        hdl_toplevel="Quad_Memory_Controller_model_wrapper",
         always=True,
         waves=True,
         parameters=parameters,
     )
     runner.test(
-        hdl_toplevel="Memory_Controller_model_wrapper",
-        test_module="test_memory_controller_model",
+        hdl_toplevel="Quad_Memory_Controller_model_wrapper",
+        test_module="test_quad_memory_controller_model",
         parameters=parameters,
         gui=wave,
-        pre_cmd=["source ../parameter_memory_controller_model.tcl"],
+        pre_cmd=["source ../parameter_quad_memory_controller_model.tcl"],
         extra_env=extra_env,
     )
 

@@ -1,8 +1,8 @@
 `timescale 1ns / 100ps
 /*
-Memory Controller
+Octal Memory Controller
 
-Module to wrap all components together and connect the AXI to the SPI Controller.
+Module to wrap all components together and connect the AXI to the Octal SPI Controller.
 */
 
 module OctalMemoryController #(
@@ -82,7 +82,7 @@ module OctalMemoryController #(
     wire axi_start_transaction;
 
 
-    OSPIController #(
+    OctalSPIController #(
         .ADDRESS_LENGTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
         .CHIP_TYPE(CHIP_TYPE)

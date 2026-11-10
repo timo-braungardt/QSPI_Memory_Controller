@@ -1,6 +1,6 @@
 `timescale 1ns / 100ps
 
-module SPIController_wrapper #(
+module Quad_SPI_Controller_wrapper #(
     parameter ADDRESS_LENGTH = 24,
     parameter DATA_WIDTH = 8,
     parameter MAX_NUM_BYTES = $clog2(256)
@@ -41,7 +41,7 @@ module SPIController_wrapper #(
     assign io_data3 = (spi_data_output_enable) ? (spi_quad_mode_output_enable) ? spi_o_data[3] : 1'bZ : 1'bZ;
 
 
-    SPIController #(
+    QuadSPIController #(
         .ADDRESS_LENGTH(ADDRESS_LENGTH),
         .DATA_WIDTH(DATA_WIDTH)
     ) Controller (
