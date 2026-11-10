@@ -4,23 +4,23 @@ groups:
     files: 
       - src/Basic_AXI_SPI.v
       - src/BasicSPI.v
-  - top: SPIController
+  - top: QuadSPIController
     files: 
-      - src/SPIController.v
-      - src/SPITransmitter.v
-  - top: MemoryController
+      - src/QuadSPIController.v
+      - src/QuadSPITransmitter.v
+  - top: QuadMemoryController
     files: 
-      - src/MemoryController.v
-      - src/SPIController.v
-      - src/SPITransmitter.v
+      - src/QuadMemoryController.v
+      - src/QuadSPIController.v
+      - src/QuadSPITransmitter.v
       - src/AXIInterface.v
   - top: OctalMemoryController
     files: 
       - src/OctalMemoryController.v
-      - src/OSPIController.v 
-      - src/OctalSPI.v
+      - src/OctalSPIController.v 
+      - src/OctalSPITransmitter.v
       - src/AXIInterface.v
-  - top: OSPIController
+  - top: OctalSPIController
     files: 
-      - src/OSPIController.v
-      - src/OctalSPI.v
+      - src/OctalSPIController.v
+      - src/OctalSPITransmitter.v

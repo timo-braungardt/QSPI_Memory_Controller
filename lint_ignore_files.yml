@@ -8,13 +8,13 @@ files:
   - test/cocotb_wrapper/AXI_SPI_wrapper.v
   - test/cocotb_wrapper/HyperRAM_wrapper.v
   - test/cocotb_wrapper/SPI_wrapper.v
-  - test/cocotb_wrapper/SPITransmitter_wrapper.v
-  - test/cocotb_wrapper/SPIController_model_wrapper.v
-  - test/cocotb_wrapper/SPIController_wrapper.v
+  - test/cocotb_wrapper/Quad_SPITransmitter_wrapper.v
+  - test/cocotb_wrapper/Quad_SPIController_model_wrapper.v
+  - test/cocotb_wrapper/Quad_SPIController_wrapper.v
   - test/cocotb_wrapper/Octal_SPI_wrapper.v
   - test/cocotb_wrapper/Octal_SPI_Controller_wrapper.v
   - test/cocotb_wrapper/Octal_Memory_Controller_wrapper.v
   - test/cocotb_wrapper/Combined_SPI_wrapper.v
-  - test/cocotb_wrapper/Memory_Controller_wrapper.v
-  - test/cocotb_wrapper/Memory_Controller_model_wrapper.v
+  - test/cocotb_wrapper/Quad_Memory_Controller_wrapper.v
+  - test/cocotb_wrapper/Quad_Memory_Controller_model_wrapper.v
   - test/hardware_verification/octal_nexys_video/top.v
