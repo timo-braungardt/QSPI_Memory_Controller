@@ -116,7 +116,7 @@ module OctalSPI #(
     localparam integer NUM_SHORT_LATENCY_CYCLES = LATENCY_CYCLES + LATENCY_OFFSET;
     localparam integer NUM_LONG_LATENCY_CYCLES = 2 * LATENCY_CYCLES + LATENCY_OFFSET;
     //localparam integer READ_LATENCY_IN_CYCLE = 1; // (issue #15)
-    localparam integer TEMP_OPERATION_CYCLES = 1;   // transfer 2 bytes // ToDo: make dynamic handshake (issue #12)
+    localparam integer TEMP_OPERATION_CYCLES = 1;   // transfer 2 bytes
 
     // ToDo: why was this in en_data_strobe?: | state_reg == WAIT_LATENCY 
     assign en_data_strobe  = (state_reg == SEND_DATA | (~i_config_read_data & (state_reg == CS_HIGH | state_reg == FINISH)));   // FINISH is needed, because otherwise the model does not store the value
