@@ -9,6 +9,9 @@ The Octal SPI interface runns on dual data without any DDR macro.
 You can find some examples in the `/test/hardware_verification/` folder.
 In simulation, the octal data out has to be delayed relative to the bus clock.
 
+At the moment the OSPI memory controller has a valid bitstream with an 50MHz system clock.
+This gives a transfer speed of 47MiB/sec.
+
 ### Code Formating
 For Verilog the [Verible formater](https://open-vsx.org/extension/bmpenuelas/systemverilog-formatter-vscode) was used with the settings:
 ```
