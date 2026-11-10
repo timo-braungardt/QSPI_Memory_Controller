@@ -138,7 +138,7 @@ module SPITransmitter #(
     end
 
 
-    always @(posedge clk or negedge reset_neg) begin : clock_handler_register
+    always @(posedge clk) begin : clock_handler_register
         if (!reset_neg) begin
             clk_bus_reg <= 0;
             clock_count_reg <= 0;
@@ -261,7 +261,7 @@ module SPITransmitter #(
     end
 
 
-    always @(posedge clk or negedge reset_neg) begin : transmission_register
+    always @(posedge clk) begin : transmission_register
         if (!reset_neg) begin
             state_reg <= IDLE;
             count_reg <= 0;
@@ -336,7 +336,7 @@ module SPITransmitter #(
     wire [  DATA_SEL_MSB_QUAD:0] index_data_recieve_quad_mode = count_reg[DATA_SEL_MSB_QUAD:0];
     wire [DATA_SEL_MSB_SINGLE:0] index_data_recieve_single_mode = count_reg[DATA_SEL_MSB_SINGLE:0];
 
-    always @(posedge clk or negedge reset_neg) begin : data_register
+    always @(posedge clk) begin : data_register
         if (!reset_neg) begin
             data_out_reg  <= 0;
             data_read_reg <= 0;

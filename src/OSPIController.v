@@ -130,7 +130,7 @@ module OSPIController #(
     assign o_reset_neg = reset_neg_spi;
     integer reset_counter;
 
-    always @(posedge clk or negedge reset_neg) begin
+    always @(posedge clk) begin
         if (!reset_neg) begin
             reset_counter <= 0;
             reset_neg_spi <= 0;
@@ -239,7 +239,7 @@ module OSPIController #(
     end
 
 
-    always @(posedge clk or negedge reset_neg) begin : control_register
+    always @(posedge clk) begin : control_register
         if (!reset_neg) begin
             control_state_reg <= IDLE;
             address_reg <= 0;
@@ -308,7 +308,7 @@ module OSPIController #(
     // problem: when an unalligned read is done, some old data still resides in the read register
     // either it should be reset to 0 or masked out by the byte strobe thingy (issue #18)
 
-    always @(posedge clk or negedge reset_neg) begin : data_register
+    always @(posedge clk) begin : data_register
         data_in_muxed_reg <= data_in_muxed_nxt;
         data_mask_reg <= data_mask_nxt;
         last_word_reg <= last_word_nxt;

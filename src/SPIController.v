@@ -206,7 +206,7 @@ module SPIController #(
     end
 
 
-    always @(posedge clk or negedge reset_neg) begin : control_register
+    always @(posedge clk) begin : control_register
         address_reg <= address_nxt;
         opcode_reg <= opcode_nxt;
         control_state_reg <= control_state_nxt;
@@ -269,7 +269,7 @@ module SPIController #(
     // problem: when an unalligned read is done, some old data still resides in the read register
     // either it should be reset to 0 or masked out by the byte strobe thingy (issue #18)
 
-    always @(posedge clk or negedge reset_neg) begin : data_register
+    always @(posedge clk) begin : data_register
         data_in_muxed_reg <= data_in_muxed_nxt;
         byte_count_reg <= byte_count_nxt;
         byte_index_reg <= byte_index_nxt;

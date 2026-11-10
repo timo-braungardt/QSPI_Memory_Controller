@@ -142,7 +142,7 @@ module OctalSPI #(
     end
 
 
-    always @(posedge clk or negedge reset_neg) begin : clock_register
+    always @(posedge clk) begin : clock_register
         if (~reset_neg) begin
             bus_clock_reg <= 0;
             bus_clock_p2_reg <= 0;
@@ -239,7 +239,7 @@ module OctalSPI #(
     end
 
 
-    always @(posedge clk or negedge reset_neg) begin : state_machine_register
+    always @(posedge clk) begin : state_machine_register
         if (~reset_neg) begin
             state_reg <= IDLE;
             count_reg <= 0;
@@ -287,7 +287,7 @@ module OctalSPI #(
     end
 
 
-    always @(posedge clk or negedge reset_neg) begin : data_register
+    always @(posedge clk) begin : data_register
         if (~reset_neg) begin
             data_out_reg <= 0;
             recieved_next_byte_reg <= 0;

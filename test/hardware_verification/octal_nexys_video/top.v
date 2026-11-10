@@ -63,22 +63,15 @@ module top #(
     wire axi_rready;
     
     wire sys_clk;
-    wire sync_reset_neg;
 
 
     clk_wiz_0 mmcm (
         .clk_out1(sys_clk),          
-        .reset(~sync_reset_neg),
+        .reset(reset),
         .clk_in1(clk)
     );
 
 
-    ResetSynchronizer Synchronizer (
-        .clk(clk),
-        .async_reset_neg(reset),
-        .o_reset_neg(sync_reset_neg)
-    );
-    
     wire [7:0] data;
     wire data_strobe;
     wire [7:0] spi_i_data, spi_o_data;
@@ -100,10 +93,11 @@ module top #(
     OctalMemoryController #(
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
-        .CHIP_TYPE (APMEMORY_CHIP)
+        .ID_WIDTH(ID_WIDTH),
+        .CHIP_TYPE(APMEMORY_CHIP)
     ) Controller (
         .clk  (sys_clk),
-        .reset_neg(sync_reset_neg),
+        .reset_neg(~reset),
 
         // SPI Pins
         .o_spi_bus_clock(o_spi_bus_clock),
@@ -160,7 +154,7 @@ module top #(
 
     jtag_axi_0 JTAG_AXI_Module (
         .aclk(sys_clk),
-        .aresetn(sync_reset_neg),
+        .aresetn(~reset),
 
         .m_axi_awid(axi_awid),
         .m_axi_awaddr(axi_awaddr),
