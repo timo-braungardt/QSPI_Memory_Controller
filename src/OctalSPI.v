@@ -71,6 +71,7 @@ module OctalSPI #(
     reg bus_clock_p2_nxt;
     integer clock_count_reg;
     integer clock_count_nxt;
+    wire is_transfer_even = bus_clock_p2_reg;
 
     // states transmission FSM
     localparam NUM_STATES = 9;
@@ -225,11 +226,9 @@ module OctalSPI #(
             SEND_DATA: begin
                 count_nxt = 0;
 
-                // we check the clock, because we always have to send two bytes
-                // on the first byte sent out, the clock is always low  ToDo: (issue #12) maybe better description
-                // additionally we check for the count, so if we only write one byte, we do not already skip to the next state and skip the bus clock
-                // probably this should be reworked as well (issue #12)
-                if (i_last_byte & bus_clock_p2_reg & count_reg == 0) begin
+                // we always have to send two bytes
+                // additionally we check for the count - if we only write one byte the state machine would skip the transfer
+                if (i_last_byte & is_transfer_even & count_reg == 0) begin
                     state_nxt = CS_HIGH;
                 end
             end
@@ -278,8 +277,8 @@ module OctalSPI #(
 
             SEND_DATA: begin
                 data_out_nxt = i_data_write;
-                // if we wrote the last byte and we wrote an uneven ammount of bytes, we have to mask the next byte
-                if (i_last_byte & ~bus_clock_p2_reg & count_reg == 0)
+                // if we wrote the last byte and we wrote an uneven ammount of bytes, we have to mask the next byte transfer
+                if (i_last_byte & ~is_transfer_even & count_reg == 0)
                     data_strobe_out_nxt = 1'b1;
                 else
                     data_strobe_out_nxt = i_data_byte_mask;
