@@ -30,7 +30,7 @@ module Quad_SPI_Controller_model_wrapper #(
     assign data[3] = (spi_data_output_enable) ? (spi_quad_mode_output_enable) ? spi_o_data[3] : 1'bZ : 1'bZ;
 
 
-    SPIController #(
+    QuadSPIController #(
         .ADDRESS_LENGTH(ADDRESS_LENGTH),
         .DATA_WIDTH(DATA_WIDTH)
     ) Controller (
