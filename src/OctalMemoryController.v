@@ -75,8 +75,8 @@ module OctalMemoryController #(
     wire spi_next_word;
     wire spi_recieved_next_word;
     wire [ADDR_WIDTH-1:0] axi_address;
-    wire [DATA_WIDTH-1:0] axi_data_read;
-    wire [DATA_WIDTH-1:0] axi_data_write;
+    wire [DATA_WIDTH-1:0] axi_read_data;
+    wire [DATA_WIDTH-1:0] axi_write_data;
     wire axi_write_enable;
     wire axi_last_word;
     wire axi_start_transaction;
@@ -94,9 +94,9 @@ module OctalMemoryController #(
         .i_address(axi_address),
         .i_write_enable(axi_write_enable),
         .i_last_word(axi_last_word),
-        .i_data_write(axi_data_write),
-        .i_data_word_mask(~s_axi_wstrb), // the axi write strobe signals are inverted to the octal-spi signals
-        .o_data_read(axi_data_read),
+        .i_write_data(axi_write_data),
+        .i_write_data_word_mask(~s_axi_wstrb), // the axi write strobe signals are inverted to the octal-spi signals
+        .o_read_data(axi_read_data),
         .o_busy(spi_busy),
         .o_next_word(spi_next_word),
         .o_recieved_next_word(spi_recieved_next_word),
@@ -134,8 +134,8 @@ module OctalMemoryController #(
         .o_write_enable(axi_write_enable),
         .o_start_transaction(axi_start_transaction),
         .o_address(axi_address),
-        .o_write_data(axi_data_write),
-        .i_read_data(axi_data_read),
+        .o_write_data(axi_write_data),
+        .i_read_data(axi_read_data),
 
         // AXI Pins
         .s_axi_awid(s_axi_awid),

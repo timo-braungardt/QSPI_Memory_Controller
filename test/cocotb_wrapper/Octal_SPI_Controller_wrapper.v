@@ -26,9 +26,9 @@ module Octal_SPI_Controller_wrapper #(
     wire o_finish,o_next_word,o_recieved_next_word;
 
     reg [ADDR_WIDTH-1:0] i_address;
-    reg [DATA_WIDTH-1:0] i_data_write;
-    reg [STRB_WIDTH-1:0]i_data_word_mask;
-    reg [DATA_WIDTH-1:0] o_data_read;
+    reg [DATA_WIDTH-1:0] i_write_data;
+    reg [STRB_WIDTH-1:0] i_write_data_word_mask;
+    reg [DATA_WIDTH-1:0] o_read_data;
     reg i_write_enable;
     reg i_last_word;
 
@@ -43,7 +43,7 @@ module Octal_SPI_Controller_wrapper #(
     assign #1 data_strobe = (spi_data_strobe_output_enable) ? spi_o_data_strobe : 1'bz;
     assign spi_i_data_strobe = data_strobe;
 
-    OSPIController #(
+    OctalSPIController #(
         .ADDRESS_LENGTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
         .CHIP_TYPE(INFINEON_CHIP)
@@ -55,9 +55,9 @@ module Octal_SPI_Controller_wrapper #(
         .i_address(i_address),
         .i_write_enable(i_write_enable),
         .i_last_word(i_last_word),
-        .i_data_write(i_data_write),
-        .i_data_word_mask(i_data_word_mask),
-        .o_data_read(o_data_read),
+        .i_write_data(i_write_data),
+        .i_write_data_word_mask(i_write_data_word_mask),
+        .o_read_data(o_read_data),
         .o_busy(busy),
         .o_next_word(o_next_word),
         .o_recieved_next_word(o_recieved_next_word),

@@ -56,8 +56,8 @@ def config_transaction(dut, opcode, address=0, data=0, only_one_word=True):
     dut.i_last_word.value = only_one_word
 
     if opcode == OPCODE.write:
-        dut.i_data_write.value = data
-        dut.i_data_word_mask.value = 0
+        dut.i_write_data.value = data
+        dut.i_write_data_word_mask.value = 0
         dut.i_write_enable.value = True
 
     if opcode == OPCODE.read:
@@ -81,11 +81,11 @@ async def handle_write_burst(dut, test_data):
         if i == num_loops - 1:
             dut.i_last_word.value = True
 
-        dut.i_data_write.value = test_data.get_test_number_word(i * DATA_WIDTH_BYTES)
+        dut.i_write_data.value = test_data.get_test_number_word(i * DATA_WIDTH_BYTES)
 
     if last_num_bytes != 0:
         await First(RisingEdge(dut.bus_clock), FallingEdge(dut.bus_clock))
-        dut.i_data_write.value = test_data.get_test_number_word(
+        dut.i_write_data.value = test_data.get_test_number_word(
             num_loops * DATA_WIDTH_BYTES, last_num_bytes
         )
 
@@ -107,7 +107,7 @@ async def handle_read_burst(dut, num_bytes):
         for x in range(DATA_WIDTH_BYTES):
             lower = x * 8
             upper = (x+1) *8 -1
-            data = dut.o_data_read.value
+            data = dut.o_read_data.value
             recieved_data.append(data[upper:lower].to_unsigned())
         dut.Controller.data_read_reg.value = 0  # ToDo: the other bytes have to be masked (issue #18)
 
@@ -147,7 +147,7 @@ async def write_mask_test(dut):
 
     MemoryModelHelper.set_memory_s70kl1283(dut.Memory, address, [0]*4)
     config_transaction(dut, OPCODE.write, address=address, data=test_data.get_test_number())
-    dut.i_data_word_mask.value = 0b0110
+    dut.i_write_data_word_mask.value = 0b0110
     await trigger_go(dut)
     await wait_for_idle(dut)
     await wait_for_idle(dut)
@@ -177,7 +177,7 @@ async def read_test(dut):
     await trigger_go(dut)
     await wait_for_idle(dut)
 
-    recieved_data = dut.o_data_read.value
+    recieved_data = dut.o_read_data.value
     # since now we only read word wise, we have to append some data to the test data
     # (issue #18)
     test_data._array.append(0x00)
@@ -208,7 +208,7 @@ async def variable_latency_test(dut):
     await trigger_go(dut)
     await wait_for_idle(dut)
 
-    assert dut.o_data_read.value.to_unsigned() == test_data.get_test_number()
+    assert dut.o_read_data.value.to_unsigned() == test_data.get_test_number()
 
 
 @cocotb.test()

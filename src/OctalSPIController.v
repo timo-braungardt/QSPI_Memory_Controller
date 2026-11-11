@@ -25,9 +25,9 @@ module OctalSPIController #(
     input  [ADDRESS_LENGTH-1:0] i_address,
     input                       i_write_enable,
     input                       i_last_word,
-    input  [    STRB_WIDTH-1:0] i_data_word_mask,
-    input  [    DATA_WIDTH-1:0] i_data_write,
-    output [    DATA_WIDTH-1:0] o_data_read,
+    input  [    STRB_WIDTH-1:0] i_write_data_word_mask,
+    input  [    DATA_WIDTH-1:0] i_write_data,
+    output [    DATA_WIDTH-1:0] o_read_data,
     output                      o_busy,
     output                      o_next_word,
     output                      o_recieved_next_word,
@@ -192,7 +192,7 @@ module OctalSPIController #(
     assign config_write_data = (control_state_reg == WRITE || control_state_reg == WRITE_CONFIG);
     assign config_write_address = (control_state_reg == READ || control_state_reg == WRITE || control_state_reg == WRITE_CONFIG);
     assign o_busy = (control_state_reg != IDLE);
-    assign o_data_read = data_read_reg;
+    assign o_read_data = data_read_reg;
 
 
     integer delay_fsm;  // ToDo: make this more beautifull - the state machine probably needs multiple delays. (issue #10)
@@ -283,8 +283,8 @@ module OctalSPIController #(
         // to get the first data byte
         if (control_state_reg == IDLE) begin
             if (go) begin
-                data_in_muxed_nxt = (config_is_config_operation) ? config_data_reg : i_data_write;
-                data_mask_nxt = i_data_word_mask;
+                data_in_muxed_nxt = (config_is_config_operation) ? config_data_reg : i_write_data;
+                data_mask_nxt = i_write_data_word_mask;
                 last_word_nxt = (config_is_config_operation) ? 1'b1 : i_last_word;
                 byte_index_nxt = 0;
                 last_byte_nxt = 0;
@@ -305,8 +305,8 @@ module OctalSPIController #(
                     read_next_word_nxt = 1;
                 end else byte_index_nxt = byte_index_reg + 1;
 
-                data_in_muxed_nxt = (config_is_config_operation) ? config_data_reg : i_data_write;
-                data_mask_nxt = i_data_word_mask;
+                data_in_muxed_nxt = (config_is_config_operation) ? config_data_reg : i_write_data;
+                data_mask_nxt = i_write_data_word_mask;
                 last_word_nxt = i_last_word;
             end
         end
