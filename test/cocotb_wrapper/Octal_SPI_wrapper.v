@@ -15,18 +15,21 @@ module Octal_SPI_wrapper #(
     reg clk;
     reg go;
     reg reset_neg = 1'b0;
+    integer test_number = 0;
 
     wire [7:0] data;
     wire bus_clock, bus_clock_neg, chip_select_neg, data_strobe;
     wire [7:0] spi_i_data, spi_o_data;
     wire spi_i_data_strobe, spi_o_data_strobe;
     wire spi_data_output_enable, spi_data_strobe_output_enable;
-    wire i_config_read_data, i_config_write_data,i_config_write_address,o_finish,o_write_next_byte,o_read_next_byte;
+    wire i_config_read_data, i_config_write_data,i_config_write_address,o_finish,o_read_next_byte;
 
     reg [ADDR_WIDTH-1:0] i_address;
     reg [7:0] i_opcode;
+    reg                  i_write_valid;      
     reg                  i_write_data_byte_mask;
     reg [DATA_WIDTH-1:0] i_write_data;
+    reg                  o_write_ready;    
     reg [DATA_WIDTH-1:0] o_read_data;
     reg i_write_enable;
     reg i_last_byte;
@@ -52,14 +55,16 @@ module Octal_SPI_wrapper #(
         .i_address(i_address),
         .i_opcode(i_opcode),
         .i_last_byte(i_last_byte),
+        .i_write_valid(i_write_valid),
         .i_write_data_byte_mask(i_write_data_byte_mask),
         .i_write_data(i_write_data),
+        .o_write_ready(o_write_ready),
+
         .o_read_data(o_read_data),
         .i_config_read_data(i_config_read_data),
         .i_config_write_data(i_config_write_data),
         .i_config_write_address(i_config_write_address),
         .o_finish(o_finish),
-        .o_write_next_byte(o_write_next_byte),
         .o_read_next_byte(o_read_next_byte),
 
 

@@ -25,11 +25,12 @@ module OctalSPITransmitter #(
     input                       i_config_write_data,
     input                       i_config_write_address,
     input                       i_last_byte,
+    input                       i_write_valid,
     input                       i_write_data_byte_mask,
     input  [          BYTE-1:0] i_write_data,
+    output                      o_write_ready,
     output [          BYTE-1:0] o_read_data,
     output                      o_finish,
-    output                      o_write_next_byte,
     output                      o_read_next_byte,
 
     // OctalSPI Pins
@@ -98,6 +99,15 @@ module OctalSPITransmitter #(
 
     assign o_read_data = data_read_reg;
 
+    // Data Bus
+    reg [BUS_WIDTH-1 : 0] write_data_reg;
+    reg                   write_data_byte_mask_reg;
+    reg                   write_valid_reg;
+    reg                   write_last_byte_reg;
+    reg                   write_last_byte_reg_p2;
+
+    assign o_write_ready = (state_reg == SEND_DATA) || !write_valid_reg;
+
     // constants
     localparam INFINEON_CHIP = 1;
     localparam APMEMORY_CHIP = 2;
@@ -128,7 +138,6 @@ module OctalSPITransmitter #(
     assign o_bus_clock_neg = ~bus_clock_p2_reg;
     assign o_finish = (state_reg == FINISH);
     assign o_read_next_byte = recieved_next_byte_reg;
-    assign o_write_next_byte = (state_reg == SEND_DATA);
     assign o_spi_data_output_enable = en_data_out_reg;
     assign o_spi_data = data_out_reg;
     assign o_spi_data_strobe_output_enable = en_data_strobe;
@@ -228,7 +237,7 @@ module OctalSPITransmitter #(
 
                 // we always have to send two bytes
                 // additionally we check for the count - if we only write one byte the state machine would skip the transfer
-                if (i_last_byte & is_transfer_even & count_reg == 0) begin
+                if (write_last_byte_reg_p2 & is_transfer_even & count_reg == 0) begin
                     state_nxt = CS_HIGH;
                 end
             end
@@ -276,12 +285,12 @@ module OctalSPITransmitter #(
             end
 
             SEND_DATA: begin
-                data_out_nxt = i_write_data;
+                data_out_nxt = write_data_reg;
                 // if we wrote the last byte and we wrote an uneven ammount of bytes, we have to mask the next byte transfer
-                if (i_last_byte & ~is_transfer_even & count_reg == 0)
+                if (write_last_byte_reg_p2 & ~is_transfer_even & count_reg == 0)
                     data_strobe_out_nxt = 1'b1;
                 else
-                    data_strobe_out_nxt = i_write_data_byte_mask;
+                    data_strobe_out_nxt = write_data_byte_mask_reg;
             end
 
             default: ;
@@ -294,6 +303,11 @@ module OctalSPITransmitter #(
             data_out_reg <= 0;
             recieved_next_byte_reg <= 0;
             data_read_reg <= 0;
+            write_data_reg <= 0;
+            write_data_byte_mask_reg <= 0;
+            write_valid_reg <= 0;
+            write_last_byte_reg <= 0;
+            write_last_byte_reg_p2 <= 0;
         end else begin
             data_out_reg <= data_out_nxt;
             recieved_next_byte_reg <= 1'b0;
@@ -301,6 +315,20 @@ module OctalSPITransmitter #(
             if (state_reg == RECEIVE_DATA) begin
                 data_read_reg <= i_spi_data;
                 recieved_next_byte_reg <= 1'b1;
+            end
+
+            if (o_write_ready) begin
+                write_data_reg <= i_write_data;
+                write_data_byte_mask_reg <= i_write_data_byte_mask;
+                write_valid_reg <= i_write_valid;
+                write_last_byte_reg <= i_last_byte;
+                write_last_byte_reg_p2 <= write_last_byte_reg;
+            end else begin
+                write_data_reg <= write_data_reg;
+                write_data_byte_mask_reg <= write_data_byte_mask_reg;
+                write_valid_reg <= write_valid_reg;
+                write_last_byte_reg <= write_last_byte_reg;
+                write_last_byte_reg_p2 <= write_last_byte_reg_p2;   // this signal shows if the current byte on the bus is the last ToDo: can we do this without this value? (issue #14)
             end
         end
     end

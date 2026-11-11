@@ -20,6 +20,8 @@ class OPCODE:
 
 
 async def reset_model(dut):
+    dut.test_number.value = dut.test_number.value + 1
+    dut.i_write_valid.value = False
     dut.reset_neg.value = 0
     await Timer(200, unit="ns")  # t_RP
     dut.reset_neg.value = 1
@@ -54,6 +56,7 @@ def config_transaction(dut, opcode, address=0, data=0, only_one_byte=True):
 
     if opcode == OPCODE.write:
         dut.i_write_data.value = data
+        dut.i_write_valid.value = True
         dut.i_config_read_data.value = False
         dut.i_config_write_data.value = True
         dut.i_config_write_address.value = True
@@ -78,13 +81,19 @@ def config_transaction(dut, opcode, address=0, data=0, only_one_byte=True):
 
 async def handle_write_burst(dut, test_data):
     num_loops = len(test_data)
-    await dut.o_write_next_byte.value_change
 
     for i in range(1, num_loops):
-        await RisingEdge(dut.clk)
         dut.i_write_data.value = test_data[i]
-        if (num_loops - i) == 0:
+        dut.i_write_valid.value = True
+
+        if i == 1:
+            await dut.o_write_ready.value_change
+
+        if (num_loops - i) == 1:
             dut.i_last_byte.value = True
+
+        await RisingEdge(dut.clk)
+    
     await RisingEdge(dut.clk)
     dut.i_last_byte.value = True
     await wait_for_idle(dut)
