@@ -25,12 +25,12 @@ module OctalSPITransmitter #(
     input                       i_config_write_data,
     input                       i_config_write_address,
     input                       i_last_byte,
-    input                       i_data_byte_mask,
-    input  [          BYTE-1:0] i_data_write,
-    output [          BYTE-1:0] o_data_read,
+    input                       i_write_data_byte_mask,
+    input  [          BYTE-1:0] i_write_data,
+    output [          BYTE-1:0] o_read_data,
     output                      o_finish,
-    output                      o_need_next_byte,
-    output                      o_recieved_next_byte,
+    output                      o_write_next_byte,
+    output                      o_read_next_byte,
 
     // OctalSPI Pins
     output     o_bus_clock,
@@ -96,7 +96,7 @@ module OctalSPITransmitter #(
     integer                      latency_offset;
     reg     [          BYTE-1:0] data_read_reg;
 
-    assign o_data_read = data_read_reg;
+    assign o_read_data = data_read_reg;
 
     // constants
     localparam INFINEON_CHIP = 1;
@@ -127,8 +127,8 @@ module OctalSPITransmitter #(
     assign o_bus_clock = bus_clock_p2_reg;
     assign o_bus_clock_neg = ~bus_clock_p2_reg;
     assign o_finish = (state_reg == FINISH);
-    assign o_recieved_next_byte = recieved_next_byte_reg;
-    assign o_need_next_byte = (state_reg == SEND_DATA);
+    assign o_read_next_byte = recieved_next_byte_reg;
+    assign o_write_next_byte = (state_reg == SEND_DATA);
     assign o_spi_data_output_enable = en_data_out_reg;
     assign o_spi_data = data_out_reg;
     assign o_spi_data_strobe_output_enable = en_data_strobe;
@@ -276,12 +276,12 @@ module OctalSPITransmitter #(
             end
 
             SEND_DATA: begin
-                data_out_nxt = i_data_write;
+                data_out_nxt = i_write_data;
                 // if we wrote the last byte and we wrote an uneven ammount of bytes, we have to mask the next byte transfer
                 if (i_last_byte & ~is_transfer_even & count_reg == 0)
                     data_strobe_out_nxt = 1'b1;
                 else
-                    data_strobe_out_nxt = i_data_byte_mask;
+                    data_strobe_out_nxt = i_write_data_byte_mask;
             end
 
             default: ;

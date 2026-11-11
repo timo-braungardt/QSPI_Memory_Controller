@@ -53,11 +53,11 @@ def config_transaction(dut, opcode, address=0, data=0, only_one_byte=True):
     dut.i_last_byte.value = only_one_byte
 
     if opcode == OPCODE.write:
-        dut.i_data_write.value = data
+        dut.i_write_data.value = data
         dut.i_config_read_data.value = False
         dut.i_config_write_data.value = True
         dut.i_config_write_address.value = True
-        dut.i_data_byte_mask.value = False
+        dut.i_write_data_byte_mask.value = False
 
     if opcode == OPCODE.read:
         dut.i_config_read_data.value = True
@@ -78,11 +78,11 @@ def config_transaction(dut, opcode, address=0, data=0, only_one_byte=True):
 
 async def handle_write_burst(dut, test_data):
     num_loops = len(test_data)
-    await dut.o_need_next_byte.value_change
+    await dut.o_write_next_byte.value_change
 
     for i in range(1, num_loops):
         await RisingEdge(dut.clk)
-        dut.i_data_write.value = test_data[i]
+        dut.i_write_data.value = test_data[i]
         if (num_loops - i) == 0:
             dut.i_last_byte.value = True
     await RisingEdge(dut.clk)
@@ -92,13 +92,13 @@ async def handle_write_burst(dut, test_data):
 
 async def handle_read_burst(dut, num_bytes):
     recieved_data = []
-    await dut.o_recieved_next_byte.value_change
+    await dut.o_read_next_byte.value_change
 
     for i in range(num_bytes):
         if (num_bytes - i - 1) == 0:
             dut.i_last_byte.value = True
         await RisingEdge(dut.clk)
-        recieved_data.append(dut.o_data_read.value.to_unsigned())
+        recieved_data.append(dut.o_read_data.value.to_unsigned())
     await RisingEdge(dut.clk)
     dut.i_last_byte.value = True
     await wait_for_idle(dut)
@@ -151,7 +151,7 @@ async def read_test(dut):
     await trigger_go(dut)
     await wait_for_idle(dut)
 
-    assert dut.o_data_read.value.to_unsigned() == test_data.get_test_number()
+    assert dut.o_read_data.value.to_unsigned() == test_data.get_test_number()
 
 
 @cocotb.test()
@@ -183,7 +183,7 @@ async def variable_latency_test(dut):
     await trigger_go(dut)
     await wait_for_idle(dut)
 
-    assert dut.o_data_read.value.to_unsigned() == test_data.get_test_number()
+    assert dut.o_read_data.value.to_unsigned() == test_data.get_test_number()
 
 
 @cocotb.test()

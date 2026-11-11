@@ -165,12 +165,12 @@ module OctalSPIController #(
         .i_config_write_data(config_write_data),
         .i_config_write_address(config_write_address),
         .i_last_byte(last_byte_reg),
-        .i_data_byte_mask(byte_pointer_mask),
-        .i_data_write(byte_pointer),
-        .o_data_read(read_byte),
+        .i_write_data_byte_mask(byte_pointer_mask),
+        .i_write_data(byte_pointer),
+        .o_read_data(read_byte),
         .o_finish(transmitter_finish),
-        .o_need_next_byte(spi_write_next_byte),
-        .o_recieved_next_byte(spi_read_next_byte),
+        .o_write_next_byte(spi_write_next_byte),
+        .o_read_next_byte(spi_read_next_byte),
 
         // SPI Pins
         .o_bus_clock(o_bus_clock),
