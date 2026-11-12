@@ -24,6 +24,7 @@ class OPCODE:
 
 async def reset_model(dut):
     dut.test_number.value = dut.test_number.value + 1
+    dut.i_write_valid.value = False
     dut.reset_neg.value = 0
     await Timer(200, unit="ns")  # t_RP
     dut.reset_neg.value = 1
@@ -51,13 +52,14 @@ def check_write_enable(dut):
     return dut.Memory.bottom.WREN.value
 
 
-def config_transaction(dut, opcode, address=0, data=0, only_one_word=True):
+def config_transaction(dut, opcode, address=0, data=0, data_mask=0b0000, only_one_word=True):
     dut.i_address.value = address
     dut.i_last_word.value = only_one_word
 
     if opcode == OPCODE.write:
         dut.i_write_data.value = data
-        dut.i_write_data_word_mask.value = 0
+        dut.i_write_valid.value = True
+        dut.i_write_data_word_mask.value = data_mask
         dut.i_write_enable.value = True
 
     if opcode == OPCODE.read:
@@ -74,14 +76,16 @@ async def handle_write_burst(dut, test_data):
     if test_data.num_bytes <= DATA_WIDTH_BYTES:
         dut.i_last_word.value = True
 
-    await dut.o_next_word.value_change
-
     for i in range(1, num_loops):
-        await First(RisingEdge(dut.bus_clock), FallingEdge(dut.bus_clock))
+        dut.i_write_data.value = test_data.get_test_number_word(i * DATA_WIDTH_BYTES)
+        dut.i_write_valid.value = True
+
+        if i == 1:
+            await dut.o_write_ready.value_change
+
         if i == num_loops - 1:
             dut.i_last_word.value = True
-
-        dut.i_write_data.value = test_data.get_test_number_word(i * DATA_WIDTH_BYTES)
+        await First(RisingEdge(dut.bus_clock), FallingEdge(dut.bus_clock))
 
     if last_num_bytes != 0:
         await First(RisingEdge(dut.bus_clock), FallingEdge(dut.bus_clock))
@@ -125,14 +129,18 @@ async def write_test(dut):
     test_data = DummyData(1)
     address = 0x001000
 
+    MemoryModelHelper.set_memory_s70kl1283(dut.Memory, address, [0]*4)
     config_transaction(dut, OPCODE.write, address=address, data=test_data.get_test_number())
     await trigger_go(dut)
     await wait_for_idle(dut)
     await wait_for_idle(dut)
     await T_rwr
 
-    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, address, 1)
-    assert memory_data == test_data.get_test_array()
+    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, address, 4)
+    # the controller shall only write one byte
+    extended_test_data = test_data.get_test_array()
+    extended_test_data.extend([0]*3)
+    assert memory_data == extended_test_data
 
 
 @cocotb.test()
@@ -146,7 +154,7 @@ async def write_mask_test(dut):
     address = 0x000100
 
     MemoryModelHelper.set_memory_s70kl1283(dut.Memory, address, [0]*4)
-    config_transaction(dut, OPCODE.write, address=address, data=test_data.get_test_number())
+    config_transaction(dut, OPCODE.write, address=address, data=test_data.get_test_number(), data_mask=0b0001)
     dut.i_write_data_word_mask.value = 0b0110
     await trigger_go(dut)
     await wait_for_idle(dut)

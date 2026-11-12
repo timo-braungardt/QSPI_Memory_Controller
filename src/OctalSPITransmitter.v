@@ -29,7 +29,10 @@ module OctalSPITransmitter #(
     input                       i_write_data_byte_mask,
     input  [          BYTE-1:0] i_write_data,
     output                      o_write_ready,
+
+    //input                       i_read_ready,
     output [          BYTE-1:0] o_read_data,
+    //output                      o_read_valid,
     output                      o_finish,
     output                      o_read_next_byte,
 

@@ -25,8 +25,11 @@ module OctalSPIController #(
     input  [ADDRESS_LENGTH-1:0] i_address,
     input                       i_write_enable,
     input                       i_last_word,
+    input                       i_write_valid,
     input  [    STRB_WIDTH-1:0] i_write_data_word_mask,
     input  [    DATA_WIDTH-1:0] i_write_data,
+    output                      o_write_ready,
+
     output [    DATA_WIDTH-1:0] o_read_data,
     output                      o_busy,
     output                      o_next_word,
@@ -88,7 +91,17 @@ module OctalSPIController #(
     wire [            BYTE-1:0] read_byte;
     reg                         last_byte_nxt;
     reg                         last_byte_reg;
+    wire last_byte;
     wire [  ADDRESS_LENGTH-1:0] word_alligned_address;
+
+    // Data Bus
+    reg [DATA_WIDTH-1 : 0] write_data_reg;
+    reg [    STRB_WIDTH-1:0]  write_data_byte_mask_reg;
+    reg                   write_valid_reg;
+    reg                   write_last_word_reg;
+    wire                  is_transmitter_write_ready;
+
+    assign o_write_ready = (is_transmitter_write_ready && (byte_index_reg == DATA_BYTES_MSB'(DATA_BYTES - 1))) || !write_valid_reg;
 
     // Config stuff - ToDo: this should be later configured using a second port (issue #16)
     wire                        config_write_address;
@@ -165,11 +178,14 @@ module OctalSPIController #(
         .i_config_write_data(config_write_data),
         .i_config_write_address(config_write_address),
         .i_last_byte(last_byte_reg),
+
+        .i_write_valid(write_valid_reg),
         .i_write_data_byte_mask(byte_pointer_mask),
         .i_write_data(byte_pointer),
+        .o_write_ready(is_transmitter_write_ready),
+
         .o_read_data(read_byte),
         .o_finish(transmitter_finish),
-        .o_write_next_byte(spi_write_next_byte),
         .o_read_next_byte(spi_read_next_byte),
 
         // SPI Pins
@@ -266,9 +282,10 @@ module OctalSPIController #(
     end
 
 
+    assign last_byte = (write_last_word_reg == 1 && byte_index_nxt ==  DATA_BYTES_MSB'(DATA_BYTES - 1));
+
     always @(*) begin : data_logic
         byte_index_nxt = byte_index_reg;
-        last_word_nxt = last_word_reg;
         data_in_muxed_nxt = data_in_muxed_reg;
         data_mask_nxt = data_mask_reg;
         last_byte_nxt = last_byte_reg;
@@ -277,37 +294,17 @@ module OctalSPIController #(
         config_data_nxt = config_data_reg;
 
         // select which byte is transfered to the transmitter
-        byte_pointer = data_in_muxed_reg[byte_index_reg*8+:8];
-        byte_pointer_mask = data_mask_reg[byte_index_reg];
+        byte_pointer      = write_data_reg[byte_index_reg*8+:8]; // ToDo: has to be muxed with config data (issue #14)
+        byte_pointer_mask = write_data_byte_mask_reg[byte_index_reg];
 
-        // to get the first data byte
-        if (control_state_reg == IDLE) begin
-            if (go) begin
-                data_in_muxed_nxt = (config_is_config_operation) ? config_data_reg : i_write_data;
-                data_mask_nxt = i_write_data_word_mask;
-                last_word_nxt = (config_is_config_operation) ? 1'b1 : i_last_word;
-                byte_index_nxt = 0;
-                last_byte_nxt = 0;
-            end
-        end
-
-        if (control_state_reg != IDLE && (last_word_reg == 1 && byte_index_nxt ==  DATA_BYTES_MSB'(DATA_BYTES - 1)))
+        if (control_state_reg != IDLE && (write_last_word_reg == 1 && byte_index_nxt ==  DATA_BYTES_MSB'(DATA_BYTES - 1)))
             last_byte_nxt = 1;
 
         if (control_state_reg == WRITE | control_state_reg == READ | control_state_reg == WRITE_CONFIG) begin
-            if (spi_write_next_byte | spi_read_next_byte) begin
-                // ToDo: rework the spi data path (issue #14) we need it otherwise the transmitter puts out a wrong byte 
-                if (byte_index_reg == DATA_BYTES_MSB'(DATA_BYTES - 3))
-                    write_next_word_nxt = 1;     // ToDo: the DATA_BYTES can make problems, when it is too small (issue #10)
-
-                if (byte_index_reg == DATA_BYTES_MSB'(DATA_BYTES - 1) || (last_word_reg == 1 && byte_index_nxt ==  DATA_BYTES_MSB'(DATA_BYTES - 1))) begin
+            if (is_transmitter_write_ready | spi_read_next_byte) begin
+                if (byte_index_reg == DATA_BYTES_MSB'(DATA_BYTES - 1) || (write_last_word_reg == 1 && byte_index_nxt ==  DATA_BYTES_MSB'(DATA_BYTES - 1))) begin
                     byte_index_nxt = 0;
-                    read_next_word_nxt = 1;
                 end else byte_index_nxt = byte_index_reg + 1;
-
-                data_in_muxed_nxt = (config_is_config_operation) ? config_data_reg : i_write_data;
-                data_mask_nxt = i_write_data_word_mask;
-                last_word_nxt = i_last_word;
             end
         end
     end
@@ -318,7 +315,6 @@ module OctalSPIController #(
     always @(posedge clk) begin : data_register
         data_in_muxed_reg <= data_in_muxed_nxt;
         data_mask_reg <= data_mask_nxt;
-        last_word_reg <= last_word_nxt;
         byte_index_reg <= byte_index_nxt;
         last_byte_reg <= last_byte_nxt;
         read_next_word_reg <= read_next_word_nxt;
@@ -328,6 +324,18 @@ module OctalSPIController #(
 
         if (spi_read_next_byte & ~last_byte_reg) begin
             data_read_reg[byte_index_reg*8+:8] <= read_byte;
+        end
+
+        if (o_write_ready) begin
+            write_data_reg <= i_write_data;
+            write_data_byte_mask_reg <= i_write_data_word_mask;
+            write_valid_reg <= i_write_valid;
+            write_last_word_reg <= i_last_word;
+        end else begin
+            write_data_reg <= write_data_reg;
+            write_data_byte_mask_reg <= write_data_byte_mask_reg;
+            write_valid_reg <= write_valid_reg;
+            write_last_word_reg <= write_last_word_reg;
         end
 
         if (!reset_neg) begin
@@ -344,6 +352,11 @@ module OctalSPIController #(
             };  // this is set only on reset - it should be more configurable (issue #16)
             // problem is, that on the go signal, the transmitter is started. So on the next clock edge it will sample the data.
             // if the config_data_nxt is set to the correct value, then it arrives a cycle late.
+
+            write_data_reg <= 0;
+            write_data_byte_mask_reg <= 0;
+            write_valid_reg <= 0;
+            write_last_word_reg <= 0;
         end
     end
 
