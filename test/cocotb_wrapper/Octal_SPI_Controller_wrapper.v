@@ -23,14 +23,16 @@ module Octal_SPI_Controller_wrapper #(
     wire spi_i_data_strobe, spi_o_data_strobe;
     wire spi_data_output_enable, spi_data_strobe_output_enable;
     wire bus_clock, bus_clock_neg, chip_select_neg;
-    wire o_finish,o_next_word,o_recieved_next_word;
+    wire o_finish,o_recieved_next_word;
 
     reg [ADDR_WIDTH-1:0] i_address;
+    reg i_last_word;
+    reg i_write_valid;
     reg [DATA_WIDTH-1:0] i_write_data;
     reg [STRB_WIDTH-1:0] i_write_data_word_mask;
+    wire o_write_ready;
     reg [DATA_WIDTH-1:0] o_read_data;
     reg i_write_enable;
-    reg i_last_word;
 
     localparam INFINEON_CHIP = 1;
     localparam APMEMORY_CHIP = 2;
@@ -55,11 +57,13 @@ module Octal_SPI_Controller_wrapper #(
         .i_address(i_address),
         .i_write_enable(i_write_enable),
         .i_last_word(i_last_word),
+
+        .i_write_valid(i_write_valid),
         .i_write_data(i_write_data),
         .i_write_data_word_mask(i_write_data_word_mask),
+        .o_write_ready(o_write_ready),
         .o_read_data(o_read_data),
         .o_busy(busy),
-        .o_next_word(o_next_word),
         .o_recieved_next_word(o_recieved_next_word),
 
         .o_bus_clock(bus_clock),
