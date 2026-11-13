@@ -1,6 +1,6 @@
 log -r /*;
 add wave sim:/Octal_Memory_Controller_wrapper/clk;
-add wave sim:/Octal_Memory_Controller_wrapper/reset;
+add wave sim:/Octal_Memory_Controller_wrapper/reset_neg;
 add wave sim:/Octal_Memory_Controller_wrapper/test_number
 add wave sim:/Octal_Memory_Controller_wrapper/data_strobe;
 add wave sim:/Octal_Memory_Controller_wrapper/data;
@@ -10,12 +10,12 @@ add wave sim:/Octal_Memory_Controller_wrapper/Controller/SPI_Controller/SPI_Tran
 add wave sim:/Octal_Memory_Controller_wrapper/Controller/SPI_Controller/SPI_Transmitter/count_reg;
 add wave sim:/Octal_Memory_Controller_wrapper/Memory/bottom/Dout;
 add wave sim:/Octal_Memory_Controller_wrapper/Memory/bottom/PoweredUp;
-add wave sim:/Octal_Memory_Controller_wrapper/Controller/SPI_Controller/o_data_read;
-add wave sim:/Octal_Memory_Controller_wrapper/Controller/SPI_Controller/i_data_write;
-add wave sim:/Octal_Memory_Controller_wrapper/Controller/SPI_Controller/SPI_Transmitter/o_need_next_byte
-add wave sim:/Octal_Memory_Controller_wrapper/Controller/SPI_Controller/SPI_Transmitter/o_recieved_next_byte
+add wave sim:/Octal_Memory_Controller_wrapper/Controller/SPI_Controller/o_read_data;
+add wave sim:/Octal_Memory_Controller_wrapper/Controller/SPI_Controller/i_write_data;
+add wave sim:/Octal_Memory_Controller_wrapper/Controller/SPI_Controller/SPI_Transmitter/o_write_ready
+add wave sim:/Octal_Memory_Controller_wrapper/Controller/SPI_Controller/SPI_Transmitter/o_read_next_byte
 add wave sim:/Octal_Memory_Controller_wrapper/Controller/spi_recieved_next_word
-add wave sim:/Octal_Memory_Controller_wrapper/Controller/spi_next_word
+add wave sim:/Octal_Memory_Controller_wrapper/Controller/spi_write_ready
 add wave sim:/Octal_Memory_Controller_wrapper/Controller/s_axi_wready
 add wave sim:/Octal_Memory_Controller_wrapper/Controller/s_axi_rvalid
 add wave sim:/Octal_Memory_Controller_wrapper/Controller/AXI_Interface/s_axi_wdata
