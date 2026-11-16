@@ -33,10 +33,38 @@ class DataHandler:
             self._interface.i_write_data.value = 0
             self._interface.i_write_data_byte_mask.value = 0
             self._interface.i_last_byte.value = True
+    
+    async def _run_read(self, num_bytes):
+        index = 0
+        self._data._array = []
+        try:
+            self._interface.i_read_ready.value = 1
+            self._interface.i_last_byte.value = (num_bytes <= 1)
+
+            while True:
+                await RisingEdge(self._interface.clk)
+                if self._interface.o_read_valid.value == 1:
+                    index += 1
+                    self._data._array.append(self._interface.o_read_data.value.to_unsigned())
+
+                    if index == num_bytes - 2:
+                        self._interface.i_last_byte.value = True
+
+        finally:
+            # Clean up the interface when the task is cancelled.
+            # This is triggered by the CancelledError exception being raised.
+            self._interface.i_write_valid.value = 0
+            self._interface.i_write_data.value = 0
+            self._interface.i_write_data_byte_mask.value = 0
+            self._interface.i_last_byte.value = True
+
     def start_write(self):
         assert self._task is None, "Driver is already running!"
         self._task = cocotb.start_soon(self._run_write())
 
+    def start_read(self, num_bytes):
+        assert self._task is None, "Driver is already running!"
+        self._task = cocotb.start_soon(self._run_read(num_bytes))
 
     def stop(self):
         assert self._task is not None, "Driver is not running!"

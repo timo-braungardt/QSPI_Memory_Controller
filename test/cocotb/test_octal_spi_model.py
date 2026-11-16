@@ -62,7 +62,6 @@ def config_transaction(dut, opcode, address=0):
         dut.i_config_read_data.value = True
         dut.i_config_write_data.value = False
         dut.i_config_write_address.value = True
-        dut.i_read_ready.value = True
 
     if opcode == OPCODE.write_enable:
         dut.i_config_read_data.value = False
@@ -157,10 +156,13 @@ async def read_test(dut):
     MemoryModelHelper.set_memory_s70kl1283(dut.Memory, address, test_data.get_test_array())
 
     config_transaction(dut, OPCODE.read, address=address)
+    read_data = DummyData(0)
+    handler = DataHandler(dut, read_data)
+    handler.start_read(1)
     await trigger_go(dut)
     await wait_for_idle(dut)
 
-    assert dut.o_read_data.value.to_unsigned() == test_data.get_test_number()
+    assert read_data.get_test_array() == test_data.get_test_array()
 
 
 @cocotb.test()
@@ -183,16 +185,21 @@ async def variable_latency_test(dut):
     assert check_write_enable(dut)
 
     config_transaction(dut, OPCODE.write, address=0x001000)
+    handler = DataHandler(dut, test_data)
+    handler.start_write()
     await trigger_go(dut)
     await wait_for_idle(dut)
 
     await T_rwr
 
     config_transaction(dut, OPCODE.read, address=0x001000)
+    read_data = DummyData(0)
+    handler = DataHandler(dut, read_data)
+    handler.start_read(1)
     await trigger_go(dut)
     await wait_for_idle(dut)
 
-    assert dut.o_read_data.value.to_unsigned() == test_data.get_test_number()
+    assert read_data.get_test_array() == test_data.get_test_array()
 
 
 @cocotb.test()
@@ -228,23 +235,27 @@ async def write_burst_test(dut, length):
 
 
 @cocotb.test()
-async def read_burst_test(dut):
+@cocotb.parametrize(length=[6, 7])
+async def read_burst_test(dut, length):
     c = Clock(dut.clk, 20, "ns")
     cocotb.start_soon(c.start())
 
     await Timer(50, unit="ns")
     await reset_model(dut)
-    test_data = DummyData(6)
+    test_data = DummyData(length)
     address = 0x002010
 
     MemoryModelHelper.set_memory_s70kl1283(dut.Memory, address, test_data.get_test_array())
 
     config_transaction(dut, OPCODE.read, address=address)
+    read_data = DummyData(0)
+    handler = DataHandler(dut, read_data)
+    handler.start_read(length)
     await trigger_go(dut)
-    recieved_data = await handle_read_burst(dut, test_data.num_bytes)
+    await wait_for_idle(dut)
 
-    assert len(recieved_data) == test_data.num_bytes
-    assert recieved_data == test_data.get_test_array()
+    assert len(handler._data._array) == test_data.num_bytes
+    assert read_data.get_test_array() == test_data.get_test_array()
 
 
 # @cocotb.test()

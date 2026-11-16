@@ -3,8 +3,8 @@ from cocotb.handle import Immediate
 class MemoryModelHelper:
     """This function does not handle uneven addresses or uneven data length yet."""
     def set_memory_s70kl1283(model, address, data):
-        #is_odd_address = address % 2
-        #is_odd_number = len(data) % 2
+        #is_odd_address = (address % 2 != 0)
+        #is_odd_number  = (len(data) % 2 != 0)
 
         word_array = []
         if len(data) == 1:
@@ -12,7 +12,10 @@ class MemoryModelHelper:
         else:
             for i in range(0, len(data), 2):
                 temp = data[i] << 8
-                temp = temp + data[i + 1]
+                if len(data) == i + 1:
+                    temp = temp + 0xff
+                else:
+                    temp = temp + data[i + 1]
                 word_array.append(temp)
 
         num_words = (len(data) + 1) // 2
