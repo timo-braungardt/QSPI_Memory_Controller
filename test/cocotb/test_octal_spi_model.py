@@ -4,7 +4,7 @@ import cocotb
 from cocotb_tools.runner import get_runner
 from cocotb.triggers import Timer, RisingEdge, FallingEdge, ClockCycles, First
 from cocotb.clock import Clock
-from HelperClasses import DummyData, MemoryModelHelper
+from HelperClasses import DummyData, MemoryModelHelper, DataHandler
 from unittest import SkipTest
 
 T_rwr = Timer(35, unit="ns")  # read-write recovery time from the datasheet
@@ -49,18 +49,14 @@ def check_write_enable(dut):
     return dut.Memory.bottom.WREN.value
 
 
-def config_transaction(dut, opcode, address=0, data=0, only_one_byte=True):
+def config_transaction(dut, opcode, address=0):
     dut.i_address.value = address
     dut.i_opcode.value = opcode
-    dut.i_last_byte.value = only_one_byte
 
     if opcode == OPCODE.write:
-        dut.i_write_data.value = data
-        dut.i_write_valid.value = True
         dut.i_config_read_data.value = False
         dut.i_config_write_data.value = True
         dut.i_config_write_address.value = True
-        dut.i_write_data_byte_mask.value = False
 
     if opcode == OPCODE.read:
         dut.i_config_read_data.value = True
@@ -122,10 +118,13 @@ async def write_test(dut):
 
     await Timer(50, unit="ns")
     await reset_model(dut)
-    test_data = DummyData(1)
+    num_bytes = 1
+    test_data = DummyData(num_bytes)
     address = 0x001000
 
     config_transaction(dut, OPCODE.write_enable)
+    handler = DataHandler(dut, test_data)
+    handler.start()
     await trigger_go(dut)
     await wait_for_idle(dut)
 
@@ -133,12 +132,12 @@ async def write_test(dut):
 
     assert check_write_enable(dut)
 
-    config_transaction(dut, OPCODE.write, address=address, data=test_data.get_test_number())
+    config_transaction(dut, OPCODE.write, address=address)
     await trigger_go(dut)
     await wait_for_idle(dut)
     await T_rwr
 
-    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, address, 2)
+    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, address, num_bytes + 1)
     # the controller shall only write one byte
     extended_test_data = test_data.get_test_array()
     extended_test_data.append(0xff)
@@ -157,7 +156,7 @@ async def read_test(dut):
 
     MemoryModelHelper.set_memory_s70kl1283(dut.Memory, address, test_data.get_test_array())
 
-    config_transaction(dut, OPCODE.read, address=address, data=test_data.get_test_number())
+    config_transaction(dut, OPCODE.read, address=address)
     await trigger_go(dut)
     await wait_for_idle(dut)
 
@@ -183,13 +182,13 @@ async def variable_latency_test(dut):
 
     assert check_write_enable(dut)
 
-    config_transaction(dut, OPCODE.write, address=0x001000, data=test_data.get_test_number())
+    config_transaction(dut, OPCODE.write, address=0x001000)
     await trigger_go(dut)
     await wait_for_idle(dut)
 
     await T_rwr
 
-    config_transaction(dut, OPCODE.read, address=0x001000, data=test_data.get_test_number())
+    config_transaction(dut, OPCODE.read, address=0x001000)
     await trigger_go(dut)
     await wait_for_idle(dut)
 
@@ -208,6 +207,8 @@ async def write_burst_test(dut, length):
     address = 0x002000
 
     config_transaction(dut, OPCODE.write_enable)
+    handler = DataHandler(dut, test_data)
+    handler.start()
     await trigger_go(dut)
     await wait_for_idle(dut)
 
@@ -215,15 +216,9 @@ async def write_burst_test(dut, length):
 
     assert check_write_enable(dut)
 
-    config_transaction(
-        dut,
-        OPCODE.write,
-        address=address,
-        data=test_data.get_test_number_word(0, 1),
-        only_one_byte=False,
-    )
+    config_transaction(dut, OPCODE.write, address=address)
     await trigger_go(dut)
-    await handle_write_burst(dut, test_data.get_test_array())
+    await wait_for_idle(dut)
     await T_rwr
 
     memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, address, test_data.num_bytes +1)
@@ -244,9 +239,7 @@ async def read_burst_test(dut):
 
     MemoryModelHelper.set_memory_s70kl1283(dut.Memory, address, test_data.get_test_array())
 
-    config_transaction(
-        dut, OPCODE.read, address=address, data=test_data.get_test_number(), only_one_byte=False
-    )
+    config_transaction(dut, OPCODE.read, address=address)
     await trigger_go(dut)
     recieved_data = await handle_read_burst(dut, test_data.num_bytes)
 
