@@ -19,22 +19,23 @@ module OctalSPITransmitter #(
     input reset_neg,
     input start_transmission,
 
-    input  [ADDRESS_LENGTH-1:0] i_address,
-    input  [               7:0] i_opcode,
-    input                       i_config_read_data,
-    input                       i_config_write_data,
-    input                       i_config_write_address,
-    input                       i_last_byte,
-    input                       i_write_valid,
-    input                       i_write_data_byte_mask,
-    input  [          BYTE-1:0] i_write_data,
-    output                      o_write_ready,
+    input [ADDRESS_LENGTH-1:0] i_address,
+    input [               7:0] i_opcode,
+    input                      i_config_read_data,
+    input                      i_config_write_data,
+    input                      i_config_write_address,
+    input                      i_last_byte,
 
-    input                       i_read_ready,
-    output [          BYTE-1:0] o_read_data,
-    output                      o_read_valid,
-    
-    output                      o_finish,
+    input i_write_valid,
+    input i_write_data_byte_mask,
+    input [BYTE-1:0] i_write_data,
+    output o_write_ready,
+
+    input             i_read_ready,
+    output [BYTE-1:0] o_read_data,
+    output            o_read_valid,
+
+    output o_finish,
 
     // OctalSPI Pins
     output     o_bus_clock,
@@ -73,8 +74,6 @@ module OctalSPITransmitter #(
     reg bus_clock_nxt;
     reg bus_clock_p2_reg;  // the bus clock has to be shifted a bit to guarantee that the data is present on the bus
     reg bus_clock_p2_nxt;
-    integer clock_count_reg;
-    integer clock_count_nxt;
     wire is_transfer_even = bus_clock_p2_reg;
 
     // states transmission FSM
@@ -131,13 +130,10 @@ module OctalSPITransmitter #(
     localparam integer NUM_SHORT_LATENCY_CYCLES = LATENCY_CYCLES + LATENCY_OFFSET;
     localparam integer NUM_LONG_LATENCY_CYCLES = 2 * LATENCY_CYCLES + LATENCY_OFFSET;
     //localparam integer READ_LATENCY_IN_CYCLE = 1; // (issue #15)
-    localparam integer TEMP_OPERATION_CYCLES = 1;   // transfer 2 bytes
+    localparam integer TEMP_OPERATION_CYCLES = 1;  // transfer 2 bytes
 
     // ToDo: why was this in en_data_strobe?: | state_reg == WAIT_LATENCY 
     assign en_data_strobe  = (state_reg == SEND_DATA | (~i_config_read_data & (state_reg == CS_HIGH | state_reg == FINISH)));   // FINISH is needed, because otherwise the model does not store the value
-
-    (* dont_touch = "true" *)
-    reg temp_data_strobe_debug;
 
     assign o_bus_clock = bus_clock_p2_reg;
     assign o_bus_clock_neg = ~bus_clock_p2_reg;
@@ -270,7 +266,6 @@ module OctalSPITransmitter #(
             has_latency_reg <= has_latency_nxt;
             data_strobe_out_reg <= data_strobe_out_nxt;
             en_data_out_reg <= en_data_out_nxt;
-            temp_data_strobe_debug <= i_spi_data_strobe;
         end
     end
 
@@ -294,8 +289,7 @@ module OctalSPITransmitter #(
                 // if we wrote the last byte and we wrote an uneven ammount of bytes, we have to mask the next byte transfer
                 if (write_last_byte_reg_p2 & ~is_transfer_even & count_reg == 0)
                     data_strobe_out_nxt = 1'b1;
-                else
-                    data_strobe_out_nxt = write_data_byte_mask_reg;
+                else data_strobe_out_nxt = write_data_byte_mask_reg;
             end
 
             default: ;
@@ -321,11 +315,11 @@ module OctalSPITransmitter #(
             read_last_byte_reg <= 0;
 
             if (state_reg == RECEIVE_DATA && ~read_last_byte_reg) begin
-                if (i_read_ready) begin //read_next data
+                if (i_read_ready) begin  //read_next data
                     data_read_reg <= i_spi_data;
                     read_valid_reg <= 1'b1;
                     read_last_byte_reg <= i_last_byte;
-                end else begin //keep_data
+                end else begin  //keep_data
                     read_valid_reg <= read_valid_reg;
                     data_read_reg <= data_read_reg;
                     read_last_byte_reg <= read_last_byte_reg;
