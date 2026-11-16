@@ -124,7 +124,7 @@ async def write_test(dut):
 
     config_transaction(dut, OPCODE.write_enable)
     handler = DataHandler(dut, test_data)
-    handler.start()
+    handler.start_write()
     await trigger_go(dut)
     await wait_for_idle(dut)
 
@@ -208,7 +208,7 @@ async def write_burst_test(dut, length):
 
     config_transaction(dut, OPCODE.write_enable)
     handler = DataHandler(dut, test_data)
-    handler.start()
+    handler.start_write()
     await trigger_go(dut)
     await wait_for_idle(dut)
 

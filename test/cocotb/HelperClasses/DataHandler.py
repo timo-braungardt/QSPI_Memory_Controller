@@ -8,7 +8,7 @@ class DataHandler:
         self._task = None
         self._data = data
 
-    async def _run(self):
+    async def _run_write(self):
         index = 0
         try:
             self._interface.i_write_valid.value = 1
@@ -33,10 +33,10 @@ class DataHandler:
             self._interface.i_write_data.value = 0
             self._interface.i_write_data_byte_mask.value = 0
             self._interface.i_last_byte.value = True
-
-    def start(self):
+    def start_write(self):
         assert self._task is None, "Driver is already running!"
-        self._task = cocotb.start_soon(self._run())
+        self._task = cocotb.start_soon(self._run_write())
+
 
     def stop(self):
         assert self._task is not None, "Driver is not running!"
