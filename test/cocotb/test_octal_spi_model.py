@@ -66,6 +66,7 @@ def config_transaction(dut, opcode, address=0, data=0, only_one_byte=True):
         dut.i_config_read_data.value = True
         dut.i_config_write_data.value = False
         dut.i_config_write_address.value = True
+        dut.i_read_ready.value = True
 
     if opcode == OPCODE.write_enable:
         dut.i_config_read_data.value = False
@@ -101,7 +102,7 @@ async def handle_write_burst(dut, test_data):
 
 async def handle_read_burst(dut, num_bytes):
     recieved_data = []
-    await dut.o_read_next_byte.value_change
+    await dut.o_read_valid.value_change
 
     for i in range(num_bytes):
         if (num_bytes - i - 1) == 0:

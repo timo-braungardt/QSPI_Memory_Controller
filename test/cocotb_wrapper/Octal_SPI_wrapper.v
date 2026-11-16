@@ -22,7 +22,8 @@ module Octal_SPI_wrapper #(
     wire [7:0] spi_i_data, spi_o_data;
     wire spi_i_data_strobe, spi_o_data_strobe;
     wire spi_data_output_enable, spi_data_strobe_output_enable;
-    wire i_config_read_data, i_config_write_data,i_config_write_address,o_finish,o_read_next_byte;
+    wire i_config_read_data, i_config_write_data,i_config_write_address,o_finish,o_read_valid;
+    wire i_read_ready;
 
     reg [ADDR_WIDTH-1:0] i_address;
     reg [7:0] i_opcode;
@@ -60,13 +61,14 @@ module Octal_SPI_wrapper #(
         .i_write_data(i_write_data),
         .o_write_ready(o_write_ready),
 
-        .o_read_data(o_read_data),
         .i_config_read_data(i_config_read_data),
         .i_config_write_data(i_config_write_data),
         .i_config_write_address(i_config_write_address),
         .o_finish(o_finish),
-        .o_read_next_byte(o_read_next_byte),
 
+        .i_read_ready(i_read_ready),
+        .o_read_data(o_read_data),
+        .o_read_valid(o_read_valid),
 
         .o_bus_clock(bus_clock),
         .o_bus_clock_neg(bus_clock_neg),

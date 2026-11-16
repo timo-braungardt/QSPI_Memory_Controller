@@ -29,9 +29,12 @@ module OctalSPITransmitter #(
     input                       i_write_data_byte_mask,
     input  [          BYTE-1:0] i_write_data,
     output                      o_write_ready,
+
+    input                       i_read_ready,
     output [          BYTE-1:0] o_read_data,
+    output                      o_read_valid,
+    
     output                      o_finish,
-    output                      o_read_next_byte,
 
     // OctalSPI Pins
     output     o_bus_clock,
@@ -60,7 +63,7 @@ module OctalSPITransmitter #(
     reg data_strobe_out_reg;
     reg data_strobe_out_nxt;  // ToDo: The signal has to be driven for write (issue #15) 0 is write, 1 is mask
     (* dont_touch = "true" *)
-    reg recieved_next_byte_reg;
+    reg read_valid_reg;
 
     reg has_latency_reg;
     reg has_latency_nxt;
@@ -106,6 +109,8 @@ module OctalSPITransmitter #(
     reg                   write_last_byte_reg;
     reg                   write_last_byte_reg_p2;
 
+    reg                   read_last_byte_reg;
+
     assign o_write_ready = (state_reg == SEND_DATA) || !write_valid_reg;
 
     // constants
@@ -137,7 +142,7 @@ module OctalSPITransmitter #(
     assign o_bus_clock = bus_clock_p2_reg;
     assign o_bus_clock_neg = ~bus_clock_p2_reg;
     assign o_finish = (state_reg == FINISH);
-    assign o_read_next_byte = recieved_next_byte_reg;
+    assign o_read_valid = read_valid_reg;
     assign o_spi_data_output_enable = en_data_out_reg;
     assign o_spi_data = data_out_reg;
     assign o_spi_data_strobe_output_enable = en_data_strobe;
@@ -301,20 +306,30 @@ module OctalSPITransmitter #(
     always @(posedge clk) begin : data_register
         if (~reset_neg) begin
             data_out_reg <= 0;
-            recieved_next_byte_reg <= 0;
+            read_valid_reg <= 0;
             data_read_reg <= 0;
             write_data_reg <= 0;
             write_data_byte_mask_reg <= 0;
             write_valid_reg <= 0;
             write_last_byte_reg <= 0;
             write_last_byte_reg_p2 <= 0;
+            read_last_byte_reg <= 0;
         end else begin
             data_out_reg <= data_out_nxt;
-            recieved_next_byte_reg <= 1'b0;
+            read_valid_reg <= 0;
+            data_read_reg <= data_read_reg;
+            read_last_byte_reg <= 0;
 
-            if (state_reg == RECEIVE_DATA) begin
-                data_read_reg <= i_spi_data;
-                recieved_next_byte_reg <= 1'b1;
+            if (state_reg == RECEIVE_DATA && ~read_last_byte_reg) begin
+                if (i_read_ready) begin //read_next data
+                    data_read_reg <= i_spi_data;
+                    read_valid_reg <= 1'b1;
+                    read_last_byte_reg <= i_last_byte;
+                end else begin //keep_data
+                    read_valid_reg <= read_valid_reg;
+                    data_read_reg <= data_read_reg;
+                    read_last_byte_reg <= read_last_byte_reg;
+                end
             end
 
             if (o_write_ready) begin
