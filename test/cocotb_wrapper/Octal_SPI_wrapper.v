@@ -55,7 +55,7 @@ module Octal_SPI_wrapper #(
 
         .i_address(i_address),
         .i_opcode(i_opcode),
-        .i_last_byte(i_last),
+        .i_write_last_byte(i_last),
         .i_write_valid(i_write_valid),
         .i_write_data_byte_mask(i_write_data_mask),
         .i_write_data(i_write_data),
@@ -66,6 +66,7 @@ module Octal_SPI_wrapper #(
         .i_config_write_address(i_config_write_address),
         .o_finish(o_finish),
 
+        .i_read_last_byte(i_last),
         .i_read_ready(i_read_ready),
         .o_read_data(o_read_data),
         .o_read_valid(o_read_valid),

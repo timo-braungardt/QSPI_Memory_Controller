@@ -27,12 +27,13 @@ module OctalSPIController #(
     input  [ADDRESS_LENGTH-1:0] i_address,
     /* verilator lint_on UNUSEDSIGNAL */
     input                       i_write_enable,
-    input                       i_last_word,
+    input                       i_write_last_word,
     input                       i_write_valid,
     input  [    STRB_WIDTH-1:0] i_write_data_word_mask,
     input  [    DATA_WIDTH-1:0] i_write_data,
     output                      o_write_ready,
 
+    input                       i_read_last_word,
     input                       i_read_ready,
     output [    DATA_WIDTH-1:0] o_read_data,
     output                      o_read_valid,
@@ -89,8 +90,10 @@ module OctalSPIController #(
     reg                         byte_pointer_mask;
     wire [            BYTE-1:0] read_byte;
     wire                        read_ready;
-    reg                         last_byte_nxt;
-    reg                         last_byte_reg;
+    reg                         write_last_byte_nxt;
+    reg                         write_last_byte_reg;
+    reg                         read_last_byte_nxt;
+    reg                         read_last_byte_reg;
     wire [  ADDRESS_LENGTH-1:0] word_alligned_address;
 
     // Data Bus
@@ -177,13 +180,14 @@ module OctalSPIController #(
         .i_config_read_data(config_read_data),
         .i_config_write_data(config_write_data),
         .i_config_write_address(config_write_address),
-        .i_last_byte(last_byte_reg),
 
+        .i_write_last_byte(write_last_byte_reg),
         .i_write_valid(write_valid_reg),
         .i_write_data_byte_mask(byte_pointer_mask),
         .i_write_data(byte_pointer),
         .o_write_ready(is_transmitter_write_ready),
 
+        .i_read_last_byte(read_last_byte_reg),
         .i_read_ready(read_ready),
         .o_read_data(read_byte),
         .o_read_valid(spi_read_next_byte),
@@ -289,7 +293,8 @@ module OctalSPIController #(
         read_valid_nxt = read_valid_reg;
         data_in_muxed_nxt = data_in_muxed_reg;
         data_mask_nxt = data_mask_reg;
-        last_byte_nxt = last_byte_reg;
+        write_last_byte_nxt = write_last_byte_reg;
+        read_last_byte_nxt = read_last_byte_reg;
         config_data_nxt = config_data_reg;
 
         // select which byte is transfered to the transmitter
@@ -298,7 +303,7 @@ module OctalSPIController #(
 
         // ToDo: the read and write should be either exclusive through logic or independant through more registers (issue #14)
         if (read_ready && spi_read_next_byte) begin
-            if (byte_index_reg == DATA_BYTES_MSB'(DATA_BYTES - 1) || (write_last_word_reg == 1 && byte_index_nxt ==  DATA_BYTES_MSB'(DATA_BYTES - 1))) begin
+            if (byte_index_reg == DATA_BYTES_MSB'(DATA_BYTES - 1)) begin
                 byte_index_nxt = 0;
                 read_valid_nxt = 1;
             end else begin
@@ -317,10 +322,19 @@ module OctalSPIController #(
         end
 
         // using byte_index_nxt here is not good, since we use blocking assignments, the order of the assignments matter.
-        // so using last_byte_reg would be better but then we need an magic -2 instead of -1
+        // so using write_last_byte_reg would be better but then we need an magic -2 instead of -1
         // or we compare with an _reg +1
         if (write_last_word_reg == 1 && byte_index_nxt == DATA_BYTES_MSB'(DATA_BYTES - 1))
-            last_byte_nxt = 1;
+            write_last_byte_nxt = 1;
+        
+        if (i_read_last_word && byte_index_nxt == DATA_BYTES_MSB'(DATA_BYTES - 1))
+            read_last_byte_nxt = 1;
+        
+        // This is shitty - think about the state machine of the data bus! (issue #14)
+        if (control_state_reg == IDLE) begin
+            write_last_byte_nxt = 0;
+            read_last_byte_nxt = 0;
+        end
     end
 
     // problem: when an unalligned read is done, some old data still resides in the read register
@@ -331,7 +345,8 @@ module OctalSPIController #(
         data_mask_reg <= data_mask_nxt;
         byte_index_reg <= byte_index_nxt;
         read_valid_reg <= read_valid_nxt;
-        last_byte_reg <= last_byte_nxt;
+        write_last_byte_reg <= write_last_byte_nxt;
+        read_last_byte_reg <= read_last_byte_nxt;
         config_data_reg <= config_data_nxt;
         data_read_reg <= data_read_reg;
         write_data_reg <= write_data_reg;
@@ -347,14 +362,15 @@ module OctalSPIController #(
             write_data_reg <= i_write_data;
             write_data_byte_mask_reg <= i_write_data_word_mask;
             write_valid_reg <= i_write_valid;
-            write_last_word_reg <= i_last_word;
+            write_last_word_reg <= i_write_last_word;
         end
 
         if (!reset_neg) begin
             data_in_muxed_reg <= 0;
             data_mask_reg <= 0;
             byte_index_reg <= 0;
-            last_byte_reg <= 0;
+            write_last_byte_reg <= 0;
+            read_last_byte_reg <= 0;
             data_read_reg <= 0;
             read_valid_reg <= 0;
             config_data_reg <= {

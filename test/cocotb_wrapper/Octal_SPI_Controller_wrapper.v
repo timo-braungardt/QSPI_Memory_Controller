@@ -57,13 +57,14 @@ module Octal_SPI_Controller_wrapper #(
 
         .i_address(i_address),
         .i_write_enable(i_write_enable),
-        .i_last_word(i_last),
 
+        .i_write_last_word(i_last),
         .i_write_valid(i_write_valid),
         .i_write_data(i_write_data),
         .i_write_data_word_mask(i_write_data_mask),
         .o_write_ready(o_write_ready),
 
+        .i_read_last_word(i_last),
         .i_read_ready(i_read_ready),
         .o_read_data(o_read_data),
         .o_read_valid(o_read_valid),
