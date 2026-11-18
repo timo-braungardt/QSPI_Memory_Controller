@@ -52,13 +52,14 @@ def check_write_enable(dut):
     return dut.Memory.bottom.WREN.value
 
 
-def config_transaction(dut, opcode, address=0, data_mask=0b0000, only_one_word=True):
+def config_transaction(dut, opcode, address=0):
     dut.i_address.value = address
-    dut.i_last.value = only_one_word
+    dut.i_last.value = False
+    dut.i_write_valid.value = False
+    dut.i_write_enable.value = False
 
     if opcode == OPCODE.write:
         dut.i_write_valid.value = True
-        dut.i_write_data_mask.value = data_mask
         dut.i_write_enable.value = True
 
     if opcode == OPCODE.read:
