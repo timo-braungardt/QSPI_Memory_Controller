@@ -158,22 +158,31 @@ async def variable_latency_test(dut):
 
     await Timer(50, unit="ns")
     await reset_model(dut)
-    test_data = DummyData(1)
+    address = 0x001000
+    num_bytes = 4
+    test_data = DummyData(num_bytes)
 
-    config_transaction(dut, OPCODE.write, address=0x001000, data=test_data.get_test_number())
+    config_transaction(dut, OPCODE.write, address=address)
+    handler = DataHandler(interface=dut, data=test_data, bus_width=DATA_WIDTH_BYTES)
+    handler.start_write()
     await trigger_go(dut)
     await wait_for_idle(dut)
     await wait_for_idle(dut)
+    await T_rwr
+
+    memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, address, 4)
+    assert memory_data == test_data.get_test_array()
 
     MemoryModelHelper.set_variable_latency_s70kl1283(dut.Memory)
 
-    await T_rwr
-
-    config_transaction(dut, OPCODE.read, address=0x001000, data=test_data.get_test_number())
+    config_transaction(dut, OPCODE.read, address=address)
+    read_data = DummyData(0)
+    handler = DataHandler(dut, read_data, DATA_WIDTH_BYTES)
+    handler.start_read(num_bytes, DATA_WIDTH_BYTES)
     await trigger_go(dut)
     await wait_for_idle(dut)
 
-    assert dut.o_read_data.value.to_unsigned() == test_data.get_test_number()
+    assert read_data.get_test_array() == test_data.get_test_array()
 
 
 @cocotb.test()
