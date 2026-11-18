@@ -22,7 +22,10 @@ module OctalSPIController #(
     input reset_neg,
     input go,
 
+    /* verilator lint_off UNUSEDSIGNAL */
+    // the lower 2 bits are not used, because we always write a word at the moment
     input  [ADDRESS_LENGTH-1:0] i_address,
+    /* verilator lint_on UNUSEDSIGNAL */
     input                       i_write_enable,
     input                       i_last_word,
     input                       i_write_valid,
@@ -30,10 +33,11 @@ module OctalSPIController #(
     input  [    DATA_WIDTH-1:0] i_write_data,
     output                      o_write_ready,
 
+    input                       i_read_ready,
     output [    DATA_WIDTH-1:0] o_read_data,
+    output                      o_read_valid,
+
     output                      o_busy,
-    output                      o_next_word,
-    output                      o_recieved_next_word,
 
     // SPI Pins
     output o_bus_clock,
@@ -74,21 +78,17 @@ module OctalSPIController #(
     reg  [      STRB_WIDTH-1:0] data_mask_nxt;
     reg  [      STRB_WIDTH-1:0] data_mask_reg;
     reg  [      DATA_WIDTH-1:0] data_read_reg;
+    reg                         read_valid_reg;
+    reg                         read_valid_nxt;
     wire                        start_transmission;
     wire                        transmitter_finish;
-    wire                        spi_write_next_byte;
     wire                        spi_read_next_byte;
-    reg                         write_next_word_nxt;
-    reg                         write_next_word_reg;
-    reg                         read_next_word_nxt;
-    reg                         read_next_word_reg;
-    reg                         last_word_nxt;
-    reg                         last_word_reg;
     reg  [DATA_BYTES_MSB-1 : 0] byte_index_nxt;
     reg  [DATA_BYTES_MSB-1 : 0] byte_index_reg;
     reg  [            BYTE-1:0] byte_pointer;
     reg                         byte_pointer_mask;
     wire [            BYTE-1:0] read_byte;
+    wire                        read_ready;
     reg                         last_byte_nxt;
     reg                         last_byte_reg;
     wire [  ADDRESS_LENGTH-1:0] word_alligned_address;
@@ -139,10 +139,11 @@ module OctalSPIController #(
     localparam [OPCODE_LENGTH -1 : 0] OPCODE_WRITE_ANY_REG = 8'h00;
     //localparam [OPCODE_LENGTH -1 : 0] OPCODE_LONG_ADDRESS_ENABLE = 8'h00;
 
-    assign o_next_word = write_next_word_reg;
-    assign o_recieved_next_word = read_next_word_reg;
+    assign o_read_valid = read_valid_reg;
     localparam WORD_LENGTH = $clog2(DATA_BYTES);
     assign word_alligned_address = {i_address[ADDRESS_LENGTH-1 : WORD_LENGTH], {WORD_LENGTH{1'b0}}};
+
+    assign read_ready = i_read_ready || !read_valid_reg;
 
     // Temp counter for correct reset
     reg reset_neg_spi;
@@ -183,9 +184,11 @@ module OctalSPIController #(
         .i_write_data(byte_pointer),
         .o_write_ready(is_transmitter_write_ready),
 
+        .i_read_ready(read_ready),
         .o_read_data(read_byte),
+        .o_read_valid(spi_read_next_byte),
+
         .o_finish(transmitter_finish),
-        .o_read_next_byte(spi_read_next_byte),
 
         // SPI Pins
         .o_bus_clock(o_bus_clock),
@@ -283,22 +286,24 @@ module OctalSPIController #(
 
     always @(*) begin : data_logic
         byte_index_nxt = byte_index_reg;
+        read_valid_nxt = read_valid_reg;
         data_in_muxed_nxt = data_in_muxed_reg;
         data_mask_nxt = data_mask_reg;
         last_byte_nxt = last_byte_reg;
-        read_next_word_nxt = 0;
-        write_next_word_nxt = 0;
         config_data_nxt = config_data_reg;
 
         // select which byte is transfered to the transmitter
         byte_pointer      = write_data_reg[byte_index_reg*8+:8]; // ToDo: has to be muxed with config data (issue #14)
         byte_pointer_mask = write_data_byte_mask_reg[byte_index_reg];
 
-        if (control_state_reg == READ) begin
-            if (spi_read_next_byte) begin
-                if (byte_index_reg == DATA_BYTES_MSB'(DATA_BYTES - 1) || (write_last_word_reg == 1 && byte_index_nxt ==  DATA_BYTES_MSB'(DATA_BYTES - 1))) begin
-                    byte_index_nxt = 0;
-                end else byte_index_nxt = byte_index_reg + 1;
+        // ToDo: the read and write should be either exclusive through logic or independant through more registers (issue #14)
+        if (read_ready && spi_read_next_byte) begin
+            if (byte_index_reg == DATA_BYTES_MSB'(DATA_BYTES - 1) || (write_last_word_reg == 1 && byte_index_nxt ==  DATA_BYTES_MSB'(DATA_BYTES - 1))) begin
+                byte_index_nxt = 0;
+                read_valid_nxt = 1;
+            end else begin
+                byte_index_nxt = byte_index_reg + 1;
+                read_valid_nxt = 0;
             end
         end
 
@@ -306,7 +311,9 @@ module OctalSPIController #(
         if (is_transmitter_write_ready && write_valid_reg) begin
             if (byte_index_reg == DATA_BYTES_MSB'(DATA_BYTES - 1)) begin
                 byte_index_nxt = 0;
-            end else byte_index_nxt = byte_index_reg + 1;
+            end else begin
+                byte_index_nxt = byte_index_reg + 1;
+            end
         end
 
         // using byte_index_nxt here is not good, since we use blocking assignments, the order of the assignments matter.
@@ -323,9 +330,8 @@ module OctalSPIController #(
         data_in_muxed_reg <= data_in_muxed_nxt;
         data_mask_reg <= data_mask_nxt;
         byte_index_reg <= byte_index_nxt;
+        read_valid_reg <= read_valid_nxt;
         last_byte_reg <= last_byte_nxt;
-        read_next_word_reg <= read_next_word_nxt;
-        write_next_word_reg <= write_next_word_nxt;
         config_data_reg <= config_data_nxt;
         data_read_reg <= data_read_reg;
         write_data_reg <= write_data_reg;
@@ -333,7 +339,7 @@ module OctalSPIController #(
         write_valid_reg <= write_valid_reg;
         write_last_word_reg <= write_last_word_reg;
 
-        if (spi_read_next_byte & ~last_byte_reg) begin
+        if (read_ready) begin
             data_read_reg[byte_index_reg*8+:8] <= read_byte;
         end
 
@@ -347,12 +353,10 @@ module OctalSPIController #(
         if (!reset_neg) begin
             data_in_muxed_reg <= 0;
             data_mask_reg <= 0;
-            last_word_reg <= 0;
             byte_index_reg <= 0;
             last_byte_reg <= 0;
             data_read_reg <= 0;
-            read_next_word_reg <= 0;
-            write_next_word_reg <= 0;
+            read_valid_reg <= 0;
             config_data_reg <= {
                 24'd0, CONFIG_QSPI_ENABLE
             };  // this is set only on reset - it should be more configurable (issue #16)

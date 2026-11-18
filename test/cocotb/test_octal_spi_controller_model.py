@@ -4,7 +4,7 @@ import cocotb
 from cocotb_tools.runner import get_runner
 from cocotb.triggers import Timer, RisingEdge, FallingEdge, ClockCycles, First
 from cocotb.clock import Clock
-from HelperClasses import DummyData, MemoryModelHelper
+from HelperClasses import DummyData, MemoryModelHelper, DataHandler
 from unittest import SkipTest
 
 DATA_WIDTH = int(os.environ.get("PARAM_DATA_WIDTH", 32))
@@ -52,14 +52,13 @@ def check_write_enable(dut):
     return dut.Memory.bottom.WREN.value
 
 
-def config_transaction(dut, opcode, address=0, data=0, data_mask=0b0000, only_one_word=True):
+def config_transaction(dut, opcode, address=0, data_mask=0b0000, only_one_word=True):
     dut.i_address.value = address
-    dut.i_last_word.value = only_one_word
+    dut.i_last.value = only_one_word
 
     if opcode == OPCODE.write:
-        dut.i_write_data.value = data
         dut.i_write_valid.value = True
-        dut.i_write_data_word_mask.value = data_mask
+        dut.i_write_data_mask.value = data_mask
         dut.i_write_enable.value = True
 
     if opcode == OPCODE.read:
@@ -68,59 +67,6 @@ def config_transaction(dut, opcode, address=0, data=0, data_mask=0b0000, only_on
     if opcode == OPCODE.read_id:
         dut.i_address.value = 0
         dut.i_write_enable.value = False
-
-
-async def handle_write_burst(dut, test_data):
-    num_loops = test_data.num_bytes // DATA_WIDTH_BYTES
-    last_num_bytes = test_data.num_bytes - (DATA_WIDTH_BYTES * num_loops)
-    if test_data.num_bytes <= DATA_WIDTH_BYTES:
-        dut.i_last_word.value = True
-
-    for i in range(1, num_loops):
-        dut.i_write_data.value = test_data.get_test_number_word(i * DATA_WIDTH_BYTES)
-        dut.i_write_valid.value = True
-
-        if i == 1:
-            await dut.o_write_ready.value_change
-
-        if i == num_loops - 1:
-            dut.i_last_word.value = True
-        await First(RisingEdge(dut.bus_clock), FallingEdge(dut.bus_clock))
-
-    if last_num_bytes != 0:
-        await First(RisingEdge(dut.bus_clock), FallingEdge(dut.bus_clock))
-        dut.i_write_data.value = test_data.get_test_number_word(
-            num_loops * DATA_WIDTH_BYTES, last_num_bytes
-        )
-    
-    # if we write one word, we have to wait until the write has started
-    if num_loops == 1:
-        await dut.o_write_ready.value_change
-
-    await wait_for_idle(dut)
-
-
-async def handle_read_burst(dut, num_bytes):
-    num_loops = num_bytes // DATA_WIDTH_BYTES
-    if num_bytes <= DATA_WIDTH_BYTES:
-        dut.i_last_word.value = True
-
-    recieved_data = []
-
-    for i in range(num_loops):
-        await RisingEdge(dut.o_recieved_next_word)
-        if i == num_loops - 1:
-            dut.i_last_word.value = True
-
-        for x in range(DATA_WIDTH_BYTES):
-            lower = x * 8
-            upper = (x+1) *8 -1
-            data = dut.o_read_data.value
-            recieved_data.append(data[upper:lower].to_unsigned())
-        dut.Controller.data_read_reg.value = 0  # ToDo: the other bytes have to be masked (issue #18)
-
-    await wait_for_idle(dut)
-    return recieved_data[:num_bytes]
 
 
 @cocotb.test()
@@ -135,7 +81,9 @@ async def write_test(dut):
     address = 0x001000
 
     MemoryModelHelper.set_memory_s70kl1283(dut.Memory, address, [0]*2*num_bytes)
-    config_transaction(dut, OPCODE.write, address=address, data=test_data.get_test_number())
+    config_transaction(dut, OPCODE.write, address=address)
+    handler = DataHandler(interface=dut, data=test_data, bus_width=DATA_WIDTH_BYTES)
+    handler.start_write()
     await trigger_go(dut)
     await wait_for_idle(dut)
     await wait_for_idle(dut)
@@ -185,17 +133,19 @@ async def read_test(dut):
 
     MemoryModelHelper.set_memory_s70kl1283(dut.Memory, address, test_data.get_test_array())
 
-    config_transaction(dut, OPCODE.read, address=address, data=test_data.get_test_number(), only_one_word=True)
+    config_transaction(dut, OPCODE.read, address=address)
+    read_data = DummyData(0)
+    handler = DataHandler(dut, read_data, DATA_WIDTH_BYTES)
+    handler.start_read(4, DATA_WIDTH_BYTES)
     await trigger_go(dut)
     await wait_for_idle(dut)
 
-    recieved_data = dut.o_read_data.value
     # since now we only read word wise, we have to append some data to the test data
     # (issue #18)
     test_data._array.append(0x00)
     test_data._array.append(0xff)
     test_data._array.append(0xff)
-    assert recieved_data.to_unsigned() == test_data.get_test_number()
+    assert read_data.get_test_array() == test_data.get_test_array()
 
 
 @cocotb.test()
@@ -235,11 +185,12 @@ async def write_burst_test(dut, num_bytes):
     print(test_data.get_test_array())
     address = 0x002000
 
-    has_only_one_word = True if num_bytes <= DATA_WIDTH_BYTES else False
-
-    config_transaction(dut, OPCODE.write, address=address, data=test_data.get_test_number_word(0, DATA_WIDTH_BYTES), only_one_word=has_only_one_word)
+    config_transaction(dut, OPCODE.write, address=address)
+    handler = DataHandler(interface=dut, data=test_data, bus_width=DATA_WIDTH_BYTES)
+    handler.start_write()
     await trigger_go(dut)
-    await handle_write_burst(dut, test_data)
+    await wait_for_idle(dut)
+    await wait_for_idle(dut)
     await T_rwr
 
     memory_data = MemoryModelHelper.get_memory_s70kl1283(dut.Memory, address, test_data.num_bytes)
@@ -258,15 +209,18 @@ async def read_burst_test(dut, num_bytes):
     test_data = DummyData(num_bytes)
     print(test_data.get_test_array())
     address = 0x002010
-
-    has_only_one_word = True if num_bytes <= DATA_WIDTH_BYTES else False
     
     MemoryModelHelper.set_memory_s70kl1283(dut.Memory, address, test_data.get_test_array())
 
-    config_transaction(dut, OPCODE.read, address=address, data=test_data.get_test_number(), only_one_word=has_only_one_word)
+    config_transaction(dut, OPCODE.read, address=address)
+    read_data = DummyData(0)
+    handler = DataHandler(dut, read_data, DATA_WIDTH_BYTES)
+    handler.start_read(num_bytes, DATA_WIDTH_BYTES)
+    
     await trigger_go(dut)
-    recieved_data = await handle_read_burst(dut, test_data.num_bytes)
-    assert recieved_data == test_data.get_test_array()
+    await wait_for_idle(dut)
+
+    assert read_data.get_test_array() == test_data.get_test_array()
 
 
 @cocotb.test()
