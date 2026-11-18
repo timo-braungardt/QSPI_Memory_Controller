@@ -72,3 +72,12 @@ def test_endianness_get_word_unalligned():
     assert data.get_test_number_word(4) == big_endian_next
     assert data.get_test_number_word(4, 2) == 0x0405
     assert data.get_test_number_word(5, 3) == 0x050607
+
+def test_conversion_unsigned_to_array():
+    data = DummyData(1)
+    converted_data = DummyData.convert_unsigned_to_array(data.get_test_number())
+    assert converted_data == data._array
+
+    data = DummyData(4)
+    converted_data = DummyData.convert_unsigned_to_array(data.get_test_number(), 4)
+    assert converted_data == data._array

@@ -9,6 +9,15 @@ class DummyData:
         self.is_little_endian = True
         self.word_width = word_width
 
+    def convert_unsigned_to_array(number, width=1):
+        data = []
+        temp_number = number
+        for i in range(width):
+            rest = temp_number % 256
+            data.append(rest)
+            temp_number = temp_number >> 8
+        return data
+
     def generate_test_array(self, num_bytes):
         self._array = []
         self.num_bytes = num_bytes
