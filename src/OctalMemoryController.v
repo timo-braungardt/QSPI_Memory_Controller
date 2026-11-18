@@ -99,7 +99,7 @@ module OctalMemoryController #(
         .o_read_data(axi_read_data),
         .o_busy(spi_busy),
         .o_next_word(spi_next_word),
-        .o_recieved_next_word(spi_recieved_next_word),
+        .o_read_valid(spi_recieved_next_word),
 
         // SPI Pins
         .o_bus_clock(o_spi_bus_clock),
