@@ -10,12 +10,12 @@ class DataHandler:
         self._data = data
         self._bus_width = bus_width
 
-    async def _run_write(self):
+    async def _run_write(self, byte_mask):
         index = 0
         try:
             self._interface.i_write_valid.value = 1
             self._interface.i_write_data.value = self._data.get_test_number_word(0, width=self._bus_width)
-            self._interface.i_write_data_mask.value = 0
+            self._interface.i_write_data_mask.value = byte_mask
             self._interface.i_last.value = (self._data.num_bytes <= self._bus_width)
 
             while index < self._data.num_bytes:
@@ -63,9 +63,9 @@ class DataHandler:
             self._interface.i_write_data_mask.value = 0
             self._interface.i_last.value = True
 
-    def start_write(self):
+    def start_write(self, byte_mask=0):
         assert self._task is None, "Driver is already running!"
-        self._task = cocotb.start_soon(self._run_write())
+        self._task = cocotb.start_soon(self._run_write(byte_mask))
 
     def start_read(self, num_bytes, bus_width=1):
         assert self._task is None, "Driver is already running!"

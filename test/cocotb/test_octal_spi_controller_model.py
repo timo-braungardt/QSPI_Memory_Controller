@@ -108,7 +108,9 @@ async def write_mask_test(dut):
     address = 0x000100
 
     MemoryModelHelper.set_memory_s70kl1283(dut.Memory, address, [0]*4)
-    config_transaction(dut, OPCODE.write, address=address, data=test_data.get_test_number(), data_mask=0b0110)
+    config_transaction(dut, OPCODE.write, address=address)
+    handler = DataHandler(interface=dut, data=test_data, bus_width=DATA_WIDTH_BYTES)
+    handler.start_write(byte_mask=0b0110)
     await trigger_go(dut)
     await wait_for_idle(dut)
     await wait_for_idle(dut)
