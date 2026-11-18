@@ -66,6 +66,7 @@ module OctalSPITransmitter #(
     reg data_strobe_out_nxt;  // ToDo: The signal has to be driven for write (issue #15) 0 is write, 1 is mask
     (* dont_touch = "true" *)
     reg read_valid_reg;
+    reg read_valid_nxt;
 
     reg has_latency_reg;
     reg has_latency_nxt;
@@ -99,17 +100,24 @@ module OctalSPITransmitter #(
     integer                      count_nxt;
     integer                      latency_offset;
     reg     [          BYTE-1:0] data_read_reg;
+    reg     [          BYTE-1:0] data_read_nxt;
 
     assign o_read_data = data_read_reg;
 
     // Data Bus
     reg [BUS_WIDTH-1 : 0] write_data_reg;
+    reg [BUS_WIDTH-1 : 0] write_data_nxt;
     reg                   write_data_byte_mask_reg;
+    reg                   write_data_byte_mask_nxt;
     reg                   write_valid_reg;
+    reg                   write_valid_nxt;
     reg                   write_last_byte_reg;
+    reg                   write_last_byte_nxt;
     reg                   write_last_byte_reg_p2;
+    reg                   write_last_byte_nxt_p2;
 
     reg                   read_last_byte_reg;
+    reg                   read_last_byte_nxt;
 
     assign o_write_ready = (state_reg == SEND_DATA) || !write_valid_reg;
 
@@ -258,14 +266,12 @@ module OctalSPITransmitter #(
             count_reg <= 0;
             o_chip_select_neg <= 1'b1;
             has_latency_reg <= 0;
-            data_strobe_out_reg <= 0;
             en_data_out_reg <= 0;
         end else begin
             state_reg <= state_nxt;
             count_reg <= count_nxt;
             o_chip_select_neg <= ~(state_nxt != IDLE);  // state_nxt for perfect sync with state
             has_latency_reg <= has_latency_nxt;
-            data_strobe_out_reg <= data_strobe_out_nxt;
             en_data_out_reg <= en_data_out_nxt;
         end
     end
@@ -274,6 +280,15 @@ module OctalSPITransmitter #(
     always @(*) begin : data_logic
         integer i;
         data_out_nxt = data_out_reg;
+        data_strobe_out_nxt = write_data_byte_mask_reg;
+        data_read_nxt = data_read_reg;
+        read_valid_nxt = 0;
+        read_last_byte_nxt = 0;
+        write_data_nxt = write_data_reg;
+        write_data_byte_mask_nxt = write_data_byte_mask_reg;
+        write_valid_nxt = write_valid_reg;
+        write_last_byte_nxt = write_last_byte_reg;
+        write_last_byte_nxt_p2 = write_last_byte_reg_p2;   // this signal shows if the current byte on the bus is the last ToDo: can we do this without this value? (issue #14)
 
         case (state_reg)
             SEND_OPCODE: begin
@@ -290,11 +305,31 @@ module OctalSPITransmitter #(
                 // if we wrote the last byte and we wrote an uneven ammount of bytes, we have to mask the next byte transfer
                 if (write_last_byte_reg_p2 & ~is_transfer_even & count_reg == 0)
                     data_strobe_out_nxt = 1'b1;
-                else data_strobe_out_nxt = write_data_byte_mask_reg;
             end
 
             default: ;
         endcase
+
+        
+        if (state_reg == RECEIVE_DATA && ~read_last_byte_reg) begin
+            if (i_read_ready) begin  //read_next data
+                data_read_nxt = i_spi_data;
+                read_valid_nxt = 1'b1;
+                read_last_byte_nxt = i_read_last_byte;
+            end else begin  //keep_data
+                data_read_nxt = data_read_reg;
+                read_valid_nxt = read_valid_reg;
+                read_last_byte_nxt = read_last_byte_reg;
+            end
+        end
+
+        if (o_write_ready) begin
+            write_data_nxt = i_write_data;
+            write_data_byte_mask_nxt = i_write_data_byte_mask;
+            write_valid_nxt = i_write_valid;
+            //write_last_byte_nxt = i_write_last_byte;    // the i_write_last_byte makes problems in the sensitivity list
+            write_last_byte_nxt_p2 = write_last_byte_reg;
+        end
     end
 
 
@@ -309,36 +344,23 @@ module OctalSPITransmitter #(
             write_last_byte_reg <= 0;
             write_last_byte_reg_p2 <= 0;
             read_last_byte_reg <= 0;
+            data_strobe_out_reg <= 0;
         end else begin
             data_out_reg <= data_out_nxt;
-            read_valid_reg <= 0;
-            data_read_reg <= data_read_reg;
-            read_last_byte_reg <= 0;
-
-            if (state_reg == RECEIVE_DATA && ~read_last_byte_reg) begin
-                if (i_read_ready) begin  //read_next data
-                    data_read_reg <= i_spi_data;
-                    read_valid_reg <= 1'b1;
-                    read_last_byte_reg <= i_read_last_byte;
-                end else begin  //keep_data
-                    read_valid_reg <= read_valid_reg;
-                    data_read_reg <= data_read_reg;
-                    read_last_byte_reg <= read_last_byte_reg;
-                end
-            end
+            read_valid_reg <= read_valid_nxt;
+            data_read_reg <= data_read_nxt;
+            write_data_reg <= write_data_nxt;
+            write_data_byte_mask_reg <= write_data_byte_mask_nxt;
+            write_valid_reg <= write_valid_nxt;
+            //write_last_byte_reg <= write_last_byte_nxt;
+            write_last_byte_reg_p2 <= write_last_byte_nxt_p2;   // this signal shows if the current byte on the bus is the last ToDo: can we do this without this value? (issue #14)
+            read_last_byte_reg <= read_last_byte_nxt;
+            data_strobe_out_reg <= data_strobe_out_nxt;
 
             if (o_write_ready) begin
-                write_data_reg <= i_write_data;
-                write_data_byte_mask_reg <= i_write_data_byte_mask;
-                write_valid_reg <= i_write_valid;
                 write_last_byte_reg <= i_write_last_byte;
-                write_last_byte_reg_p2 <= write_last_byte_reg;
             end else begin
-                write_data_reg <= write_data_reg;
-                write_data_byte_mask_reg <= write_data_byte_mask_reg;
-                write_valid_reg <= write_valid_reg;
                 write_last_byte_reg <= write_last_byte_reg;
-                write_last_byte_reg_p2 <= write_last_byte_reg_p2;   // this signal shows if the current byte on the bus is the last ToDo: can we do this without this value? (issue #14)
             end
         end
     end
