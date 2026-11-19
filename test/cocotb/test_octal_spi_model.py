@@ -87,6 +87,7 @@ async def write_test(dut):
     address = 0x001000
 
     config_transaction(dut, OPCODE.write_enable)
+    await Timer(50, unit="ns")      # this wait is needed, otherwise the test fails (issue #32)
     handler = DataHandler(dut, test_data)
     handler.start_write()
     await trigger_go(dut)
