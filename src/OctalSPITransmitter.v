@@ -327,7 +327,7 @@ module OctalSPITransmitter #(
             write_data_nxt = i_write_data;
             write_data_byte_mask_nxt = i_write_data_byte_mask;
             write_valid_nxt = i_write_valid;
-            write_last_byte_nxt = i_write_last_byte;    // the i_write_last_byte makes problems in the sensitivity list
+            //write_last_byte_nxt = i_write_last_byte;    // the i_write_last_byte makes problems in the sensitivity list
             write_last_byte_nxt_p2 = write_last_byte_reg;
         end
     end
