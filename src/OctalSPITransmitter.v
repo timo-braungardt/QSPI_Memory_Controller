@@ -327,7 +327,7 @@ module OctalSPITransmitter #(
             write_data_nxt = i_write_data;
             write_data_byte_mask_nxt = i_write_data_byte_mask;
             write_valid_nxt = i_write_valid;
-            //write_last_byte_nxt = i_write_last_byte;    // the i_write_last_byte makes problems in the sensitivity list
+            write_last_byte_nxt = i_write_last_byte;
             write_last_byte_nxt_p2 = write_last_byte_reg;
         end
     end
@@ -352,16 +352,10 @@ module OctalSPITransmitter #(
             write_data_reg <= write_data_nxt;
             write_data_byte_mask_reg <= write_data_byte_mask_nxt;
             write_valid_reg <= write_valid_nxt;
-            //write_last_byte_reg <= write_last_byte_nxt;
+            write_last_byte_reg <= write_last_byte_nxt;
             write_last_byte_reg_p2 <= write_last_byte_nxt_p2;   // this signal shows if the current byte on the bus is the last ToDo: can we do this without this value? (issue #14)
             read_last_byte_reg <= read_last_byte_nxt;
             data_strobe_out_reg <= data_strobe_out_nxt;
-
-            if (o_write_ready) begin
-                write_last_byte_reg <= i_write_last_byte;
-            end else begin
-                write_last_byte_reg <= write_last_byte_reg;
-            end
         end
     end
 
