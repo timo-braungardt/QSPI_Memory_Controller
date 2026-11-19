@@ -1,5 +1,6 @@
 import cocotb
 from cocotb.triggers import RisingEdge
+from cocotb.handle import Immediate
 from HelperClasses import DummyData
 
 
@@ -16,7 +17,7 @@ class DataHandler:
             self._interface.i_write_valid.value = 1
             self._interface.i_write_data.value = self._data.get_test_number_word(0, width=self._bus_width)
             self._interface.i_write_data_mask.value = byte_mask
-            self._interface.i_last.value = (self._data.num_bytes <= self._bus_width)
+            self._interface.i_last.value = Immediate((self._data.num_bytes <= self._bus_width))
 
             while index < self._data.num_bytes:
                 await RisingEdge(self._interface.clk)
