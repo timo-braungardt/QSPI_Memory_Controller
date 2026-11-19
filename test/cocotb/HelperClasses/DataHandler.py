@@ -14,9 +14,9 @@ class DataHandler:
     async def _run_write(self, byte_mask):
         index = 0
         try:
-            self._interface.i_write_valid.value = 1
-            self._interface.i_write_data.value = self._data.get_test_number_word(0, width=self._bus_width)
-            self._interface.i_write_data_mask.value = byte_mask
+            self._interface.i_write_valid.value = Immediate(1)
+            self._interface.i_write_data.value = Immediate(self._data.get_test_number_word(0, width=self._bus_width))
+            self._interface.i_write_data_mask.value = Immediate(byte_mask)
             self._interface.i_last.value = Immediate((self._data.num_bytes <= self._bus_width))
 
             while index < self._data.num_bytes:
