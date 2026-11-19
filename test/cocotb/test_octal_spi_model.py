@@ -4,6 +4,7 @@ import cocotb
 from cocotb_tools.runner import get_runner
 from cocotb.triggers import Timer, RisingEdge, FallingEdge, ClockCycles, First
 from cocotb.clock import Clock
+from cocotb.handle import Immediate
 from HelperClasses import DummyData, MemoryModelHelper, DataHandler
 from unittest import SkipTest
 
@@ -50,29 +51,29 @@ def check_write_enable(dut):
 
 
 def config_transaction(dut, opcode, address=0):
-    dut.i_address.value = address
-    dut.i_opcode.value = opcode
+    dut.i_address.value = Immediate(address)
+    dut.i_opcode.value = Immediate(opcode)
 
     if opcode == OPCODE.write:
-        dut.i_config_read_data.value = False
-        dut.i_config_write_data.value = True
-        dut.i_config_write_address.value = True
+        dut.i_config_read_data.value = Immediate(False)
+        dut.i_config_write_data.value = Immediate(True)
+        dut.i_config_write_address.value = Immediate(True)
 
     if opcode == OPCODE.read:
-        dut.i_config_read_data.value = True
-        dut.i_config_write_data.value = False
-        dut.i_config_write_address.value = True
+        dut.i_config_read_data.value = Immediate(True)
+        dut.i_config_write_data.value = Immediate(False)
+        dut.i_config_write_address.value = Immediate(True)
 
     if opcode == OPCODE.write_enable:
-        dut.i_config_read_data.value = False
-        dut.i_config_write_data.value = False
-        dut.i_config_write_address.value = False
+        dut.i_config_read_data.value = Immediate(False)
+        dut.i_config_write_data.value = Immediate(False)
+        dut.i_config_write_address.value = Immediate(False)
 
     if opcode == OPCODE.read_id:
-        dut.i_address.value = 0
-        dut.i_config_read_data.value = True
-        dut.i_config_write_data.value = False
-        dut.i_config_write_address.value = True
+        dut.i_address.value = Immediate(0)
+        dut.i_config_read_data.value = Immediate(True)
+        dut.i_config_write_data.value = Immediate(False)
+        dut.i_config_write_address.value = Immediate(True)
 
 
 @cocotb.test()
